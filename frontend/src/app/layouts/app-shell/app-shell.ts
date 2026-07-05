@@ -150,7 +150,6 @@ export class AppShell {
   readonly navItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
     { path: '/trips', label: 'My Trips', icon: 'lucideMapPin' },
-    { path: '/expenses', label: 'Expenses', icon: 'lucideReceipt' },
     { path: '/invitations', label: 'Invitations', icon: 'lucideMail', badge: 2 },
     { path: '/notifications', label: 'Notifications', icon: 'lucideBell', badge: 3 },
     { path: '/profile', label: 'Profile', icon: 'lucideUser' },
