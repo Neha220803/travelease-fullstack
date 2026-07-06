@@ -4,7 +4,6 @@ export const MISC_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-    data: { title: 'TravelEase' },
+      import('@app/features/misc/components/landing/landing').then((m) => m.Landing),
   },
 ];

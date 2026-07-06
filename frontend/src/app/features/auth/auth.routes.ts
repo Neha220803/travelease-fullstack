@@ -9,14 +9,12 @@ export const AUTH_ROUTES: Routes = [
       {
         path: 'login',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Sign in' },
+          import('@app/features/auth/components/login/login').then((m) => m.Login),
       },
       {
         path: 'register',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Create account' },
+          import('@app/features/auth/components/register/register').then((m) => m.Register),
       },
     ],
   },

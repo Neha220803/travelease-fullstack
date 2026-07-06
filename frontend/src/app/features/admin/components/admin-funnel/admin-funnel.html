@@ -1,0 +1,84 @@
+<app-page-header title="Booking Funnel Analytics" subtitle="Where users enter, progress, and drop off in the journey." />
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-xs text-muted-foreground">Searches</p>
+      <p class="text-2xl font-semibold mt-1">{{ total.toLocaleString() }}</p>
+    </div>
+  </div>
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-xs text-muted-foreground">Bookings Completed</p>
+      <p class="text-2xl font-semibold mt-1">{{ completed.toLocaleString() }}</p>
+    </div>
+  </div>
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-xs text-muted-foreground">Overall Conversion</p>
+      <p class="text-2xl font-semibold mt-1">{{ conversion }}%</p>
+    </div>
+  </div>
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-xs text-muted-foreground">Total Drop-off</p>
+      <p class="text-2xl font-semibold mt-1">{{ totalDropOff }}%</p>
+    </div>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+  <div hlmCard class="lg:col-span-2">
+    <div hlmCardHeader>
+      <h3 hlmCardTitle>Conversion Funnel</h3>
+    </div>
+    <div hlmCardContent class="space-y-2">
+      @for (s of stages; track s.stage) {
+        <div>
+          <div
+            class="relative mx-auto rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground py-4 px-5 shadow-sm"
+            [style.width.%]="s.widthPct"
+            style="min-width: 240px"
+          >
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="text-sm font-medium">{{ s.stage }}</p>
+                <p class="text-xs opacity-80">{{ s.dropReason }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xl font-semibold tabular-nums">{{ s.users }}</p>
+                <p class="text-[11px] opacity-80">{{ s.pctOfTotal }}% of total</p>
+              </div>
+            </div>
+          </div>
+          @if (s.dropPct) {
+            <div class="flex items-center justify-center gap-1.5 text-xs text-destructive py-1">
+              <ng-icon name="lucideArrowDown" class="h-3 w-3" /> {{ s.dropPct }}% drop-off
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div hlmCard>
+    <div hlmCardHeader>
+      <h3 hlmCardTitle class="flex items-center gap-2">
+        <ng-icon name="lucideTrendingDown" class="h-4 w-4 text-destructive" />Drop-off Reasons
+      </h3>
+    </div>
+    <div hlmCardContent class="space-y-4">
+      @for (r of dropReasons; track r.reason) {
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span>{{ r.reason }}</span>
+            <span class="tabular-nums text-muted-foreground">{{ r.pct }}%</span>
+          </div>
+          <div class="h-2 rounded-full bg-muted overflow-hidden">
+            <div class="h-full bg-accent" [style.width.%]="r.pct * 2"></div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

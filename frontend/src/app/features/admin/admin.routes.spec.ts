@@ -1,7 +1,14 @@
 import { AppShell } from '@app/shared/layout/app-shell/app-shell';
-import { RoutePlaceholder } from '@app/shared/ui/route-placeholder/route-placeholder';
+import { AdminDashboard } from '@app/features/admin/components/admin-dashboard/admin-dashboard';
+import { AdminRouteAnalytics } from '@app/features/admin/components/admin-route-analytics/admin-route-analytics';
+import { AdminPartners } from '@app/features/admin/components/admin-partners/admin-partners';
+import { AdminFunnel } from '@app/features/admin/components/admin-funnel/admin-funnel';
 import { AdminApprovals } from '@app/features/admin/components/admin-approvals/admin-approvals';
 import { AdminUsers } from '@app/features/admin/components/admin-users/admin-users';
+import { AdminTrips } from '@app/features/admin/components/admin-trips/admin-trips';
+import { AdminBuses } from '@app/features/admin/components/admin-buses/admin-buses';
+import { AdminHotels } from '@app/features/admin/components/admin-hotels/admin-hotels';
+import { AdminReports } from '@app/features/admin/components/admin-reports/admin-reports';
 import { ADMIN_ROUTES } from './admin.routes';
 
 describe('ADMIN_ROUTES', () => {
@@ -30,35 +37,22 @@ describe('ADMIN_ROUTES', () => {
     ]);
   });
 
-  it('sets a human-readable title for each still-placeholder child route', () => {
+  it('lazily loads the real component for every child route', async () => {
     const children = ADMIN_ROUTES[0].children ?? [];
-    const realPaths = new Set(['', 'reports', 'approvals', 'users']);
-    const stillPlaceholder = children.filter((r) => !realPaths.has(r.path ?? ''));
-    expect(stillPlaceholder.map((r) => r.data?.['title'])).toEqual([
-      'Route Analytics',
-      'Partner Analytics',
-      'Booking Funnel',
-      'Trips',
-      'Bus Management',
-      'Hotel Management',
-    ]);
-  });
-
-  it('lazily loads the real components for the approvals and users routes', async () => {
-    const children = ADMIN_ROUTES[0].children ?? [];
-    const approvalsChild = children.find((r) => r.path === 'approvals')!;
-    expect(await approvalsChild.loadComponent!()).toBe(AdminApprovals);
-    const usersChild = children.find((r) => r.path === 'users')!;
-    expect(await usersChild.loadComponent!()).toBe(AdminUsers);
-  });
-
-  it('lazily loads RoutePlaceholder for the remaining 6 child routes (excluding dashboard and reports, already real)', async () => {
-    const children = ADMIN_ROUTES[0].children ?? [];
-    const stillPlaceholder = children.filter(
-      (r) => r.path !== '' && r.path !== 'reports' && r.path !== 'approvals' && r.path !== 'users',
-    );
-    for (const route of stillPlaceholder) {
-      expect(await route.loadComponent!()).toBe(RoutePlaceholder);
+    const expected = [
+      AdminDashboard,
+      AdminRouteAnalytics,
+      AdminPartners,
+      AdminFunnel,
+      AdminApprovals,
+      AdminUsers,
+      AdminTrips,
+      AdminBuses,
+      AdminHotels,
+      AdminReports,
+    ];
+    for (let i = 0; i < children.length; i++) {
+      expect(await children[i].loadComponent!()).toBe(expected[i]);
     }
   });
 });

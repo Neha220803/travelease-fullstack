@@ -16,20 +16,23 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'route-analytics',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Route Analytics' },
+          import(
+            '@app/features/admin/components/admin-route-analytics/admin-route-analytics'
+          ).then((m) => m.AdminRouteAnalytics),
       },
       {
         path: 'partners',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Partner Analytics' },
+          import('@app/features/admin/components/admin-partners/admin-partners').then(
+            (m) => m.AdminPartners,
+          ),
       },
       {
         path: 'funnel',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Booking Funnel' },
+          import('@app/features/admin/components/admin-funnel/admin-funnel').then(
+            (m) => m.AdminFunnel,
+          ),
       },
       {
         path: 'approvals',
@@ -48,20 +51,23 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'trips',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Trips' },
+          import('@app/features/admin/components/admin-trips/admin-trips').then(
+            (m) => m.AdminTrips,
+          ),
       },
       {
         path: 'buses',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Bus Management' },
+          import('@app/features/admin/components/admin-buses/admin-buses').then(
+            (m) => m.AdminBuses,
+          ),
       },
       {
         path: 'hotels',
         loadComponent: () =>
-          import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),
-        data: { title: 'Hotel Management' },
+          import('@app/features/admin/components/admin-hotels/admin-hotels').then(
+            (m) => m.AdminHotels,
+          ),
       },
       {
         path: 'reports',
