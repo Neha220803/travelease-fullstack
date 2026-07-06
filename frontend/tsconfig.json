@@ -13,6 +13,7 @@
     "target": "ES2022",
     "module": "preserve",
     "paths": {
+      "@app/*": ["./src/app/*"],
       "@spartan-ng/helm/autocomplete": ["./libs/ui/autocomplete/src/index.ts"],
       "@spartan-ng/helm/badge": ["./libs/ui/badge/src/index.ts"],
       "@spartan-ng/helm/button": ["./libs/ui/button/src/index.ts"],
