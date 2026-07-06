@@ -63,6 +63,13 @@
           <div><p class="text-muted-foreground">Rooms</p><p class="font-medium">{{ h.rooms }}</p></div>
           <div><p class="text-muted-foreground">Price</p><p class="font-medium">₹{{ h.price }}</p></div>
         </div>
+        <div class="pt-2">
+          @if (approvedIds().has(h.id)) {
+            <app-status-badge status="Accepted" />
+          } @else {
+            <button hlmBtn size="sm" class="w-full" (click)="approve(h.id)">Approve</button>
+          }
+        </div>
         <div class="flex gap-2 pt-2">
           <button hlmBtn variant="outline" size="sm" class="flex-1">Edit</button>
           <button hlmBtn size="sm" class="flex-1">Manage</button>

@@ -31,4 +31,28 @@ describe('AdminHotels', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Add Hotel');
   });
+
+  it('shows every hotel as pending (Approve button) by default', () => {
+    const fixture = TestBed.createComponent(AdminHotels);
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const approveCount = (text.match(/Approve/g) ?? []).length;
+    expect(approveCount).toBe(hotels.length);
+  });
+
+  it('approves only the clicked hotel, leaving the others pending', () => {
+    const fixture = TestBed.createComponent(AdminHotels);
+    fixture.detectChanges();
+    const buttons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ) as HTMLButtonElement[];
+    const firstApprove = buttons.find((b) => b.textContent?.trim() === 'Approve')!;
+    firstApprove.click();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Accepted');
+    const approveCount = (text.match(/Approve/g) ?? []).length;
+    expect(approveCount).toBe(hotels.length - 1);
+  });
 });

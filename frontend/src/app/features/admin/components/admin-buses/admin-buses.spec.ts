@@ -50,4 +50,28 @@ describe('AdminBuses', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Add Bus');
   });
+
+  it('shows every bus as pending (Approve button) by default', () => {
+    const fixture = TestBed.createComponent(AdminBuses);
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const approveCount = (text.match(/Approve/g) ?? []).length;
+    expect(approveCount).toBe(buses.length);
+  });
+
+  it('approves only the clicked bus, leaving the others pending', () => {
+    const fixture = TestBed.createComponent(AdminBuses);
+    fixture.detectChanges();
+    const buttons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ) as HTMLButtonElement[];
+    const firstApprove = buttons.find((b) => b.textContent?.trim() === 'Approve')!;
+    firstApprove.click();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Accepted');
+    const approveCount = (text.match(/Approve/g) ?? []).length;
+    expect(approveCount).toBe(buses.length - 1);
+  });
 });

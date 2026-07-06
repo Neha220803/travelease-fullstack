@@ -51,17 +51,18 @@
       <div class="grid grid-cols-12 px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40 border-b">
         <div class="col-span-3">Bus</div>
         <div class="col-span-2">Operator</div>
-        <div class="col-span-2">Route</div>
+        <div class="col-span-1">Route</div>
         <div class="col-span-1">Seats</div>
         <div class="col-span-1">Price</div>
         <div class="col-span-1">Rating</div>
         <div class="col-span-2">Status</div>
+        <div class="col-span-1">Approval</div>
       </div>
       @for (b of rows; track b.id) {
         <div class="grid grid-cols-12 px-4 py-3 items-center border-b last:border-0 text-sm">
           <div class="col-span-3"><p class="font-medium">{{ b.name }}</p></div>
           <div class="col-span-2">{{ b.operator }}</div>
-          <div class="col-span-2 text-xs">Bengaluru → Goa</div>
+          <div class="col-span-1 text-xs">Bengaluru → Goa</div>
           <div class="col-span-1">{{ b.seats }}</div>
           <div class="col-span-1">₹{{ b.price }}</div>
           <div class="col-span-1 flex items-center gap-1">
@@ -69,6 +70,13 @@
           </div>
           <div class="col-span-2">
             <span hlmBadge variant="outline" [class]="b.statusClass">{{ b.status }}</span>
+          </div>
+          <div class="col-span-1">
+            @if (approvedIds().has(b.id)) {
+              <app-status-badge status="Accepted" />
+            } @else {
+              <button hlmBtn size="sm" (click)="approve(b.id)">Approve</button>
+            }
           </div>
         </div>
       }

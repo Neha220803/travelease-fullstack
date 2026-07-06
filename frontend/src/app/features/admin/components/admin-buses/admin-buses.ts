@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
@@ -7,6 +7,7 @@ import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
+import { StatusBadge } from '@app/shared/ui/status-badge/status-badge';
 import { buses } from '@app/core/mock-data';
 
 const STATUS_BY_INDEX = ['On Time', 'Delayed', 'On Time'];
@@ -43,6 +44,7 @@ interface BusRow {
     HlmInputImports,
     HlmLabelImports,
     PageHeader,
+    StatusBadge,
   ],
   templateUrl: './admin-buses.html',
 })
@@ -60,4 +62,10 @@ export class AdminBuses {
       statusClass: busStatusClass(status),
     };
   });
+
+  public readonly approvedIds = signal<ReadonlySet<string>>(new Set());
+
+  public approve(id: string): void {
+    this.approvedIds.update((ids) => new Set(ids).add(id));
+  }
 }
