@@ -32,32 +32,8 @@
     <div hlmCardHeader>
       <h3 hlmCardTitle>Conversion Funnel</h3>
     </div>
-    <div hlmCardContent class="space-y-2">
-      @for (s of stages; track s.stage) {
-        <div>
-          <div
-            class="relative mx-auto rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground py-4 px-5 shadow-sm"
-            [style.width.%]="s.widthPct"
-            style="min-width: 240px"
-          >
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="text-sm font-medium">{{ s.stage }}</p>
-                <p class="text-xs opacity-80">{{ s.dropReason }}</p>
-              </div>
-              <div class="text-right">
-                <p class="text-xl font-semibold tabular-nums">{{ s.users }}</p>
-                <p class="text-[11px] opacity-80">{{ s.pctOfTotal }}% of total</p>
-              </div>
-            </div>
-          </div>
-          @if (s.dropPct) {
-            <div class="flex items-center justify-center gap-1.5 text-xs text-destructive py-1">
-              <ng-icon name="lucideArrowDown" class="h-3 w-3" /> {{ s.dropPct }}% drop-off
-            </div>
-          }
-        </div>
-      }
+    <div hlmCardContent>
+      <app-echart [options]="funnelOptions" height="320px" />
     </div>
   </div>
 
@@ -67,18 +43,8 @@
         <ng-icon name="lucideTrendingDown" class="h-4 w-4 text-destructive" />Drop-off Reasons
       </h3>
     </div>
-    <div hlmCardContent class="space-y-4">
-      @for (r of dropReasons; track r.reason) {
-        <div>
-          <div class="flex justify-between text-sm mb-1">
-            <span>{{ r.reason }}</span>
-            <span class="tabular-nums text-muted-foreground">{{ r.pct }}%</span>
-          </div>
-          <div class="h-2 rounded-full bg-muted overflow-hidden">
-            <div class="h-full bg-accent" [style.width.%]="r.pct * 2"></div>
-          </div>
-        </div>
-      }
+    <div hlmCardContent>
+      <app-echart [options]="dropReasonsOptions" height="200px" />
     </div>
   </div>
 </div>

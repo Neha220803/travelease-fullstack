@@ -38,18 +38,8 @@
         <ng-icon name="lucideTrendingUp" class="h-4 w-4 text-success" />Most Booked Routes
       </h3>
     </div>
-    <div hlmCardContent class="space-y-3">
-      @for (r of top; track r.route) {
-        <div>
-          <div class="flex justify-between text-sm mb-1">
-            <span class="font-medium">{{ r.route }}</span>
-            <span class="text-muted-foreground tabular-nums">{{ r.bookings }}</span>
-          </div>
-          <div class="h-2 rounded-full bg-muted overflow-hidden">
-            <div class="h-full bg-success" [style.width.%]="barWidth(r.bookings)"></div>
-          </div>
-        </div>
-      }
+    <div hlmCardContent>
+      <app-echart [options]="topChartOptions" height="200px" />
     </div>
   </div>
   <div hlmCard>
@@ -58,18 +48,8 @@
         <ng-icon name="lucideTrendingDown" class="h-4 w-4 text-destructive" />Least Booked Routes
       </h3>
     </div>
-    <div hlmCardContent class="space-y-3">
-      @for (r of bottom; track r.route) {
-        <div>
-          <div class="flex justify-between text-sm mb-1">
-            <span class="font-medium">{{ r.route }}</span>
-            <span class="text-muted-foreground tabular-nums">{{ r.bookings }}</span>
-          </div>
-          <div class="h-2 rounded-full bg-muted overflow-hidden">
-            <div class="h-full bg-destructive/70" [style.width.%]="barWidth(r.bookings)"></div>
-          </div>
-        </div>
-      }
+    <div hlmCardContent>
+      <app-echart [options]="bottomChartOptions" height="200px" />
     </div>
   </div>
 </div>

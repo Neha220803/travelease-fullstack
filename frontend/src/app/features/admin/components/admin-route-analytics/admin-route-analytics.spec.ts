@@ -47,4 +47,23 @@ describe('AdminRouteAnalytics', () => {
     expect(high.cancellationClass).toContain('text-destructive');
     expect(low.cancellationClass).toContain('text-success');
   });
+
+  it('builds top/bottom charts with bookings values matching the top/bottom route lists', () => {
+    const fixture = TestBed.createComponent(AdminRouteAnalytics);
+    const c = fixture.componentInstance;
+
+    const topSeries = (c.topChartOptions['series'] as any[])[0];
+    const topYAxis = c.topChartOptions['yAxis'] as { data: string[] };
+    for (const r of c.top) {
+      const idx = topYAxis.data.indexOf(r.route);
+      expect(topSeries.data[idx]).toBe(r.bookings);
+    }
+
+    const bottomSeries = (c.bottomChartOptions['series'] as any[])[0];
+    const bottomYAxis = c.bottomChartOptions['yAxis'] as { data: string[] };
+    for (const r of c.bottom) {
+      const idx = bottomYAxis.data.indexOf(r.route);
+      expect(bottomSeries.data[idx]).toBe(r.bookings);
+    }
+  });
 });

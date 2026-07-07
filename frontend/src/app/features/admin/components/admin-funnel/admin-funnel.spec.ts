@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideIcons } from '@ng-icons/core';
-import { lucideArrowDown, lucideTrendingDown } from '@ng-icons/lucide';
+import { lucideTrendingDown } from '@ng-icons/lucide';
 import { dropReasons, funnelStages } from '@app/core/mock-data';
-import { AdminFunnel } from '@app/features/admin/components/admin-funnel/admin-funnel';
+import { AdminFunnel, buildFunnelOption } from '@app/features/admin/components/admin-funnel/admin-funnel';
 
 describe('AdminFunnel', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AdminFunnel],
-      providers: [provideIcons({ lucideArrowDown, lucideTrendingDown })],
+      providers: [provideIcons({ lucideTrendingDown })],
     }).compileComponents();
   });
 
@@ -34,13 +34,48 @@ describe('AdminFunnel', () => {
     expect(c.stages[0].dropPct).toBeNull();
   });
 
-  it('renders all 5 drop reasons with the correct bar width', () => {
+  it('builds a drop reasons chart with all 5 reasons and percentages', () => {
     const fixture = TestBed.createComponent(AdminFunnel);
-    fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const c = fixture.componentInstance;
+    const yAxis = c.dropReasonsOptions['yAxis'] as { data: string[] };
+    const series = (c.dropReasonsOptions['series'] as any[])[0];
+
     for (const r of dropReasons) {
-      expect(text).toContain(r.reason);
-      expect(text).toContain(`${r.pct}%`);
+      const idx = yAxis.data.indexOf(r.reason);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      expect(series.data[idx]).toBe(r.pct);
     }
+  });
+});
+
+describe('buildFunnelOption', () => {
+  const stages = funnelStages.map((s, i) => ({
+    stage: s.stage,
+    users: s.users,
+    dropReason: s.dropReason,
+    widthPct: 0,
+    pctOfTotal: '0',
+    dropPct: i > 0 ? '10.0' : null,
+  }));
+
+  it('maps each stage to a funnel data point with its stage name and user count', () => {
+    const option = buildFunnelOption(stages, 'oklch(0.5 0.1 200)');
+    const series = (option['series'] as any[])[0];
+    expect(series.data).toEqual(stages.map((s) => ({ name: s.stage, value: s.users })));
+  });
+
+  it('includes the drop-off percentage and reason in the tooltip for stages after the first', () => {
+    const option = buildFunnelOption(stages, 'oklch(0.5 0.1 200)');
+    const tooltipFormatter = (option['tooltip'] as any).formatter as (p: any) => string;
+    const html = tooltipFormatter({ dataIndex: 1 });
+    expect(html).toContain('10.0% drop-off');
+    expect(html).toContain(stages[1].dropReason);
+  });
+
+  it('omits the drop-off line in the tooltip for the first stage', () => {
+    const option = buildFunnelOption(stages, 'oklch(0.5 0.1 200)');
+    const tooltipFormatter = (option['tooltip'] as any).formatter as (p: any) => string;
+    const html = tooltipFormatter({ dataIndex: 0 });
+    expect(html).not.toContain('drop-off');
   });
 });

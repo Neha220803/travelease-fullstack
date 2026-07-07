@@ -19,29 +19,15 @@
       <h3 hlmCardTitle>Bookings (last 30 days)</h3>
     </div>
     <div hlmCardContent>
-      <div class="h-64 flex items-end gap-1.5">
-        @for (h of bars; track $index) {
-          <div class="flex-1 bg-primary/80 rounded-t" [style.height.%]="h"></div>
-        }
-      </div>
+      <app-echart [options]="bookingsChartOptions" height="256px" />
     </div>
   </div>
   <div hlmCard>
     <div hlmCardHeader>
       <h3 hlmCardTitle>Popular Destinations</h3>
     </div>
-    <div hlmCardContent class="space-y-3">
-      @for (d of destinations; track d.name) {
-        <div>
-          <div class="flex justify-between text-sm mb-1">
-            <span>{{ d.name }}</span>
-            <span class="text-muted-foreground tabular-nums">{{ d.pct }}%</span>
-          </div>
-          <div class="h-2 rounded-full bg-muted overflow-hidden">
-            <div class="h-full bg-primary" [style.width.%]="d.pct"></div>
-          </div>
-        </div>
-      }
+    <div hlmCardContent>
+      <app-echart [options]="destinationsChartOptions" height="200px" />
     </div>
   </div>
 </div>

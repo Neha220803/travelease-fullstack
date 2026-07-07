@@ -11,6 +11,7 @@ import {
 import {
   AdminDashboard,
   bookingBarHeight,
+  buildBookingsBarOption,
 } from '@app/features/admin/components/admin-dashboard/admin-dashboard';
 
 describe('bookingBarHeight', () => {
@@ -18,6 +19,21 @@ describe('bookingBarHeight', () => {
     for (let i = 0; i < 30; i++) {
       expect(bookingBarHeight(i)).toBeCloseTo(30 + Math.abs(Math.sin(i * 0.7) * 70) + (i % 4) * 5);
     }
+  });
+});
+
+describe('buildBookingsBarOption', () => {
+  it('puts the bars array directly into the bar series data, unmodified', () => {
+    const bars = [10, 50, 90];
+    const option = buildBookingsBarOption(bars);
+    const series = (option['series'] as any[])[0];
+    expect(series.data).toEqual(bars);
+  });
+
+  it('labels the x-axis with 1-based day numbers', () => {
+    const option = buildBookingsBarOption([10, 50, 90]);
+    const xAxis = option['xAxis'] as { data: string[] };
+    expect(xAxis.data).toEqual(['1', '2', '3']);
   });
 });
 
@@ -62,18 +78,23 @@ describe('AdminDashboard', () => {
     expect(text).toContain('+5%');
   });
 
-  it('renders all 30 bars with heights matching the sine formula', () => {
+  it('builds 30 bars matching the sine formula, fed into the bookings chart options', () => {
     const fixture = TestBed.createComponent(AdminDashboard);
-    expect(fixture.componentInstance.bars).toHaveLength(30);
-    fixture.componentInstance.bars.forEach((h, i) => {
+    const c = fixture.componentInstance;
+    expect(c.bars).toHaveLength(30);
+    c.bars.forEach((h, i) => {
       expect(h).toBeCloseTo(bookingBarHeight(i));
     });
+    const series = (c.bookingsChartOptions['series'] as any[])[0];
+    expect(series.data).toEqual(c.bars);
   });
 
-  it('renders all 5 Popular Destinations names and percentages', () => {
+  it('builds a destinations chart with all 5 names and percentages', () => {
     const fixture = TestBed.createComponent(AdminDashboard);
-    fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const c = fixture.componentInstance;
+    const yAxis = c.destinationsChartOptions['yAxis'] as { data: string[] };
+    const series = (c.destinationsChartOptions['series'] as any[])[0];
+
     for (const d of [
       { name: 'Goa', pct: 92 },
       { name: 'Manali', pct: 74 },
@@ -81,8 +102,9 @@ describe('AdminDashboard', () => {
       { name: 'Pondicherry', pct: 55 },
       { name: 'Coorg', pct: 41 },
     ]) {
-      expect(text).toContain(d.name);
-      expect(text).toContain(`${d.pct}%`);
+      const idx = yAxis.data.indexOf(d.name);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      expect(series.data[idx]).toBe(d.pct);
     }
   });
 });
