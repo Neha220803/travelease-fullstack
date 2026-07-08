@@ -432,6 +432,19 @@ public class AccommodationServiceImpl implements AccommodationService {
         return toBookingResponse(bookingRepository.save(booking));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<HotelBookingResponse> getProviderBookings() {
+        Long effectiveProviderId = securityUtil.resolveEffectiveHotelProviderId(null);
+        List<HotelBooking> bookings = bookingRepository.findAll();
+        if (effectiveProviderId != null) {
+            bookings = bookings.stream()
+                    .filter(b -> b.getHotel() != null && Objects.equals(b.getHotel().getProviderId(), effectiveProviderId))
+                    .toList();
+        }
+        return bookings.stream().map(this::toBookingResponse).toList();
+    }
+
     private List<String> validate(HotelBookingRequest request) {
         List<String> errors = new ArrayList<>();
         if (!hotelRepository.existsById(request.hotelId())) {

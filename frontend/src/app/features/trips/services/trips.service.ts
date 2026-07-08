@@ -4,6 +4,7 @@ import { Observable, map } from 'rxjs';
 import { API_BASE_URL } from '@app/core/api/api-config';
 import { ApiResponse } from '@app/core/api/api-response.model';
 import {
+  BudgetSummary,
   CreateTripPayload,
   PendingInvitation,
   Trip,
@@ -66,5 +67,17 @@ export class TripsService {
     return this.http
       .delete<ApiResponse<void>>(`${API_BASE_URL}/api/trips/${tripId}/members/${tripMemberId}`)
       .pipe(map(() => undefined));
+  }
+
+  getTripById(tripId: string): Observable<Trip> {
+    return this.http
+      .get<ApiResponse<Trip>>(`${API_BASE_URL}/api/trips/${tripId}`)
+      .pipe(map((response) => response.data));
+  }
+
+  getBudgetSummary(tripId: string): Observable<BudgetSummary> {
+    return this.http
+      .get<ApiResponse<BudgetSummary>>(`${API_BASE_URL}/api/trips/${tripId}/budget/summary`)
+      .pipe(map((response) => response.data));
   }
 }

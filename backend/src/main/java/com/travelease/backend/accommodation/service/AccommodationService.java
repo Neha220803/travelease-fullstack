@@ -95,4 +95,6 @@ public interface AccommodationService {
     HotelBookingResponse checkIn(UUID bookingId);
 
     HotelBookingResponse checkOut(UUID bookingId);
+
+    List<HotelBookingResponse> getProviderBookings();
 }
