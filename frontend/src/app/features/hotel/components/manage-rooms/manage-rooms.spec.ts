@@ -42,7 +42,7 @@ describe('ManageRooms', () => {
 
   it('computes the correct occupancy percentage per grouped room type', () => {
     const fixture = TestBed.createComponent(ManageRooms);
-    const rows = fixture.componentInstance.rows;
+    const rows = fixture.componentInstance.rows();
     for (const r of groupRooms(TEST_PROVIDER_OVERVIEW.rooms)) {
       const row = rows.find((x) => x.id === r.id)!;
       expect(row.pct).toBeCloseTo(r.pct);

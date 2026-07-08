@@ -1,32 +1,32 @@
-<app-page-header title="Hotel Partner Dashboard" [subtitle]="dashboardSubtitle" />
+<app-page-header title="Hotel Partner Dashboard" [subtitle]="dashboardSubtitle()" />
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div hlmCard>
     <div hlmCardContent class="pt-5">
       <ng-icon name="lucideDoorOpen" class="h-4 w-4 text-primary mb-2" />
       <p class="text-xs text-muted-foreground">Total Rooms</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ totalRooms }}</p>
+      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ totalRooms() }}</p>
     </div>
   </div>
   <div hlmCard>
     <div hlmCardContent class="pt-5">
       <ng-icon name="lucideHotel" class="h-4 w-4 text-primary mb-2" />
       <p class="text-xs text-muted-foreground">Available Rooms</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ availableRooms }}</p>
+      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ availableRooms() }}</p>
     </div>
   </div>
   <div hlmCard>
     <div hlmCardContent class="pt-5">
       <ng-icon name="lucideCalendarDays" class="h-4 w-4 text-primary mb-2" />
       <p class="text-xs text-muted-foreground">Bookings Today</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ bookingsToday }}</p>
+      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ bookingsToday() }}</p>
     </div>
   </div>
   <div hlmCard>
     <div hlmCardContent class="pt-5">
       <ng-icon name="lucideWallet" class="h-4 w-4 text-primary mb-2" />
       <p class="text-xs text-muted-foreground">Revenue (MTD)</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ revenueMtd }}</p>
+      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ revenueMtd() }}</p>
     </div>
   </div>
 </div>
@@ -37,7 +37,25 @@
       <h3 hlmCardTitle>Occupancy Calendar &mdash; {{ calendarMonthLabel }}</h3>
     </div>
     <div hlmCardContent>
-      <app-echart [options]="calendarOptions" height="220px" />
+      <div class="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2">
+        @for (label of weekdayLabels; track label) {
+          <div class="text-center font-medium">{{ label }}</div>
+        }
+      </div>
+      <div class="grid grid-cols-7 gap-2">
+        @for (blank of leadingBlanks; track $index) {
+          <div></div>
+        }
+        @for (day of calendarDays(); track day.date) {
+          <div
+            class="rounded-lg p-2 aspect-square flex flex-col justify-between transition-colors duration-700 ease-out"
+            [style.background-color]="occupancyBackground(day.pct)"
+          >
+            <span class="text-xs font-semibold text-foreground">{{ day.day }}</span>
+            <span class="text-[10px] text-muted-foreground">{{ day.pct }}%</span>
+          </div>
+        }
+      </div>
     </div>
   </div>
 
@@ -46,7 +64,7 @@
       <h3 hlmCardTitle>Recent Bookings</h3>
     </div>
     <div hlmCardContent class="space-y-3">
-      @for (b of recentBookings; track b.id) {
+      @for (b of recentBookings(); track b.id) {
         <div class="flex items-center justify-between text-sm">
           <div>
             <p class="font-medium">{{ b.guest }}</p>
@@ -65,7 +83,7 @@
       <h3 hlmCardTitle>Room Inventory</h3>
     </div>
     <div hlmCardContent class="grid grid-cols-2 gap-4">
-      @for (r of roomInventory; track r.id) {
+      @for (r of roomInventory(); track r.id) {
         <div class="rounded-md border p-4">
           <p class="font-medium">{{ r.type }}</p>
           <p class="text-xs text-muted-foreground">&#8377;{{ r.price.toLocaleString() }}/night</p>
@@ -82,7 +100,7 @@
       <h3 hlmCardTitle>Room Occupancy</h3>
     </div>
     <div hlmCardContent>
-      <app-echart [options]="roomInventoryOptions" height="200px" />
+      <app-echart [options]="roomInventoryOptions()" height="200px" />
     </div>
   </div>
 </div>
@@ -95,11 +113,11 @@
   </div>
   <div hlmCardContent class="flex items-center gap-8">
     <div class="text-center">
-      <p class="text-4xl font-semibold">{{ ratingAverage }}</p>
-      <p class="text-xs text-muted-foreground">{{ ratingCount }} reviews</p>
+      <p class="text-4xl font-semibold">{{ ratingAverage() }}</p>
+      <p class="text-xs text-muted-foreground">{{ ratingCount() }} reviews</p>
     </div>
     <div class="flex-1">
-      <app-echart [options]="ratingOptions" height="160px" />
+      <app-echart [options]="ratingOptions()" height="160px" />
     </div>
   </div>
 </div>

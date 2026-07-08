@@ -290,6 +290,16 @@ public class AccommodationServiceImpl implements AccommodationService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<HotelBookingResponse> getProviderBookings() {
+        Long effectiveProviderId = securityUtil.resolveEffectiveHotelProviderId(null);
+        List<HotelBooking> bookings = effectiveProviderId != null
+                ? bookingRepository.findByHotel_ProviderId(effectiveProviderId)
+                : bookingRepository.findAll();
+        return bookings.stream().map(this::toBookingResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public HotelBillResponse getBill(UUID bookingId, String currentUserEmail) {
         HotelBooking booking = getBookingEntity(bookingId);
         ensureBookingOwner(booking, currentUserEmail);

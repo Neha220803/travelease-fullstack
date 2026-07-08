@@ -68,6 +68,14 @@ public interface AccommodationService {
 
     List<HotelBookingResponse> getMyBookings(String currentUserEmail);
 
+    /**
+     * Hotel Provider dashboard variant of {@link #getMyBookings(String)}: all
+     * bookings across every hotel owned by the caller's effective Hotel
+     * Provider tenant (ROLE_ADMIN with no scoping sees every booking), rather
+     * than the traveler-scoped "bookings I made" list.
+     */
+    List<HotelBookingResponse> getProviderBookings();
+
     HotelBillResponse getBill(UUID bookingId, String currentUserEmail);
 
     HotelBookingResponse attachBookingToTrip(UUID tripId, AttachHotelBookingRequest request, String currentUserEmail);

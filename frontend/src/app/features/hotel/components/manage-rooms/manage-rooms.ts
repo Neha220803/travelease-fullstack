@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgIcon } from '@ng-icons/core';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -43,22 +43,22 @@ export class ManageRooms {
   private readonly workspaceSearch = inject(WorkspaceSearchService);
   private readonly destroyRef = inject(DestroyRef);
 
-  public rows: RoomInventoryView[] = [];
-  public hotels: HotelResponse[] = [];
-  public roomDialogState: BrnDialogState = 'closed';
-  public savingRoom = false;
-  public roomError = '';
-  public roomSuccess = '';
+  public readonly rows = signal<RoomInventoryView[]>([]);
+  public readonly hotels = signal<HotelResponse[]>([]);
+  public readonly roomDialogState = signal<BrnDialogState>('closed');
+  public readonly savingRoom = signal(false);
+  public readonly roomError = signal('');
+  public readonly roomSuccess = signal('');
 
   constructor() {
     this.watchRoomData();
   }
 
   public setRoomDialogState(state: BrnDialogState): void {
-    this.roomDialogState = state;
+    this.roomDialogState.set(state);
     if (state === 'open') {
-      this.roomError = '';
-      this.roomSuccess = '';
+      this.roomError.set('');
+      this.roomSuccess.set('');
     }
   }
 
@@ -74,8 +74,8 @@ export class ManageRooms {
     count: string,
   ): void {
     event.preventDefault();
-    this.roomError = '';
-    this.roomSuccess = '';
+    this.roomError.set('');
+    this.roomSuccess.set('');
 
     const roomCount = Math.max(1, Math.floor(Number(count) || 1));
     const request: RoomRequest = {
@@ -87,26 +87,26 @@ export class ManageRooms {
     };
 
     if (!hotelId || !request.roomType || !request.capacity || !request.bedType || !request.pricePerNight) {
-      this.roomError = 'Fill the required room type details.';
+      this.roomError.set('Fill the required room type details.');
       return;
     }
 
-    this.savingRoom = true;
+    this.savingRoom.set(true);
     forkJoin(Array.from({ length: roomCount }, () => this.hotelProvider.createRoom(hotelId, request)))
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           form.reset();
-          this.roomDialogState = 'closed';
-          this.roomSuccess = `${roomCount} room${roomCount === 1 ? '' : 's'} saved to database.`;
+          this.roomDialogState.set('closed');
+          this.roomSuccess.set(`${roomCount} room${roomCount === 1 ? '' : 's'} saved to database.`);
           this.hotelProvider.refreshProviderData();
         },
         error: (error: unknown) => {
-          this.roomError = error instanceof Error ? error.message : 'Could not save room type.';
-          this.savingRoom = false;
+          this.roomError.set(error instanceof Error ? error.message : 'Could not save room type.');
+          this.savingRoom.set(false);
         },
         complete: () => {
-          this.savingRoom = false;
+          this.savingRoom.set(false);
         },
       });
   }
@@ -119,8 +119,8 @@ export class ManageRooms {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([overview, query]) => {
         const filteredOverview = filterProviderOverview(overview, query);
-        this.hotels = filteredOverview.hotels;
-        this.rows = groupRooms(filteredOverview.rooms);
+        this.hotels.set(filteredOverview.hotels);
+        this.rows.set(groupRooms(filteredOverview.rooms));
       });
   }
 }

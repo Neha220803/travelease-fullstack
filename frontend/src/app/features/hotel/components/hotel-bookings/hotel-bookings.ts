@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
@@ -24,7 +24,7 @@ export class HotelBookings {
   private readonly hotelProvider = inject(HotelProviderService);
   private readonly workspaceSearch = inject(WorkspaceSearchService);
 
-  public bookings: HotelBookingView[] = [];
+  public readonly bookings = signal<HotelBookingView[]>([]);
 
   constructor() {
     combineLatest([
@@ -33,7 +33,7 @@ export class HotelBookings {
     ])
       .pipe(takeUntilDestroyed())
       .subscribe(([overview, query]) => {
-        this.bookings = mapBookingRows(filterProviderOverview(overview, query).bookings);
+        this.bookings.set(mapBookingRows(filterProviderOverview(overview, query).bookings));
       });
   }
 }

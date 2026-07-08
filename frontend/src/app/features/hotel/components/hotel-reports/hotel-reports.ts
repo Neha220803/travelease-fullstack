@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
@@ -49,8 +49,10 @@ export class HotelReports {
   private readonly hotelProvider = inject(HotelProviderService);
   private readonly workspaceSearch = inject(WorkspaceSearchService);
 
-  public stats: ReportStat[] = buildReportStats(EMPTY_PROVIDER_OVERVIEW);
-  public revenueChartOptions = buildRevenueLineChartOption(Array.from({ length: 11 }, () => 0));
+  public readonly stats = signal<ReportStat[]>(buildReportStats(EMPTY_PROVIDER_OVERVIEW));
+  public readonly revenueChartOptions = signal(
+    buildRevenueLineChartOption(Array.from({ length: 11 }, () => 0)),
+  );
 
   constructor() {
     combineLatest([
@@ -60,8 +62,8 @@ export class HotelReports {
       .pipe(takeUntilDestroyed())
       .subscribe(([overview, query]) => {
         const filteredOverview = filterProviderOverview(overview, query);
-        this.stats = buildReportStats(filteredOverview);
-        this.revenueChartOptions = buildRevenueLineChartOption(buildRevenueTrendData(filteredOverview.bookings));
+        this.stats.set(buildReportStats(filteredOverview));
+        this.revenueChartOptions.set(buildRevenueLineChartOption(buildRevenueTrendData(filteredOverview.bookings)));
       });
   }
 }

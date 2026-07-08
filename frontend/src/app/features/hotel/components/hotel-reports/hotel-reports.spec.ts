@@ -1,17 +1,25 @@
 import { TestBed } from '@angular/core/testing';
 import { HotelReports } from '@app/features/hotel/components/hotel-reports/hotel-reports';
+import { HotelProviderService } from '@app/features/hotel/services/hotel-provider.service';
+import {
+  TEST_PROVIDER_OVERVIEW,
+  createHotelProviderStub,
+} from '@app/features/hotel/testing/hotel-provider-test-data';
+import { buildReportStats } from '@app/features/hotel/services/hotel-provider-view-models';
 
 describe('HotelReports', () => {
-  it('renders all 4 hardcoded stat values', async () => {
-    await TestBed.configureTestingModule({ imports: [HotelReports] }).compileComponents();
+  it('renders real report stats computed from the provider overview', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HotelReports],
+      providers: [{ provide: HotelProviderService, useValue: createHotelProviderStub() }],
+    }).compileComponents();
+
     const fixture = TestBed.createComponent(HotelReports);
     fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-    const text = el.textContent ?? '';
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
 
-    expect(text).toContain('78%');
-    expect(text).toContain('₹9.4L');
-    expect(text).toContain('₹4,820');
-    expect(text).toContain('4.7');
+    for (const stat of buildReportStats(TEST_PROVIDER_OVERVIEW)) {
+      expect(text).toContain(stat.value);
+    }
   });
 });

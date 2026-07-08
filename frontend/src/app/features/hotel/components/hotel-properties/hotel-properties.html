@@ -1,5 +1,5 @@
 <app-page-header title="My Hotels" subtitle="Properties you manage on TravelEase.">
-  <hlm-dialog [state]="addPropertyDialogState" (stateChanged)="setAddPropertyDialogState($event)" action>
+  <hlm-dialog [state]="addPropertyDialogState()" (stateChanged)="setAddPropertyDialogState($event)" action>
     <button hlmDialogTrigger hlmBtn>
       <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Property
     </button>
@@ -16,7 +16,7 @@
             createProperty(
               $event,
               propertyForm,
-              destinationIdInput.value,
+              newDestinationId(),
               propertyNameInput.value,
               propertyAddressInput.value,
               propertyPriceInput.value,
@@ -30,8 +30,27 @@
             <input hlmInput id="property-name" placeholder="Sea Breeze Resort" #propertyNameInput required />
           </div>
           <div class="space-y-2">
-            <label hlmLabel for="property-destination">Destination ID</label>
-            <input hlmInput id="property-destination" type="number" min="1" placeholder="1" #destinationIdInput required />
+            <label hlmLabel>Destination</label>
+            @if (destinationsLoading()) {
+              <p class="text-xs text-muted-foreground py-2">Loading destinations…</p>
+            } @else if (destinationsError()) {
+              <p class="text-xs text-destructive py-2">Could not load destinations.</p>
+            } @else {
+              <hlm-select
+                [value]="newDestinationId()"
+                [itemToString]="destinationIdToLabel"
+                (valueChange)="onNewDestinationChange($event)"
+              >
+                <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+                <ng-template hlmSelectPortal>
+                  <hlm-select-content>
+                    @for (d of destinations(); track d.destinationId) {
+                      <hlm-select-item [value]="d.destinationId.toString()">{{ destinationLabel(d) }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </ng-template>
+              </hlm-select>
+            }
           </div>
           <div class="space-y-2">
             <label hlmLabel for="property-price">Price (&#8377;)</label>
@@ -57,15 +76,15 @@
             <label hlmLabel for="property-amenities">Amenities</label>
             <input hlmInput id="property-amenities" placeholder="Pool, Breakfast, Wifi" #propertyAmenitiesInput />
           </div>
-          @if (propertyError) {
-            <p class="col-span-2 text-sm text-destructive">{{ propertyError }}</p>
+          @if (propertyError()) {
+            <p class="col-span-2 text-sm text-destructive">{{ propertyError() }}</p>
           }
-          @if (propertySuccess) {
-            <p class="col-span-2 text-sm text-success">{{ propertySuccess }}</p>
+          @if (propertySuccess()) {
+            <p class="col-span-2 text-sm text-success">{{ propertySuccess() }}</p>
           }
           <div hlmDialogFooter class="col-span-2">
-            <button hlmBtn type="submit" [disabled]="savingProperty">
-              {{ savingProperty ? 'Saving...' : 'Save Property' }}
+            <button hlmBtn type="submit" [disabled]="savingProperty() || destinationsLoading() || destinationsError()">
+              {{ savingProperty() ? 'Saving...' : 'Save Property' }}
             </button>
           </div>
         </form>
@@ -74,14 +93,14 @@
   </hlm-dialog>
 </app-page-header>
 
-<hlm-dialog [state]="editPropertyDialogState" (stateChanged)="setEditPropertyDialogState($event)">
+<hlm-dialog [state]="editPropertyDialogState()" (stateChanged)="setEditPropertyDialogState($event)">
   <ng-template hlmDialogPortal>
     <hlm-dialog-content class="sm:max-w-2xl">
       <div hlmDialogHeader>
         <h3 hlmDialogTitle>Edit Property</h3>
         <p hlmDialogDescription>Update hotel details saved in TravelEase.</p>
       </div>
-      @if (editingHotel; as hotel) {
+      @if (editingHotel(); as hotel) {
         <form
           #editPropertyForm
           class="grid grid-cols-2 gap-3"
@@ -90,7 +109,7 @@
               $event,
               editPropertyForm,
               hotel,
-              editDestinationIdInput.value,
+              editDestinationId(),
               editPropertyNameInput.value,
               editPropertyAddressInput.value,
               editPropertyPriceInput.value,
@@ -104,16 +123,27 @@
             <input hlmInput id="edit-property-name" [value]="hotel.name" #editPropertyNameInput required />
           </div>
           <div class="space-y-2">
-            <label hlmLabel for="edit-property-destination">Destination ID</label>
-            <input
-              hlmInput
-              id="edit-property-destination"
-              type="number"
-              min="1"
-              [value]="hotel.destinationId"
-              #editDestinationIdInput
-              required
-            />
+            <label hlmLabel>Destination</label>
+            @if (destinationsLoading()) {
+              <p class="text-xs text-muted-foreground py-2">Loading…</p>
+            } @else if (destinationsError()) {
+              <p class="text-xs text-destructive py-2">Could not load destinations.</p>
+            } @else {
+              <hlm-select
+                [value]="editDestinationId()"
+                [itemToString]="destinationIdToLabel"
+                (valueChange)="onEditDestinationChange($event)"
+              >
+                <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+                <ng-template hlmSelectPortal>
+                  <hlm-select-content>
+                    @for (d of destinations(); track d.destinationId) {
+                      <hlm-select-item [value]="d.destinationId.toString()">{{ destinationLabel(d) }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </ng-template>
+              </hlm-select>
+            }
           </div>
           <div class="space-y-2">
             <label hlmLabel for="edit-property-price">Price (&#8377;)</label>
@@ -160,15 +190,19 @@
               #editPropertyAmenitiesInput
             />
           </div>
-          @if (editPropertyError) {
-            <p class="col-span-2 text-sm text-destructive">{{ editPropertyError }}</p>
+          @if (editPropertyError()) {
+            <p class="col-span-2 text-sm text-destructive">{{ editPropertyError() }}</p>
           }
-          @if (editPropertySuccess) {
-            <p class="col-span-2 text-sm text-success">{{ editPropertySuccess }}</p>
+          @if (editPropertySuccess()) {
+            <p class="col-span-2 text-sm text-success">{{ editPropertySuccess() }}</p>
           }
           <div hlmDialogFooter class="col-span-2">
-            <button hlmBtn type="submit" [disabled]="savingEditProperty">
-              {{ savingEditProperty ? 'Saving...' : 'Save Changes' }}
+            <button
+              hlmBtn
+              type="submit"
+              [disabled]="savingEditProperty() || destinationsLoading() || destinationsError()"
+            >
+              {{ savingEditProperty() ? 'Saving...' : 'Save Changes' }}
             </button>
           </div>
         </form>
@@ -178,7 +212,7 @@
 </hlm-dialog>
 
 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-  @for (h of hotels; track h.id) {
+  @for (h of hotels(); track h.id) {
     <div hlmCard class="overflow-hidden">
       <img [src]="h.image" alt="" class="h-40 w-full object-cover" />
       <div hlmCardContent class="pt-4 space-y-2">

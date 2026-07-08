@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgIcon } from '@ng-icons/core';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -8,6 +8,7 @@ import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmTextareaImports } from '@spartan-ng/helm/textarea';
+import { HlmSelectImports } from '@spartan-ng/helm/select';
 import type { BrnDialogState } from '@spartan-ng/brain/dialog';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
 import { WorkspaceSearchService } from '@app/shared/services/workspace-search.service';
@@ -21,6 +22,8 @@ import {
   filterHotelCards,
   mapHotelCards,
 } from '@app/features/hotel/services/hotel-provider-view-models';
+import { DestinationsService } from '@app/core/destinations/destinations.service';
+import { Destination } from '@app/core/destinations/destination.models';
 import { catchError, combineLatest, of } from 'rxjs';
 
 @Component({
@@ -34,6 +37,7 @@ import { catchError, combineLatest, of } from 'rxjs';
     HlmInputImports,
     HlmLabelImports,
     HlmTextareaImports,
+    HlmSelectImports,
     PageHeader,
   ],
   templateUrl: './hotel-properties.html',
@@ -41,47 +45,96 @@ import { catchError, combineLatest, of } from 'rxjs';
 export class HotelProperties {
   private readonly hotelProvider = inject(HotelProviderService);
   private readonly workspaceSearch = inject(WorkspaceSearchService);
+  private readonly destinationsService = inject(DestinationsService);
   private readonly destroyRef = inject(DestroyRef);
 
-  public hotels: HotelCardView[] = [];
-  public addPropertyDialogState: BrnDialogState = 'closed';
-  public editPropertyDialogState: BrnDialogState = 'closed';
-  public editingHotel: HotelCardView | null = null;
-  public savingProperty = false;
-  public savingEditProperty = false;
-  public propertyError = '';
-  public propertySuccess = '';
-  public editPropertyError = '';
-  public editPropertySuccess = '';
+  public readonly hotels = signal<HotelCardView[]>([]);
+  public readonly addPropertyDialogState = signal<BrnDialogState>('closed');
+  public readonly editPropertyDialogState = signal<BrnDialogState>('closed');
+  public readonly editingHotel = signal<HotelCardView | null>(null);
+  public readonly savingProperty = signal(false);
+  public readonly savingEditProperty = signal(false);
+  public readonly propertyError = signal('');
+  public readonly propertySuccess = signal('');
+  public readonly editPropertyError = signal('');
+  public readonly editPropertySuccess = signal('');
+
+  public readonly destinations = signal<Destination[]>([]);
+  public readonly destinationsLoading = signal(true);
+  public readonly destinationsError = signal(false);
+  public readonly newDestinationId = signal('');
+  public readonly editDestinationId = signal('');
 
   constructor() {
     this.watchProperties();
+    this.destinationsService
+      .listDestinations()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (destinations) => {
+          this.destinations.set(destinations);
+          this.destinationsLoading.set(false);
+          if (destinations.length > 0) {
+            this.newDestinationId.set(String(destinations[0].destinationId));
+          }
+        },
+        error: () => {
+          this.destinationsError.set(true);
+          this.destinationsLoading.set(false);
+        },
+      });
+  }
+
+  public destinationLabel(destination: Destination): string {
+    return `${destination.destinationName}, ${destination.state}`;
+  }
+
+  public readonly destinationIdToLabel = (id: string): string => {
+    const destination = this.destinations().find((d) => String(d.destinationId) === id);
+    return destination ? this.destinationLabel(destination) : id;
+  };
+
+  public onNewDestinationChange(value: string | null | undefined): void {
+    if (value) {
+      this.newDestinationId.set(value);
+    }
+  }
+
+  public onEditDestinationChange(value: string | null | undefined): void {
+    if (value) {
+      this.editDestinationId.set(value);
+    }
   }
 
   public setAddPropertyDialogState(state: BrnDialogState): void {
-    this.addPropertyDialogState = state;
+    this.addPropertyDialogState.set(state);
     if (state === 'open') {
-      this.propertyError = '';
-      this.propertySuccess = '';
+      this.propertyError.set('');
+      this.propertySuccess.set('');
+      const destinations = this.destinations();
+      if (destinations.length > 0) {
+        this.newDestinationId.set(String(destinations[0].destinationId));
+      }
     }
   }
 
   public setEditPropertyDialogState(state: BrnDialogState): void {
-    this.editPropertyDialogState = state;
-    if (state === 'closed' && !this.savingEditProperty) {
-      this.editingHotel = null;
+    this.editPropertyDialogState.set(state);
+    if (state === 'closed' && !this.savingEditProperty()) {
+      this.editingHotel.set(null);
     }
     if (state === 'open') {
-      this.editPropertyError = '';
-      this.editPropertySuccess = '';
+      this.editPropertyError.set('');
+      this.editPropertySuccess.set('');
     }
   }
 
   public openEditProperty(hotel: HotelCardView): void {
-    this.editingHotel = hotel;
-    this.editPropertyError = '';
-    this.editPropertySuccess = '';
-    this.editPropertyDialogState = 'open';
+    this.editingHotel.set(hotel);
+    this.editDestinationId.set(String(hotel.destinationId));
+    this.editPropertyError.set('');
+    this.editPropertySuccess.set('');
+    this.editPropertyDialogState.set('open');
   }
 
   public createProperty(
@@ -95,8 +148,8 @@ export class HotelProperties {
     status: string,
   ): void {
     event.preventDefault();
-    this.propertyError = '';
-    this.propertySuccess = '';
+    this.propertyError.set('');
+    this.propertySuccess.set('');
 
     const request = this.buildPropertyRequest(
       destinationId,
@@ -109,27 +162,27 @@ export class HotelProperties {
     );
 
     if (!request.destinationId || !request.hotelName || !request.address || !request.pricePerNight) {
-      this.propertyError = 'Fill the required property details.';
+      this.propertyError.set('Fill the required property details.');
       return;
     }
 
-    this.savingProperty = true;
+    this.savingProperty.set(true);
     this.hotelProvider
       .createHotel(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           form.reset();
-          this.addPropertyDialogState = 'closed';
-          this.propertySuccess = 'Property saved to database.';
+          this.addPropertyDialogState.set('closed');
+          this.propertySuccess.set('Property saved to database.');
           this.hotelProvider.refreshProviderData();
         },
         error: (error: unknown) => {
-          this.propertyError = error instanceof Error ? error.message : 'Could not save property.';
-          this.savingProperty = false;
+          this.propertyError.set(error instanceof Error ? error.message : 'Could not save property.');
+          this.savingProperty.set(false);
         },
         complete: () => {
-          this.savingProperty = false;
+          this.savingProperty.set(false);
         },
       });
   }
@@ -146,8 +199,8 @@ export class HotelProperties {
     status: string,
   ): void {
     event.preventDefault();
-    this.editPropertyError = '';
-    this.editPropertySuccess = '';
+    this.editPropertyError.set('');
+    this.editPropertySuccess.set('');
 
     const request = this.buildPropertyRequest(
       destinationId,
@@ -160,28 +213,28 @@ export class HotelProperties {
     );
 
     if (!request.destinationId || !request.hotelName || !request.address || !request.pricePerNight) {
-      this.editPropertyError = 'Fill the required property details.';
+      this.editPropertyError.set('Fill the required property details.');
       return;
     }
 
-    this.savingEditProperty = true;
+    this.savingEditProperty.set(true);
     this.hotelProvider
       .updateHotel(hotel.id, request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           form.reset();
-          this.editPropertyDialogState = 'closed';
-          this.editingHotel = null;
-          this.editPropertySuccess = 'Property updated in database.';
+          this.editPropertyDialogState.set('closed');
+          this.editingHotel.set(null);
+          this.editPropertySuccess.set('Property updated in database.');
           this.hotelProvider.refreshProviderData();
         },
         error: (error: unknown) => {
-          this.editPropertyError = error instanceof Error ? error.message : 'Could not update property.';
-          this.savingEditProperty = false;
+          this.editPropertyError.set(error instanceof Error ? error.message : 'Could not update property.');
+          this.savingEditProperty.set(false);
         },
         complete: () => {
-          this.savingEditProperty = false;
+          this.savingEditProperty.set(false);
         },
       });
   }
@@ -193,7 +246,7 @@ export class HotelProperties {
     ])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([overview, query]) => {
-        this.hotels = filterHotelCards(mapHotelCards(overview.hotels, overview.rooms), query);
+        this.hotels.set(filterHotelCards(mapHotelCards(overview.hotels, overview.rooms), query));
       });
   }
 

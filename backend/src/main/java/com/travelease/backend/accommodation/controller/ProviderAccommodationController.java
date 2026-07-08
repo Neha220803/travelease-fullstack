@@ -51,6 +51,7 @@ public class ProviderAccommodationController {
     }
 
     @GetMapping("/hotel-bookings")
+    @PreAuthorize("hasAnyRole('ADMIN','HOTEL_PROVIDER')")
     public ResponseEntity<ApiResponse<List<HotelBookingResponse>>> bookings() {
         List<HotelBookingResponse> response = accommodationService.getProviderBookings();
         return ResponseEntity.ok(ApiResponse.success(response, "Provider hotel bookings retrieved"));
