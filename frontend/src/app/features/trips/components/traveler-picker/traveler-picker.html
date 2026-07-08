@@ -1,0 +1,24 @@
+<hlm-autocomplete
+  [value]="pickedValue()"
+  (valueChange)="onValueChange($event)"
+  [search]="query()"
+  (searchChange)="query.set($event)"
+  [itemToString]="itemToString"
+  [isItemEqualToValue]="isSameTraveler"
+>
+  <hlm-autocomplete-input [inputId]="inputId()" placeholder="Search by name or email" />
+  <ng-template hlmAutocompletePortal>
+    <hlm-autocomplete-content>
+      <div hlmAutocompleteList>
+        @if (searching()) {
+          <hlm-autocomplete-status>Searching…</hlm-autocomplete-status>
+        } @else {
+          @for (r of results(); track r.id) {
+            <hlm-autocomplete-item [value]="r">{{ r.name }} ({{ r.email }})</hlm-autocomplete-item>
+          }
+          <hlm-autocomplete-empty>No matching travelers</hlm-autocomplete-empty>
+        }
+      </div>
+    </hlm-autocomplete-content>
+  </ng-template>
+</hlm-autocomplete>

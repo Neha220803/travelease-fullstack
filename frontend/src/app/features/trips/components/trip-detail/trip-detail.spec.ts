@@ -38,7 +38,10 @@ const ALL_ICONS = {
   lucideWallet,
 };
 
-async function renderWithTripId(tripId: string | null) {
+async function renderWithTripId(
+  tripId: string | null,
+  queryParams: Record<string, string> = {},
+) {
   await TestBed.configureTestingModule({
     imports: [TripDetail],
     providers: [
@@ -46,7 +49,10 @@ async function renderWithTripId(tripId: string | null) {
       provideIcons(ALL_ICONS),
       {
         provide: ActivatedRoute,
-        useValue: { paramMap: of(convertToParamMap(tripId ? { tripId } : {})) },
+        useValue: {
+          paramMap: of(convertToParamMap(tripId ? { tripId } : {})),
+          queryParamMap: of(convertToParamMap(queryParams)),
+        },
       },
     ],
   }).compileComponents();
@@ -54,6 +60,10 @@ async function renderWithTripId(tripId: string | null) {
   const fixture = TestBed.createComponent(TripDetail);
   fixture.detectChanges();
   return fixture;
+}
+
+function activeTab(fixture: ReturnType<typeof TestBed.createComponent<TripDetail>>): string {
+  return (fixture.componentInstance as unknown as { activeTab: () => string }).activeTab();
 }
 
 describe('TripDetail', () => {
@@ -99,5 +109,20 @@ describe('TripDetail', () => {
     const fixture = await renderWithTripId('goa-2026');
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).not.toContain('This section is coming soon.');
+  });
+
+  it('defaults activeTab to overview when no tab query param is present', async () => {
+    const fixture = await renderWithTripId('goa-2026');
+    expect(activeTab(fixture)).toBe('overview');
+  });
+
+  it('seeds activeTab from a recognized tab query param', async () => {
+    const fixture = await renderWithTripId('goa-2026', { tab: 'members' });
+    expect(activeTab(fixture)).toBe('members');
+  });
+
+  it('falls back to overview for an unrecognized tab query param value', async () => {
+    const fixture = await renderWithTripId('goa-2026', { tab: 'not-a-real-tab' });
+    expect(activeTab(fixture)).toBe('overview');
   });
 });

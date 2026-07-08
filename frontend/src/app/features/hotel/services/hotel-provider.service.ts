@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { API_BASE_URL } from '@app/core/auth/api.config';
-import { ApiResponse } from '@app/core/auth/auth.models';
+import { ApiResponse } from '@app/core/api/api-response.model';
 
 export interface HotelResponse {
   hotelId: string;
@@ -109,7 +109,7 @@ export class HotelProviderService {
   getHotelDetails(hotelId: string): Observable<HotelResponse> {
     return this.unwrap(
       this.http.get<ApiResponse<{ hotel: HotelResponse }>>(`${this.apiBaseUrl}/provider/hotels/${hotelId}`),
-    ).pipe(map((details) => details.hotel));
+    ).pipe(map((details: { hotel: HotelResponse }) => details.hotel));
   }
 
   getInventory(): Observable<RoomResponse[]> {

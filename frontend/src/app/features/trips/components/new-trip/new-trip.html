@@ -80,3 +80,47 @@
     </form>
   </div>
 </div>
+
+<hlm-dialog [state]="dialogState()" (closed)="onDialogClosed()">
+  <ng-template hlmDialogPortal>
+    <hlm-dialog-content>
+      @if (dialogStep() === 'prompt') {
+        <div hlmDialogHeader>
+          <h3 hlmDialogTitle>Trip created!</h3>
+        </div>
+        <p class="text-sm text-muted-foreground">
+          Add travel companions now, or invite them later from the Members tab.
+        </p>
+        <div hlmDialogFooter>
+          <button hlmBtn variant="outline" (click)="onCloseDialog()">I'll do it later</button>
+          <button hlmBtn (click)="onAddMembers()">Add Members</button>
+        </div>
+      } @else {
+        <div hlmDialogHeader>
+          <h3 hlmDialogTitle>Add members</h3>
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel for="new-trip-member-search">Traveler</label>
+          <app-traveler-picker
+            inputId="new-trip-member-search"
+            [excludeIds]="excludeIds()"
+            (selected)="onMemberPicked($event)"
+          />
+        </div>
+        @if (invitedTravelers().length > 0) {
+          <div class="flex flex-wrap gap-2">
+            @for (t of invitedTravelers(); track t.id) {
+              <span hlmBadge variant="outline">{{ t.name }}</span>
+            }
+          </div>
+        }
+        @if (memberInviteError()) {
+          <p class="text-xs text-destructive">{{ memberInviteError() }}</p>
+        }
+        <div hlmDialogFooter>
+          <button hlmBtn (click)="onCloseDialog()">Done</button>
+        </div>
+      }
+    </hlm-dialog-content>
+  </ng-template>
+</hlm-dialog>

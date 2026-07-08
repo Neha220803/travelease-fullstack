@@ -1,9 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NgIcon } from '@ng-icons/core';
+import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
@@ -12,18 +14,25 @@ import { TripsService } from '@app/features/trips/services/trips.service';
 import { CreateTripPayload } from '@app/features/trips/services/trip.models';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { Destination } from '@app/core/destinations/destination.models';
+import { TravelerPicker } from '@app/features/trips/components/traveler-picker/traveler-picker';
+import { TravelerSearchResult } from '@app/core/users/user-search.model';
+
+type DialogStep = 'prompt' | 'picker';
 
 @Component({
   selector: 'app-new-trip',
   imports: [
     RouterLink,
     NgIcon,
+    HlmBadgeImports,
     HlmButtonImports,
     HlmCardImports,
+    HlmDialogImports,
     HlmInputImports,
     HlmLabelImports,
     HlmSelectImports,
     PageHeader,
+    TravelerPicker,
   ],
   templateUrl: './new-trip.html',
 })
@@ -41,6 +50,14 @@ export class NewTrip {
   protected readonly destinationsLoading = signal(true);
   protected readonly destinationsError = signal(false);
   protected readonly selectedDestinationId = signal('');
+
+  protected readonly dialogState = signal<'open' | 'closed'>('closed');
+  protected readonly dialogStep = signal<DialogStep>('prompt');
+  protected readonly createdTripId = signal<string | null>(null);
+  protected readonly invitedTravelers = signal<TravelerSearchResult[]>([]);
+  protected readonly memberInviteError = signal<string | null>(null);
+
+  protected readonly excludeIds = computed(() => this.invitedTravelers().map((t) => t.id));
 
   constructor() {
     this.destinationsService.listDestinations().subscribe({
@@ -110,13 +127,50 @@ export class NewTrip {
     this.tripsService.createTrip(payload).subscribe({
       next: (trip) => {
         this.submitting.set(false);
-        this.router.navigate(['/trips', trip.tripId]);
+        this.createdTripId.set(trip.tripId);
+        this.invitedTravelers.set([]);
+        this.memberInviteError.set(null);
+        this.dialogStep.set('prompt');
+        this.dialogState.set('open');
       },
       error: (err: unknown) => {
         this.submitting.set(false);
         this.error.set(this.extractErrorMessage(err));
       },
     });
+  }
+
+  protected onAddMembers(): void {
+    this.dialogStep.set('picker');
+  }
+
+  protected onCloseDialog(): void {
+    this.dialogState.set('closed');
+  }
+
+  protected onMemberPicked(traveler: TravelerSearchResult): void {
+    const tripId = this.createdTripId();
+    if (!tripId) {
+      return;
+    }
+    this.memberInviteError.set(null);
+    this.tripsService.inviteMember(tripId, traveler.email).subscribe({
+      next: () => {
+        this.invitedTravelers.update((list) => [...list, traveler]);
+      },
+      error: () => {
+        this.memberInviteError.set('Could not send the invite. They may already be invited.');
+      },
+    });
+  }
+
+  protected onDialogClosed(): void {
+    const tripId = this.createdTripId();
+    if (!tripId) {
+      return;
+    }
+    const tab = this.invitedTravelers().length > 0 ? 'members' : 'overview';
+    this.router.navigate(['/trips', tripId], { queryParams: { tab } });
   }
 
   private extractErrorMessage(err: unknown): string {

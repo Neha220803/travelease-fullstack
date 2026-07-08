@@ -33,6 +33,8 @@ const TABS: TabInfo[] = [
   { id: 'reviews', label: 'Reviews' },
 ];
 
+const VALID_TAB_IDS = new Set(TABS.map((t) => t.id));
+
 @Component({
   selector: 'app-trip-detail',
   imports: [
@@ -57,7 +59,17 @@ export class TripDetail {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly tabs = TABS;
-  protected readonly activeTab = signal('overview');
+
+  private readonly initialTabParam = toSignal(
+    this.route.queryParamMap.pipe(map((params) => params.get('tab'))),
+    { initialValue: null },
+  );
+
+  protected readonly activeTab = signal(
+    this.initialTabParam() && VALID_TAB_IDS.has(this.initialTabParam()!)
+      ? this.initialTabParam()!
+      : 'overview',
+  );
 
   private readonly tripId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('tripId'))),

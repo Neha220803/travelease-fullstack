@@ -6,9 +6,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { NewTrip } from '@app/features/trips/components/new-trip/new-trip';
 import { TripsService } from '@app/features/trips/services/trips.service';
-import { CreateTripPayload, Trip } from '@app/features/trips/services/trip.models';
+import { CreateTripPayload, Trip, TripMember } from '@app/features/trips/services/trip.models';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { Destination } from '@app/core/destinations/destination.models';
+import { TravelerSearchResult } from '@app/core/users/user-search.model';
 
 const SAMPLE_DESTINATIONS: Destination[] = [
   { destinationId: 1, destinationName: 'Mumbai', state: 'Maharashtra', country: 'India', description: '' },
@@ -29,6 +30,19 @@ const CREATED_TRIP: Trip = {
   viewerRole: 'ORGANIZER',
   createdAt: '2026-07-01T00:00:00Z',
   updatedAt: '2026-07-01T00:00:00Z',
+};
+
+const CARA: TravelerSearchResult = { id: 'u3', name: 'Cara Traveler', email: 'cara@travelease.test' };
+
+const CARA_MEMBER: TripMember = {
+  tripMemberId: 'eeeeeeee-0000-0000-0000-000000000005',
+  userId: 'u3',
+  name: 'Cara Traveler',
+  email: 'cara@travelease.test',
+  memberStatus: 'INVITED',
+  joinedDate: '2026-07-02T00:00:00Z',
+  budgetAmount: 0,
+  spentAmount: 0,
 };
 
 async function setup(
@@ -63,14 +77,27 @@ function fillAndSubmit(el: HTMLElement) {
   form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
 }
 
+function instance(fixture: ReturnType<typeof TestBed.createComponent<NewTrip>>) {
+  return fixture.componentInstance as unknown as {
+    dialogState: () => 'open' | 'closed';
+    dialogStep: () => 'prompt' | 'picker';
+    invitedTravelers: () => TravelerSearchResult[];
+    onAddMembers: () => void;
+    onCloseDialog: () => void;
+    onMemberPicked: (t: TravelerSearchResult) => void;
+    onDialogClosed: () => void;
+  };
+}
+
 describe('NewTrip', () => {
-  it('submits with the default trip type and first-loaded destination, navigates to the created trip', async () => {
+  it('creates the trip with the default trip type and first-loaded destination, then opens the add-members prompt', async () => {
     const createTrip = vi.fn().mockReturnValue(of(CREATED_TRIP));
     const { fixture, navigateSpy } = await setup({ createTrip });
     const el = fixture.nativeElement as HTMLElement;
 
     fillAndSubmit(el);
     await fixture.whenStable();
+    fixture.detectChanges();
 
     const expectedPayload: CreateTripPayload = {
       tripName: 'Goa Beach Escape',
@@ -82,7 +109,9 @@ describe('NewTrip', () => {
       endDate: '2026-08-05',
     };
     expect(createTrip).toHaveBeenCalledWith(expectedPayload);
-    expect(navigateSpy).toHaveBeenCalledWith(['/trips', CREATED_TRIP.tripId]);
+    expect(instance(fixture).dialogState()).toBe('open');
+    expect(instance(fixture).dialogStep()).toBe('prompt');
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
   it('shows validation error details and does not navigate on failure', async () => {
@@ -122,5 +151,65 @@ describe('NewTrip', () => {
     expect(el.textContent).toContain('Could not load destinations');
     const submitBtn = el.querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(submitBtn.disabled).toBe(true);
+  });
+
+  it('navigates to the overview tab when the organizer closes without adding anyone', async () => {
+    const createTrip = vi.fn().mockReturnValue(of(CREATED_TRIP));
+    const { fixture, navigateSpy } = await setup({ createTrip });
+    const el = fixture.nativeElement as HTMLElement;
+    fillAndSubmit(el);
+    await fixture.whenStable();
+
+    // The dialog's overlay content renders via a CDK Overlay attached to
+    // document.body, not fixture.nativeElement — calling the (protected)
+    // handlers directly tests the same close-request + navigation-decision
+    // logic without a brittle, unproven overlay-query (same trade-off already
+    // accepted in trip-members-tab.spec.ts).
+    instance(fixture).onCloseDialog();
+    instance(fixture).onDialogClosed();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/trips', CREATED_TRIP.tripId], {
+      queryParams: { tab: 'overview' },
+    });
+  });
+
+  it('invites picked travelers and navigates to the members tab once done', async () => {
+    const createTrip = vi.fn().mockReturnValue(of(CREATED_TRIP));
+    const inviteMember = vi.fn().mockReturnValue(of(CARA_MEMBER));
+    const { fixture, navigateSpy } = await setup({ createTrip, inviteMember });
+    const el = fixture.nativeElement as HTMLElement;
+    fillAndSubmit(el);
+    await fixture.whenStable();
+
+    instance(fixture).onAddMembers();
+    instance(fixture).onMemberPicked(CARA);
+    await fixture.whenStable();
+
+    expect(inviteMember).toHaveBeenCalledWith(CREATED_TRIP.tripId, 'cara@travelease.test');
+    expect(instance(fixture).invitedTravelers()).toEqual([CARA]);
+    expect(instance(fixture).dialogStep()).toBe('picker');
+
+    instance(fixture).onCloseDialog();
+    instance(fixture).onDialogClosed();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/trips', CREATED_TRIP.tripId], {
+      queryParams: { tab: 'members' },
+    });
+  });
+
+  it('shows an inline error when a member invite fails, without navigating early', async () => {
+    const createTrip = vi.fn().mockReturnValue(of(CREATED_TRIP));
+    const inviteMember = vi.fn().mockReturnValue(throwError(() => new Error('boom')));
+    const { fixture } = await setup({ createTrip, inviteMember });
+    const el = fixture.nativeElement as HTMLElement;
+    fillAndSubmit(el);
+    await fixture.whenStable();
+
+    instance(fixture).onAddMembers();
+    instance(fixture).onMemberPicked(CARA);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(instance(fixture).invitedTravelers()).toEqual([]);
   });
 });
