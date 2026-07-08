@@ -1,7 +1,7 @@
 package com.travelease.backend.accommodation.controller;
 
-import com.travelease.backend.accommodation.dto.HotelDetailsResponse;
 import com.travelease.backend.accommodation.dto.HotelBookingResponse;
+import com.travelease.backend.accommodation.dto.HotelDetailsResponse;
 import com.travelease.backend.accommodation.dto.HotelPolicyRequest;
 import com.travelease.backend.accommodation.dto.HotelRequest;
 import com.travelease.backend.accommodation.dto.HotelResponse;
@@ -14,7 +14,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,145 +33,96 @@ public class ProviderAccommodationController {
     private final AccommodationService accommodationService;
 
     @PostMapping("/hotels")
-    public ResponseEntity<ApiResponse<HotelResponse>> createHotel(
-            @Valid @RequestBody HotelRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
-                accommodationService.createHotel(request, authentication.getName()),
-                "Hotel created"
-        ));
+    public ResponseEntity<ApiResponse<HotelResponse>> createHotel(@Valid @RequestBody HotelRequest request) {
+        HotelResponse response = accommodationService.createHotel(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Hotel created"));
     }
 
     @GetMapping("/hotels")
-    public ResponseEntity<ApiResponse<List<HotelResponse>>> getProviderHotels(Authentication authentication) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.getProviderHotels(authentication.getName()),
-                "Provider hotels retrieved"
-        ));
+    public ResponseEntity<ApiResponse<List<HotelResponse>>> hotels() {
+        List<HotelResponse> response = accommodationService.getProviderHotels();
+        return ResponseEntity.ok(ApiResponse.success(response, "Provider hotels retrieved"));
     }
 
     @GetMapping("/hotels/{hotelId}")
-    public ResponseEntity<ApiResponse<HotelDetailsResponse>> getProviderHotel(
-            @PathVariable UUID hotelId,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.getProviderHotel(hotelId, authentication.getName()),
-                "Provider hotel retrieved"
-        ));
+    public ResponseEntity<ApiResponse<HotelDetailsResponse>> hotelDetails(@PathVariable UUID hotelId) {
+        HotelDetailsResponse response = accommodationService.getHotelDetails(hotelId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Provider hotel details retrieved"));
     }
 
     @PutMapping("/hotels/{hotelId}")
     public ResponseEntity<ApiResponse<HotelResponse>> updateHotel(
             @PathVariable UUID hotelId,
-            @Valid @RequestBody HotelRequest request,
-            Authentication authentication
+            @Valid @RequestBody HotelRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.updateHotel(hotelId, request, authentication.getName()),
-                "Hotel updated"
-        ));
+        HotelResponse response = accommodationService.updateHotel(hotelId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Hotel updated"));
     }
 
     @PostMapping("/hotels/{hotelId}/rooms")
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
             @PathVariable UUID hotelId,
-            @Valid @RequestBody RoomRequest request,
-            Authentication authentication
+            @Valid @RequestBody RoomRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
-                accommodationService.createRoom(hotelId, request, authentication.getName()),
-                "Room created"
-        ));
+        RoomResponse response = accommodationService.createRoom(hotelId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Room created"));
     }
 
     @GetMapping("/hotels/{hotelId}/rooms")
-    public ResponseEntity<ApiResponse<List<RoomResponse>>> getRooms(
-            @PathVariable UUID hotelId,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.getRooms(hotelId, authentication.getName()),
-                "Rooms retrieved"
-        ));
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> rooms(@PathVariable UUID hotelId) {
+        List<RoomResponse> response = accommodationService.getRooms(hotelId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Rooms retrieved"));
     }
 
     @PutMapping("/hotels/{hotelId}/rooms/{roomId}")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
             @PathVariable UUID hotelId,
             @PathVariable UUID roomId,
-            @Valid @RequestBody RoomRequest request,
-            Authentication authentication
+            @Valid @RequestBody RoomRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.updateRoom(hotelId, roomId, request, authentication.getName()),
-                "Room updated"
-        ));
+        RoomResponse response = accommodationService.updateRoom(hotelId, roomId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Room updated"));
     }
 
     @PutMapping("/rooms/{roomId}/availability")
     public ResponseEntity<ApiResponse<RoomResponse>> updateAvailability(
             @PathVariable UUID roomId,
-            @Valid @RequestBody RoomAvailabilityRequest request,
-            Authentication authentication
+            @Valid @RequestBody RoomAvailabilityRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.updateRoomAvailability(roomId, request, authentication.getName()),
-                "Room availability updated"
-        ));
+        RoomResponse response = accommodationService.updateAvailability(roomId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Room availability updated"));
     }
 
     @PutMapping("/rooms/{roomId}/maintenance")
-    public ResponseEntity<ApiResponse<RoomResponse>> blockForMaintenance(
-            @PathVariable UUID roomId,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.blockRoomForMaintenance(roomId, authentication.getName()),
-                "Room blocked for maintenance"
-        ));
+    public ResponseEntity<ApiResponse<RoomResponse>> maintenance(@PathVariable UUID roomId) {
+        RoomResponse response = accommodationService.blockMaintenance(roomId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Room blocked for maintenance"));
     }
 
     @GetMapping("/inventory")
-    public ResponseEntity<ApiResponse<List<RoomResponse>>> getInventory(Authentication authentication) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.getProviderInventory(authentication.getName()),
-                "Inventory retrieved"
-        ));
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> inventory() {
+        List<RoomResponse> response = accommodationService.getInventory();
+        return ResponseEntity.ok(ApiResponse.success(response, "Inventory calendar retrieved"));
     }
 
     @PutMapping("/hotels/{hotelId}/policies")
     public ResponseEntity<ApiResponse<HotelResponse>> updatePolicies(
             @PathVariable UUID hotelId,
-            @Valid @RequestBody HotelPolicyRequest request,
-            Authentication authentication
+            @Valid @RequestBody HotelPolicyRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.updatePolicies(hotelId, request, authentication.getName()),
-                "Hotel policies updated"
-        ));
+        HotelResponse response = accommodationService.updatePolicies(hotelId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Hotel policies updated"));
     }
 
     @PutMapping("/hotel-bookings/{bookingId}/check-in")
-    public ResponseEntity<ApiResponse<HotelBookingResponse>> checkIn(
-            @PathVariable UUID bookingId,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.checkIn(bookingId, authentication.getName()),
-                "Guest checked in"
-        ));
+    public ResponseEntity<ApiResponse<HotelBookingResponse>> checkIn(@PathVariable UUID bookingId) {
+        HotelBookingResponse response = accommodationService.checkIn(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Guest checked in"));
     }
 
     @PutMapping("/hotel-bookings/{bookingId}/check-out")
-    public ResponseEntity<ApiResponse<HotelBookingResponse>> checkOut(
-            @PathVariable UUID bookingId,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.checkOut(bookingId, authentication.getName()),
-                "Guest checked out"
-        ));
+    public ResponseEntity<ApiResponse<HotelBookingResponse>> checkOut(@PathVariable UUID bookingId) {
+        HotelBookingResponse response = accommodationService.checkOut(bookingId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Guest checked out"));
     }
 }

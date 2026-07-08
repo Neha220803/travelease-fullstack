@@ -24,18 +24,18 @@ public class Room extends BaseEntity {
     @JoinColumn(name = "hotel_id", nullable = false)
     private Hotel hotel;
 
-    @Column(nullable = false, length = 80)
+    @Column(name = "room_type", nullable = false, length = 80)
     private String roomType;
 
     @Column(nullable = false)
     private Integer capacity;
 
-    @Column(nullable = false, length = 80)
+    @Column(name = "bed_type", nullable = false, length = 80)
     private String bedType;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(name = "price_per_night", nullable = false, precision = 12, scale = 2)
     private BigDecimal pricePerNight;
 
-    @Column(nullable = false, length = 40)
-    private String availabilityStatus = "AVAILABLE";
+    @Column(name = "availability_status", nullable = false, length = 30)
+    private String availabilityStatus;
 }

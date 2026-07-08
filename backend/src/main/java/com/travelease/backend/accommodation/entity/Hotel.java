@@ -1,16 +1,14 @@
 package com.travelease.backend.accommodation.entity;
 
-import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.shared.entity.BaseEntity;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -19,25 +17,27 @@ import lombok.Setter;
 @Table(name = "hotels")
 public class Hotel extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "provider_id", nullable = false)
-    private User provider;
-
-    @Column(nullable = false, length = 150)
-    private String name;
-
-    @Column(nullable = false)
+    @Column(name = "destination_id", nullable = false)
     private Integer destinationId;
 
-    @Column(nullable = false, length = 200)
+    @Column(name = "hotel_name", nullable = false, length = 200)
+    private String hotelName;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String address;
 
-    @Column(nullable = false, length = 50)
-    private String status = "ACTIVE";
+    @Column(precision = 3, scale = 2)
+    private BigDecimal rating;
 
-    @Column(length = 1000)
-    private String description;
+    @Column(name = "price_per_night", nullable = false, precision = 12, scale = 2)
+    private BigDecimal pricePerNight;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
+    private String amenities;
+
+    @Column(nullable = false, length = 30)
+    private String status;
+
+    @Column(columnDefinition = "TEXT")
     private String policies;
 }

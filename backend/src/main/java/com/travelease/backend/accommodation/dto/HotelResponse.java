@@ -1,13 +1,16 @@
 package com.travelease.backend.accommodation.dto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record HotelResponse(
         UUID hotelId,
-        String name,
         Integer destinationId,
+        String hotelName,
         String address,
-        String description,
+        BigDecimal rating,
+        BigDecimal pricePerNight,
+        String amenities,
         String status,
         String policies
 ) {

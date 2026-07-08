@@ -35,22 +35,22 @@ public class HotelController {
     public ResponseEntity<ApiResponse<List<HotelResponse>>> searchHotels(
             @RequestParam(required = false) Integer destinationId,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String query
+            @RequestParam(required = false, name = "q") String query
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.searchHotels(destinationId, status, query),
-                "Hotels retrieved"
-        ));
+        List<HotelResponse> response = accommodationService.searchHotels(destinationId, status, query);
+        return ResponseEntity.ok(ApiResponse.success(response, "Hotels retrieved"));
     }
 
     @GetMapping("/{hotelId}")
-    public ResponseEntity<ApiResponse<HotelDetailsResponse>> getHotelDetails(@PathVariable UUID hotelId) {
-        return ResponseEntity.ok(ApiResponse.success(accommodationService.getHotelDetails(hotelId), "Hotel retrieved"));
+    public ResponseEntity<ApiResponse<HotelDetailsResponse>> getHotel(@PathVariable UUID hotelId) {
+        HotelDetailsResponse response = accommodationService.getHotelDetails(hotelId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Hotel details retrieved"));
     }
 
     @GetMapping("/{hotelId}/reviews")
     public ResponseEntity<ApiResponse<List<HotelReviewResponse>>> getReviews(@PathVariable UUID hotelId) {
-        return ResponseEntity.ok(ApiResponse.success(accommodationService.getReviews(hotelId), "Reviews retrieved"));
+        List<HotelReviewResponse> response = accommodationService.getReviews(hotelId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Hotel reviews retrieved"));
     }
 
     @PostMapping("/{hotelId}/reviews")
@@ -59,10 +59,8 @@ public class HotelController {
             @Valid @RequestBody ReviewRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
-                accommodationService.addReview(hotelId, request, authentication.getName()),
-                "Review added"
-        ));
+        HotelReviewResponse response = accommodationService.addReview(hotelId, request, authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Hotel review added"));
     }
 
     @PutMapping("/{hotelId}/reviews/{reviewId}")
@@ -72,10 +70,13 @@ public class HotelController {
             @Valid @RequestBody ReviewRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(ApiResponse.success(
-                accommodationService.updateReview(hotelId, reviewId, request, authentication.getName()),
-                "Review updated"
-        ));
+        HotelReviewResponse response = accommodationService.updateReview(
+                hotelId,
+                reviewId,
+                request,
+                authentication.getName()
+        );
+        return ResponseEntity.ok(ApiResponse.success(response, "Hotel review updated"));
     }
 
     @DeleteMapping("/{hotelId}/reviews/{reviewId}")
@@ -85,6 +86,6 @@ public class HotelController {
             Authentication authentication
     ) {
         accommodationService.deleteReview(hotelId, reviewId, authentication.getName());
-        return ResponseEntity.ok(ApiResponse.success(null, "Review deleted"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Hotel review deleted"));
     }
 }

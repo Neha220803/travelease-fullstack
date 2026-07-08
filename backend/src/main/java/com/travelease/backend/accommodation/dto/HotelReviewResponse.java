@@ -1,5 +1,6 @@
 package com.travelease.backend.accommodation.dto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record HotelReviewResponse(
@@ -7,7 +8,7 @@ public record HotelReviewResponse(
         UUID hotelId,
         UUID userId,
         String userName,
-        Integer rating,
+        BigDecimal rating,
         String comment
 ) {
 }

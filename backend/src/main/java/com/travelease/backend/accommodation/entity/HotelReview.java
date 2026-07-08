@@ -12,10 +12,12 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Getter
 @Setter
 @Entity
-@AttributeOverride(name = "id", column = @Column(name = "hotel_review_id", nullable = false, updatable = false))
+@AttributeOverride(name = "id", column = @Column(name = "review_id", nullable = false, updatable = false))
 @Table(name = "hotel_reviews")
 public class HotelReview extends BaseEntity {
 
@@ -27,9 +29,9 @@ public class HotelReview extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private Integer rating;
+    @Column(nullable = false, precision = 3, scale = 2)
+    private BigDecimal rating;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String comment;
 }

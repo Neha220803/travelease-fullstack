@@ -7,5 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface HotelRepository extends JpaRepository<Hotel, UUID> {
-    List<Hotel> findByProviderEmail(String email);
+
+    List<Hotel> findByDestinationId(Integer destinationId);
+
+    List<Hotel> findByStatusIgnoreCase(String status);
+
+    List<Hotel> findByHotelNameContainingIgnoreCase(String hotelName);
 }
