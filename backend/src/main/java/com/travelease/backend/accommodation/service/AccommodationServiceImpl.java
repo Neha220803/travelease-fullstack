@@ -570,6 +570,7 @@ public class AccommodationServiceImpl implements AccommodationService {
                 booking.getHotel().getId(),
                 booking.getHotel().getHotelName(),
                 booking.getBookedBy() == null ? null : booking.getBookedBy().getId(),
+                booking.getBookedBy() == null ? null : booking.getBookedBy().getName(),
                 booking.getCheckInDate(),
                 booking.getCheckOutDate(),
                 booking.getRoomType(),
@@ -586,7 +587,8 @@ public class AccommodationServiceImpl implements AccommodationService {
                 review.getUser().getId(),
                 review.getUser().getName(),
                 review.getRating(),
-                review.getComment()
+                review.getComment(),
+                review.getCreatedAt()
         );
     }
 }
