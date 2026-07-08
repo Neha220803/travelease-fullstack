@@ -15,7 +15,7 @@
     <div hlmCardHeader><h3 hlmCardTitle>Trip Timeline</h3></div>
     <div hlmCardContent>
       <div class="space-y-4">
-        @for (step of timelineSteps; track step.label; let last = $last; let i = $index) {
+        @for (step of timelineSteps(); track step.label; let last = $last; let i = $index) {
           <div class="flex gap-4">
             <div class="flex flex-col items-center">
               <div
@@ -34,7 +34,7 @@
             </div>
             <div class="pb-4">
               <p class="font-medium text-sm">{{ step.label }}</p>
-              <p class="text-xs text-muted-foreground">{{ step.date }}</p>
+              <p class="text-xs text-muted-foreground">{{ formatDate(step.date) }}</p>
             </div>
           </div>
         }
@@ -53,16 +53,16 @@
       <div class="grid grid-cols-3 gap-2 text-center text-xs">
         <div>
           <p class="text-muted-foreground">Total</p>
-          <p class="font-semibold">₹{{ (totalBudget() / 1000).toFixed(0) }}k</p>
+          <p class="font-semibold">₹{{ ((budgetSummary()?.totalBudget ?? trip().budgetAmount) / 1000).toFixed(0) }}k</p>
         </div>
         <div>
           <p class="text-muted-foreground">Spent</p>
-          <p class="font-semibold">₹{{ (trip().currentCost / 1000).toFixed(1) }}k</p>
+          <p class="font-semibold">₹{{ ((budgetSummary()?.totalSpent ?? 0) / 1000).toFixed(1) }}k</p>
         </div>
         <div>
           <p class="text-muted-foreground">Left</p>
           <p class="font-semibold text-success">
-            ₹{{ ((totalBudget() - trip().currentCost) / 1000).toFixed(1) }}k
+            ₹{{ ((budgetSummary()?.remainingBudget ?? trip().budgetAmount) / 1000).toFixed(1) }}k
           </p>
         </div>
       </div>
@@ -80,37 +80,35 @@
   <div hlmCardHeader class="flex flex-row items-center justify-between">
     <div>
       <h3 hlmCardTitle class="flex items-center gap-2">
-        <ng-icon name="lucideSparkles" class="h-4 w-4 text-accent" />Recommended Activities in
-        {{ trip().destination }}
+        <ng-icon name="lucideSparkles" class="h-4 w-4 text-accent" />Recommended Activities
       </h3>
       <p class="text-xs text-muted-foreground mt-1">
         Hand-picked based on your destination and travel dates.
       </p>
     </div>
-    <button hlmBtn variant="outline" size="sm">View all</button>
   </div>
   <div hlmCardContent>
-    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      @for (a of recommendedActivities; track a.id) {
-        <div class="rounded-lg border overflow-hidden bg-card">
-          <div class="relative h-28">
-            <img [src]="a.image" alt="" class="h-full w-full object-cover" />
-            <span hlmBadge class="absolute top-2 left-2 bg-accent text-accent-foreground border-0 text-[10px]"
-              >Popular</span
-            >
-          </div>
-          <div class="p-3 space-y-1.5">
-            <p class="font-medium text-sm">{{ a.name }}</p>
-            <p class="text-xs text-muted-foreground">{{ a.duration }} · ★ {{ a.rating }}</p>
-            <div class="flex items-center justify-between pt-1">
-              <span class="font-semibold text-sm">₹{{ a.price.toLocaleString() }}</span>
-              <button hlmBtn size="sm" variant="outline" class="h-7 text-xs">
-                <ng-icon name="lucidePlus" class="h-3 w-3 mr-1" />Add
-              </button>
+    @if (recommendedActivities().length === 0) {
+      <p class="text-sm text-muted-foreground py-4">No recommendations yet for this destination.</p>
+    } @else {
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        @for (a of recommendedActivities(); track a.id) {
+          <div class="rounded-lg border overflow-hidden bg-card">
+            <div class="relative h-28 grid place-items-center bg-muted/40">
+              <ng-icon name="lucideSparkles" class="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div class="p-3 space-y-1.5">
+              <p class="font-medium text-sm">{{ a.name }}</p>
+              <p class="text-xs text-muted-foreground">{{ a.duration }}</p>
+              <div class="flex items-center justify-end pt-1">
+                <button hlmBtn size="sm" variant="outline" class="h-7 text-xs">
+                  <ng-icon name="lucidePlus" class="h-3 w-3 mr-1" />Add
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      }
-    </div>
+        }
+      </div>
+    }
   </div>
 </div>
