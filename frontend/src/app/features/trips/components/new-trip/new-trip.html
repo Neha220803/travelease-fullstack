@@ -10,7 +10,7 @@
   <div hlmCardContent class="pt-6">
     <form
       class="grid grid-cols-1 md:grid-cols-2 gap-5"
-      (submit)="onSubmit($event, nameInput.value, budgetInput.value, sourceInput.value, destinationInput.value, startDateInput.value, endDateInput.value)"
+      (submit)="onSubmit($event, nameInput.value, budgetInput.value, sourceInput.value, startDateInput.value, endDateInput.value)"
     >
       <div class="md:col-span-2 space-y-2">
         <label hlmLabel for="name">Trip Name</label>
@@ -38,9 +38,27 @@
         <input hlmInput id="source" placeholder="Bengaluru" #sourceInput />
       </div>
       <div class="space-y-2">
-        <label hlmLabel for="destination">Destination ID</label>
-        <input hlmInput id="destination" type="number" min="1" step="1" placeholder="e.g. 1" #destinationInput />
-        <p class="text-xs text-muted-foreground">No destination lookup yet — enter the numeric ID.</p>
+        <label hlmLabel>Destination</label>
+        @if (destinationsLoading()) {
+          <p class="text-xs text-muted-foreground py-2">Loading destinations…</p>
+        } @else if (destinationsError()) {
+          <p class="text-xs text-destructive py-2">Could not load destinations.</p>
+        } @else {
+          <hlm-select
+            [value]="selectedDestinationId()"
+            [itemToString]="destinationIdToLabel"
+            (valueChange)="onDestinationChange($event)"
+          >
+            <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                @for (d of destinations(); track d.destinationId) {
+                  <hlm-select-item [value]="d.destinationId.toString()">{{ destinationLabel(d) }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        }
       </div>
       <div class="space-y-2">
         <label hlmLabel for="start-date">Start Date</label>
@@ -54,7 +72,9 @@
         <p class="md:col-span-2 text-xs text-destructive whitespace-pre-line">{{ error() }}</p>
       }
       <div class="md:col-span-2 flex gap-3 pt-2">
-        <button hlmBtn type="submit" [disabled]="submitting()">Create Trip</button>
+        <button hlmBtn type="submit" [disabled]="submitting() || destinationsLoading() || destinationsError()">
+          Create Trip
+        </button>
         <a hlmBtn variant="outline" routerLink="/trips">Cancel</a>
       </div>
     </form>

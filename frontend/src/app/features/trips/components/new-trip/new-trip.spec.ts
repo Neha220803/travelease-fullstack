@@ -7,13 +7,20 @@ import { of, throwError } from 'rxjs';
 import { NewTrip } from '@app/features/trips/components/new-trip/new-trip';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { CreateTripPayload, Trip } from '@app/features/trips/services/trip.models';
+import { DestinationsService } from '@app/core/destinations/destinations.service';
+import { Destination } from '@app/core/destinations/destination.models';
+
+const SAMPLE_DESTINATIONS: Destination[] = [
+  { destinationId: 1, destinationName: 'Mumbai', state: 'Maharashtra', country: 'India', description: '' },
+  { destinationId: 2, destinationName: 'Goa', state: 'Goa', country: 'India', description: '' },
+];
 
 const CREATED_TRIP: Trip = {
   tripId: 'bbbbbbbb-0000-0000-0000-000000000002',
   tripName: 'Goa Beach Escape',
   organizer: { userId: 'u1', name: 'Alice', email: 'alice@travelease.test' },
   sourceLocation: 'Bengaluru',
-  destinationId: 3,
+  destinationId: 1,
   budgetAmount: 18000,
   categoryId: 4,
   startDate: '2026-08-01',
@@ -24,18 +31,24 @@ const CREATED_TRIP: Trip = {
   updatedAt: '2026-07-01T00:00:00Z',
 };
 
-async function setup(tripsService: Partial<TripsService>) {
+async function setup(
+  tripsService: Partial<TripsService>,
+  destinationsService: Partial<DestinationsService> = { listDestinations: () => of(SAMPLE_DESTINATIONS) },
+) {
   await TestBed.configureTestingModule({
     imports: [NewTrip],
     providers: [
       provideRouter([]),
       provideIcons({ lucideArrowLeft }),
       { provide: TripsService, useValue: tripsService },
+      { provide: DestinationsService, useValue: destinationsService },
     ],
   }).compileComponents();
   const fixture = TestBed.createComponent(NewTrip);
   const router = TestBed.inject(Router);
   const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+  fixture.detectChanges();
+  await fixture.whenStable();
   fixture.detectChanges();
   return { fixture, navigateSpy };
 }
@@ -44,7 +57,6 @@ function fillAndSubmit(el: HTMLElement) {
   (el.querySelector('#name') as HTMLInputElement).value = 'Goa Beach Escape';
   (el.querySelector('#budget') as HTMLInputElement).value = '18000';
   (el.querySelector('#source') as HTMLInputElement).value = 'Bengaluru';
-  (el.querySelector('#destination') as HTMLInputElement).value = '3';
   (el.querySelector('#start-date') as HTMLInputElement).value = '2026-08-01';
   (el.querySelector('#end-date') as HTMLInputElement).value = '2026-08-05';
   const form = el.querySelector('form')!;
@@ -52,7 +64,7 @@ function fillAndSubmit(el: HTMLElement) {
 }
 
 describe('NewTrip', () => {
-  it('submits the form with the default trip type and navigates to the created trip', async () => {
+  it('submits with the default trip type and first-loaded destination, navigates to the created trip', async () => {
     const createTrip = vi.fn().mockReturnValue(of(CREATED_TRIP));
     const { fixture, navigateSpy } = await setup({ createTrip });
     const el = fixture.nativeElement as HTMLElement;
@@ -63,7 +75,7 @@ describe('NewTrip', () => {
     const expectedPayload: CreateTripPayload = {
       tripName: 'Goa Beach Escape',
       sourceLocation: 'Bengaluru',
-      destinationId: 3,
+      destinationId: 1,
       budgetAmount: 18000,
       categoryId: 4,
       startDate: '2026-08-01',
@@ -97,5 +109,18 @@ describe('NewTrip', () => {
     expect(navigateSpy).not.toHaveBeenCalled();
     expect(el.textContent).toContain('Validation failed');
     expect(el.textContent).toContain('budgetAmount: must be greater than or equal to 0.01');
+  });
+
+  it('shows an error and disables submit when destinations fail to load', async () => {
+    const createTrip = vi.fn();
+    const { fixture } = await setup(
+      { createTrip },
+      { listDestinations: () => throwError(() => new Error('boom')) },
+    );
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.textContent).toContain('Could not load destinations');
+    const submitBtn = el.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(true);
   });
 });

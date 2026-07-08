@@ -1,5 +1,7 @@
 package com.travelease.backend.shared.config;
 
+import com.travelease.backend.admin.entity.Destination;
+import com.travelease.backend.admin.repository.DestinationRepository;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
@@ -63,10 +65,13 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final BusRepository busRepository;
     private final RouteRepository routeRepository;
     private final BusScheduleRepository busScheduleRepository;
+    private final DestinationRepository destinationRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
+        seedDestinations();
+
         User admin = getOrCreateUser(ADMIN_ID, "Admin User", "admin@travelease.test", "9000000000", Role.ROLE_ADMIN, null);
         User alice = getOrCreateUser(ALICE_ID, "Alice Traveler", "alice@travelease.test", "9000000001", Role.ROLE_TRAVELER, null);
         User bob = getOrCreateUser(BOB_ID, "Bob Traveler", "bob@travelease.test", "9000000002", Role.ROLE_TRAVELER, null);
@@ -79,6 +84,28 @@ public class DemoDataInitializer implements CommandLineRunner {
         seedBusBookingData(admin);
     }
 
+    private void seedDestinations() {
+        if (destinationRepository.count() > 0) {
+            return;
+        }
+        saveDestination("Mumbai", "Maharashtra", "India", "Financial capital of India, gateway to the Arabian Sea.");
+        saveDestination("Goa", "Goa", "India", "Beach paradise on India's west coast.");
+        saveDestination("Manali", "Himachal Pradesh", "India", "Himalayan hill station popular for adventure sports.");
+        saveDestination("Jaipur", "Rajasthan", "India", "The Pink City, known for its forts and palaces.");
+        saveDestination("Alleppey", "Kerala", "India", "Backwaters and houseboat cruises.");
+        saveDestination("Chennai", "Tamil Nadu", "India", "Cultural capital of South India.");
+        saveDestination("Coorg", "Karnataka", "India", "Coffee plantations in the Western Ghats.");
+    }
+
+    private void saveDestination(String name, String state, String country, String description) {
+        Destination destination = new Destination();
+        destination.setDestinationName(name);
+        destination.setState(state);
+        destination.setCountry(country);
+        destination.setDescription(description);
+        destinationRepository.save(destination);
+    }
+
     private void seedExpenseData(User alice, User bob, User cara) {
         if (tripRepository.existsById(TRIP_ID)) {
             return;
@@ -89,7 +116,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         trip.setTripName("Demo Goa Trip");
         trip.setOrganizer(alice);
         trip.setSourceLocation("Mumbai");
-        trip.setDestinationId(1);
+        trip.setDestinationId(2);
         trip.setBudgetAmount(new BigDecimal("1000.00"));
         trip.setCategoryId(1);
         trip.setStartDate(LocalDate.now().plusDays(10));

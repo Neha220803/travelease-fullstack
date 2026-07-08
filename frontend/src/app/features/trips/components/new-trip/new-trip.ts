@@ -10,6 +10,8 @@ import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { CreateTripPayload } from '@app/features/trips/services/trip.models';
+import { DestinationsService } from '@app/core/destinations/destinations.service';
+import { Destination } from '@app/core/destinations/destination.models';
 
 @Component({
   selector: 'app-new-trip',
@@ -28,11 +30,33 @@ import { CreateTripPayload } from '@app/features/trips/services/trip.models';
 export class NewTrip {
   private readonly router = inject(Router);
   private readonly tripsService = inject(TripsService);
+  private readonly destinationsService = inject(DestinationsService);
 
   protected readonly tripTypes = ['Solo', 'Couple', 'Family', 'Friends', 'Corporate'];
   protected readonly tripType = signal('Friends');
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
+
+  protected readonly destinations = signal<Destination[]>([]);
+  protected readonly destinationsLoading = signal(true);
+  protected readonly destinationsError = signal(false);
+  protected readonly selectedDestinationId = signal('');
+
+  constructor() {
+    this.destinationsService.listDestinations().subscribe({
+      next: (destinations) => {
+        this.destinations.set(destinations);
+        this.destinationsLoading.set(false);
+        if (destinations.length > 0) {
+          this.selectedDestinationId.set(String(destinations[0].destinationId));
+        }
+      },
+      error: () => {
+        this.destinationsError.set(true);
+        this.destinationsLoading.set(false);
+      },
+    });
+  }
 
   protected onTripTypeChange(value: string | null | undefined): void {
     if (value) {
@@ -40,23 +64,42 @@ export class NewTrip {
     }
   }
 
+  protected onDestinationChange(value: string | null | undefined): void {
+    if (value) {
+      this.selectedDestinationId.set(value);
+    }
+  }
+
+  protected destinationLabel(destination: Destination): string {
+    return `${destination.destinationName}, ${destination.state}`;
+  }
+
+  protected readonly destinationIdToLabel = (id: string): string => {
+    const destination = this.destinations().find((d) => String(d.destinationId) === id);
+    return destination ? this.destinationLabel(destination) : id;
+  };
+
   protected onSubmit(
     event: Event,
     name: string,
     budget: string,
     source: string,
-    destination: string,
     startDate: string,
     endDate: string,
   ): void {
     event.preventDefault();
     this.error.set(null);
 
+    if (!this.selectedDestinationId()) {
+      this.error.set('Please select a destination.');
+      return;
+    }
+
     const categoryId = this.tripTypes.indexOf(this.tripType()) + 1;
     const payload: CreateTripPayload = {
       tripName: name,
       sourceLocation: source,
-      destinationId: Number(destination),
+      destinationId: Number(this.selectedDestinationId()),
       budgetAmount: Number(budget),
       categoryId,
       startDate,
