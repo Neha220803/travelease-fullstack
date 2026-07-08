@@ -1,32 +1,101 @@
 import { TestBed } from '@angular/core/testing';
-import { providerActivities } from '@app/core/mock-data';
+import { of, throwError } from 'rxjs';
 import {
   ActivityCapacity,
-  capacityCell,
+  capacityToneClass,
 } from '@app/features/activity/components/activity-capacity/activity-capacity';
+import { ActivityService } from '@app/features/activity/services/activity.service';
+import { ActivityOverview } from '@app/features/activity/services/activity.models';
 
-describe('capacityCell', () => {
-  it('matches the formula from the React source for a known input', () => {
-    // Paragliding: slots=12, booked=9 -> cap = max(2, floor(12/5)) = 2
-    const cell0 = capacityCell(9, 12, 0);
-    expect(cell0.cap).toBe(2);
-    expect(cell0.used).toBe(Math.min(2, Math.floor((9 / 12) * 2) + 0));
+describe('capacityToneClass', () => {
+  it('uses success above 80% filled', () => {
+    expect(capacityToneClass(85)).toBe('bg-success');
+  });
 
-    const cell1 = capacityCell(9, 12, 1);
-    expect(cell1.used).toBe(Math.min(2, Math.floor((9 / 12) * 2) + 1));
+  it('uses primary at or below 80% filled', () => {
+    expect(capacityToneClass(80)).toBe('bg-primary');
+    expect(capacityToneClass(30)).toBe('bg-primary');
   });
 });
 
+const OVERVIEW: ActivityOverview[] = [
+  {
+    activity: {
+      activityId: 'act-1',
+      providerId: 1,
+      destinationId: 3,
+      activityName: 'Paragliding',
+      durationHours: 1,
+      startTime: '09:00',
+      endTime: '10:00',
+      description: '',
+    },
+    slots: [
+      {
+        activitySlotId: 'slot-2',
+        activityId: 'act-1',
+        activityDate: '2026-07-21',
+        startTime: '14:00',
+        endTime: '15:00',
+        price: 2500,
+        capacity: 10,
+        remainingCapacity: 10,
+      },
+      {
+        activitySlotId: 'slot-1',
+        activityId: 'act-1',
+        activityDate: '2026-07-20',
+        startTime: '09:00',
+        endTime: '10:00',
+        price: 2500,
+        capacity: 12,
+        remainingCapacity: 3,
+      },
+    ],
+    bookings: [],
+  },
+];
+
+async function setup(activityService: Partial<ActivityService>) {
+  await TestBed.configureTestingModule({
+    imports: [ActivityCapacity],
+    providers: [{ provide: ActivityService, useValue: activityService }],
+  }).compileComponents();
+  const fixture = TestBed.createComponent(ActivityCapacity);
+  fixture.detectChanges();
+  return fixture;
+}
+
 describe('ActivityCapacity', () => {
-  it('renders a row per activity with the correct total column', async () => {
-    await TestBed.configureTestingModule({ imports: [ActivityCapacity] }).compileComponents();
-    const fixture = TestBed.createComponent(ActivityCapacity);
-    fixture.detectChanges();
+  it('sorts slots chronologically and computes used/capacity per slot', async () => {
+    const fixture = await setup({ getProviderOverview: () => of(OVERVIEW) });
+    const rows = fixture.componentInstance.rows();
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe('Paragliding');
+    expect(rows[0].total).toBe(22);
+    expect(rows[0].slots.map((s) => s.id)).toEqual(['slot-1', 'slot-2']);
+    expect(rows[0].slots[0]).toMatchObject({ used: 9, capacity: 12 });
+    expect(rows[0].slots[1]).toMatchObject({ used: 0, capacity: 10 });
+  });
+
+  it('renders the activity name and slot rows', async () => {
+    const fixture = await setup({ getProviderOverview: () => of(OVERVIEW) });
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const a of providerActivities) {
-      expect(text).toContain(a.name);
-    }
-    const rows = fixture.componentInstance.rows;
-    expect(rows.map((r) => r.total)).toEqual(providerActivities.map((a) => a.slots));
+    expect(text).toContain('Paragliding');
+    expect(text).toContain('2026-07-20');
+    expect(text).toContain('2026-07-21');
+  });
+
+  it('shows an empty state with no activities', async () => {
+    const fixture = await setup({ getProviderOverview: () => of([]) });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('No activities yet');
+  });
+
+  it('shows an error message when loading fails', async () => {
+    const fixture = await setup({ getProviderOverview: () => throwError(() => new Error('boom')) });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Something went wrong');
   });
 });

@@ -1,28 +1,76 @@
-<app-page-header title="Bookings" subtitle="Upcoming activity reservations." />
+<app-page-header title="Bookings" subtitle="Upcoming and past activity reservations." />
 
-<div hlmCard>
-  <div hlmCardContent class="pt-5">
-    <div class="rounded-md border">
-      <div class="grid grid-cols-12 px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40 border-b">
-        <div class="col-span-3">Customer</div>
-        <div class="col-span-3">Activity</div>
-        <div class="col-span-2">Date</div>
-        <div class="col-span-1">Slot</div>
-        <div class="col-span-1 text-right">Guests</div>
-        <div class="col-span-1 text-right">Total</div>
-        <div class="col-span-1 text-right">Status</div>
-      </div>
-      @for (b of bookings; track b.id) {
-        <div class="grid grid-cols-12 px-4 py-3 items-center border-b last:border-0 text-sm">
-          <div class="col-span-3 font-medium">{{ b.customer }}</div>
-          <div class="col-span-3 text-muted-foreground">{{ b.activity }}</div>
-          <div class="col-span-2">{{ b.date }}</div>
-          <div class="col-span-1 text-xs">{{ b.slot }}</div>
-          <div class="col-span-1 text-right tabular-nums">{{ b.guests }}</div>
-          <div class="col-span-1 text-right tabular-nums">₹{{ b.total.toLocaleString() }}</div>
-          <div class="col-span-1 text-right"><app-status-badge [status]="b.status" /></div>
+@if (loading()) {
+  <div hlmCard>
+    <div hlmCardContent class="pt-5 space-y-2">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="h-10 w-full rounded bg-muted animate-pulse"></div>
+      }
+    </div>
+  </div>
+} @else if (error()) {
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-sm text-destructive">{{ error() }}</p>
+    </div>
+  </div>
+} @else {
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      @if (bookings().length === 0) {
+        <p class="text-sm text-muted-foreground">No bookings yet.</p>
+      } @else {
+        <div class="rounded-md border">
+          <div class="grid grid-cols-12 px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40 border-b">
+            <div class="col-span-3">Activity</div>
+            <div class="col-span-2">Date</div>
+            <div class="col-span-1">Slot</div>
+            <div class="col-span-1 text-right">Guests</div>
+            <div class="col-span-1 text-right">Total</div>
+            <div class="col-span-1 text-right">Status</div>
+            <div class="col-span-3 text-right">Attendance</div>
+          </div>
+          @for (b of bookings(); track b.bookingId) {
+            <div class="grid grid-cols-12 px-4 py-3 items-center border-b last:border-0 text-sm">
+              <div class="col-span-3 font-medium truncate">{{ b.activityName }}</div>
+              <div class="col-span-2">{{ b.activityDate }}</div>
+              <div class="col-span-1 text-xs">{{ b.startTime }}</div>
+              <div class="col-span-1 text-right tabular-nums">{{ b.participantCount }}</div>
+              <div class="col-span-1 text-right tabular-nums">₹{{ b.totalAmount.toLocaleString() }}</div>
+              <div class="col-span-1 text-right"><app-status-badge [status]="b.status" /></div>
+              <div class="col-span-3 flex flex-col items-end gap-1">
+                @if (b.status === 'CONFIRMED') {
+                  <div class="flex gap-2">
+                    <button
+                      hlmBtn
+                      size="sm"
+                      variant="outline"
+                      [disabled]="savingBookingId() === b.bookingId"
+                      (click)="markAttendance(b, 'ATTENDED')"
+                    >
+                      Mark Attended
+                    </button>
+                    <button
+                      hlmBtn
+                      size="sm"
+                      variant="ghost"
+                      [disabled]="savingBookingId() === b.bookingId"
+                      (click)="markAttendance(b, 'NO_SHOW')"
+                    >
+                      No-show
+                    </button>
+                  </div>
+                } @else {
+                  <span class="text-xs text-muted-foreground">—</span>
+                }
+                @if (bookingErrors()[b.bookingId]) {
+                  <p class="text-xs text-destructive">{{ bookingErrors()[b.bookingId] }}</p>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
     </div>
   </div>
-</div>
+}
