@@ -9,6 +9,7 @@ import com.travelease.backend.expense.entity.Expense;
 import com.travelease.backend.expense.entity.ExpenseParticipant;
 import com.travelease.backend.expense.mapper.ExpenseMapper;
 import com.travelease.backend.expense.repository.ExpenseRepository;
+import com.travelease.backend.itinerary.service.NotificationService;
 import com.travelease.backend.shared.dto.PagedResponse;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
@@ -48,6 +49,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final UserRepository userRepository;
     private final ExpenseMapper expenseMapper;
     private final TripAuthorizationService tripAuthorizationService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -106,6 +108,21 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         Expense saved = expenseRepository.save(expense);
         log.info("Shared expense {} created for trip {}", saved.getId(), tripId);
+
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        for (ExpenseParticipant participant : saved.getParticipants()) {
+            if (!participant.getUser().getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        participant.getUser().getId().toString(),
+                        "EXPENSE",
+                        "New Expense added",
+                        "You have been included in the expense: " + saved.getDescription()
+                );
+            }
+        }
+
         return expenseMapper.toResponse(saved);
     }
 
