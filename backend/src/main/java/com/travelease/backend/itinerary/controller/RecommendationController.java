@@ -12,7 +12,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/recommendations")
 @CrossOrigin(origins = "http://localhost:4200")
-@Tag(name = "Recommendations", description = "Public traveler recommendations by category")
+@Tag(name = "Recommendations", description = "Traveler recommendations by category. Despite the name, this "
+        + "path is NOT in SecurityConfig's permitAll list, so a valid JWT (any of the five roles) is required.")
 public class RecommendationController {
 
     @Autowired
@@ -22,7 +23,9 @@ public class RecommendationController {
     // Get personalized suggestions by traveler category
     // 1=Solo 2=Couple 3=Family 4=Friends 5=Corporate
     @GetMapping
-    @Operation(summary = "Get traveler recommendations", description = "ACCESS: PUBLIC\nSCOPE: Returns recommendation records for the requested traveler categoryId.\nIDENTITY: No JWT is required.")
+    @Operation(summary = "Get traveler recommendations", description = "ACCESS: AUTHENTICATED (any of the five "
+            + "roles) - /api/recommendations is not in SecurityConfig's permitAll list, so a missing/invalid "
+            + "JWT returns 401.\n\nSCOPE: Read-only catalog lookup by traveler categoryId, not owner-scoped.")
     public ResponseEntity<List<Recommendation>> getRecommendations(
             @RequestParam Integer categoryId) {
         List<Recommendation> recommendations =

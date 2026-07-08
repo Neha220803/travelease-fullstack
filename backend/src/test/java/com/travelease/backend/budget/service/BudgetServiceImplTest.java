@@ -2,7 +2,9 @@ package com.travelease.backend.budget.service;
 
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
+import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.budget.dto.BudgetResponse;
+import com.travelease.backend.budget.dto.BudgetSummaryResponse;
 import com.travelease.backend.budget.mapper.BudgetMapper;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
@@ -11,6 +13,7 @@ import com.travelease.backend.trip.entity.TripMember;
 import com.travelease.backend.trip.entity.TripMemberStatus;
 import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.repository.TripRepository;
+import com.travelease.backend.trip.security.TripAuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +23,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,12 +38,16 @@ class BudgetServiceImplTest {
     private TripRepository tripRepository;
     @Mock
     private TripMemberRepository tripMemberRepository;
+    @Mock
+    private UserRepository userRepository;
 
     private BudgetServiceImpl budgetService;
 
     @BeforeEach
     void setUp() {
-        budgetService = new BudgetServiceImpl(tripRepository, tripMemberRepository, new BudgetMapper());
+        TripAuthorizationService tripAuthorizationService = new TripAuthorizationService(tripMemberRepository);
+        budgetService = new BudgetServiceImpl(
+                tripRepository, tripMemberRepository, userRepository, tripAuthorizationService, new BudgetMapper());
     }
 
     private User user(String email, Role role) {
@@ -156,5 +164,53 @@ class BudgetServiceImplTest {
 
         assertThatThrownBy(() -> budgetService.getMyBudget(tripId, "anyone@travelease.test"))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // --- getTripSummary: centralized onto TripAuthorizationService (Phase 4 fix) ---
+
+    @Test
+    void acceptedMemberCanAccessTripSummary() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        User bob = user("bob@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(bob.getEmail())).thenReturn(Optional.of(bob));
+        when(tripMemberRepository.existsByTripIdAndUserIdAndMemberStatus(trip.getId(), bob.getId(), TripMemberStatus.ACCEPTED))
+                .thenReturn(true);
+        when(tripMemberRepository.findByTripIdAndMemberStatus(trip.getId(), TripMemberStatus.ACCEPTED))
+                .thenReturn(List.of(membership(trip, bob, TripMemberStatus.ACCEPTED)));
+
+        BudgetSummaryResponse response = budgetService.getTripSummary(trip.getId(), bob.getEmail());
+
+        assertThat(response.totalBudget()).isEqualByComparingTo("500.00");
+    }
+
+    @Test
+    void adminBypassesMembershipCheckForTripSummary() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        User admin = user("admin@travelease.test", Role.ROLE_ADMIN);
+        Trip trip = trip(alice);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+        when(tripMemberRepository.findByTripIdAndMemberStatus(trip.getId(), TripMemberStatus.ACCEPTED))
+                .thenReturn(List.of());
+
+        BudgetSummaryResponse response = budgetService.getTripSummary(trip.getId(), admin.getEmail());
+
+        assertThat(response.tripId()).isEqualTo(trip.getId());
+    }
+
+    @Test
+    void unrelatedTravelerCannotAccessTripSummary() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        User eve = user("eve@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(eve.getEmail())).thenReturn(Optional.of(eve));
+        when(tripMemberRepository.existsByTripIdAndUserIdAndMemberStatus(trip.getId(), eve.getId(), TripMemberStatus.ACCEPTED))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> budgetService.getTripSummary(trip.getId(), eve.getEmail()))
+                .isInstanceOf(AccessDeniedException.class);
     }
 }

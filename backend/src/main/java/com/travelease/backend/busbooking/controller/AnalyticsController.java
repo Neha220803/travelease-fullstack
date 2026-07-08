@@ -17,8 +17,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/analytics")
 @RequiredArgsConstructor
-@Tag(name = "Analytics & Dashboard", description = "Transport provider analytics and dashboard APIs")
+@Tag(name = "Analytics & Dashboard", description = "Transport provider analytics and dashboard APIs for "
+        + "ROLE_PROVIDER, tenant-isolated by transport providerId. Every endpoint resolves and validates the "
+        + "effective providerId server-side via SecurityUtil.resolveEffectiveProviderId before querying, so a "
+        + "PROVIDER caller can never see another provider's data even by supplying a different providerId.")
 public class AnalyticsController {
+
+    private static final String PROVIDER_SCOPE_DESCRIPTION = "ACCESS: ROLE_PROVIDER (transport) or ROLE_ADMIN. "
+            + "SCOPE: ROLE_PROVIDER forced to its own providerId; ROLE_ADMIN may pass any providerId or omit it.";
 
     private final AnalyticsService analyticsService;
     private final com.travelease.backend.busbooking.security.SecurityUtil securityUtil;
@@ -27,7 +33,7 @@ public class AnalyticsController {
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get provider dashboard summary", description = "Get provider dashboard summary")
+    @Operation(summary = "Get provider dashboard summary", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<ProviderDashboardResponse>> getProviderDashboard(
             @RequestParam(required = false) Long providerId) {
         Long effectiveProviderId = securityUtil.resolveEffectiveProviderId(providerId);
@@ -39,7 +45,7 @@ public class AnalyticsController {
 
     @GetMapping("/buses")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get bus analytics for provider", description = "Get bus analytics for provider")
+    @Operation(summary = "Get bus analytics for provider", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<List<BusAnalyticsResponse>>> getBusAnalytics(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) String sort,
@@ -53,7 +59,7 @@ public class AnalyticsController {
 
     @GetMapping("/routes")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get route analytics for provider", description = "Get route analytics for provider")
+    @Operation(summary = "Get route analytics for provider", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<List<RouteAnalyticsResponse>>> getRouteAnalytics(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) String sort,
@@ -67,7 +73,7 @@ public class AnalyticsController {
 
     @GetMapping("/drivers")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get driver analytics for provider", description = "Get driver analytics for provider")
+    @Operation(summary = "Get driver analytics for provider", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<List<DriverAnalyticsResponse>>> getDriverAnalytics(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) String sort,
@@ -81,7 +87,7 @@ public class AnalyticsController {
 
     @GetMapping("/conductors")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get conductor analytics for provider", description = "Get conductor analytics for provider")
+    @Operation(summary = "Get conductor analytics for provider", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<List<ConductorAnalyticsResponse>>> getConductorAnalytics(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) String sort,
@@ -95,7 +101,7 @@ public class AnalyticsController {
 
     @GetMapping("/maintenance")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get maintenance analytics for provider", description = "Get maintenance analytics for provider")
+    @Operation(summary = "Get maintenance analytics for provider", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<MaintenanceAnalyticsResponse>> getMaintenanceAnalytics(
             @RequestParam(required = false) Long providerId) {
         Long effectiveProviderId = securityUtil.resolveEffectiveProviderId(providerId);
@@ -107,7 +113,7 @@ public class AnalyticsController {
 
     @GetMapping("/bookings")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get booking analytics for provider", description = "Get booking analytics for provider")
+    @Operation(summary = "Get booking analytics for provider", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<BookingAnalyticsResponse>> getBookingAnalytics(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -124,7 +130,7 @@ public class AnalyticsController {
 
     @GetMapping("/revenue")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get revenue analytics for provider", description = "Get revenue analytics for provider")
+    @Operation(summary = "Get revenue analytics for provider", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<RevenueAnalyticsResponse>> getRevenueAnalytics(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -137,4 +143,3 @@ public class AnalyticsController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Revenue analytics fetched successfully", response, "/api/analytics/revenue"));
     }
 }
-

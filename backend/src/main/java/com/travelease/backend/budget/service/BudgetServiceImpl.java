@@ -1,13 +1,18 @@
 package com.travelease.backend.budget.service;
 
+import com.travelease.backend.auth.entity.Role;
+import com.travelease.backend.auth.entity.User;
+import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.budget.dto.BudgetResponse;
 import com.travelease.backend.budget.dto.BudgetSummaryResponse;
 import com.travelease.backend.budget.mapper.BudgetMapper;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
+import com.travelease.backend.trip.entity.Trip;
 import com.travelease.backend.trip.entity.TripMember;
 import com.travelease.backend.trip.entity.TripMemberStatus;
 import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.repository.TripRepository;
+import com.travelease.backend.trip.security.TripAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,8 @@ public class BudgetServiceImpl implements BudgetService {
 
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
+    private final UserRepository userRepository;
+    private final TripAuthorizationService tripAuthorizationService;
     private final BudgetMapper budgetMapper;
 
     @Override
@@ -44,8 +51,14 @@ public class BudgetServiceImpl implements BudgetService {
     @Override
     @Transactional(readOnly = true)
     public BudgetSummaryResponse getTripSummary(UUID tripId, String currentUserEmail) {
-        ensureTripExists(tripId);
-        ensureCurrentUserIsMember(tripId, currentUserEmail);
+        Trip trip = findTrip(tripId);
+        // Unlike getMyBudget (a self-referential "my own row" lookup where an
+        // admin bypass wouldn't have a row to return), this is a generic
+        // trip-wide aggregate view, so it is centralized onto
+        // TripAuthorizationService for the same Organizer/ACCEPTED-member-or-
+        // ADMIN semantics used by Itinerary and the Trip-attachment endpoints.
+        User currentUser = resolveCurrentUser(currentUserEmail);
+        tripAuthorizationService.requireMember(trip, currentUser.getId(), isAdmin(currentUser));
 
         List<TripMember> acceptedMembers = tripMemberRepository.findByTripIdAndMemberStatus(
                 tripId,
@@ -76,9 +89,17 @@ public class BudgetServiceImpl implements BudgetService {
         }
     }
 
-    private void ensureCurrentUserIsMember(UUID tripId, String email) {
-        if (!tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(tripId, email, TripMemberStatus.ACCEPTED)) {
-            throw new AccessDeniedException("Current user is not a member of this trip");
-        }
+    private Trip findTrip(UUID tripId) {
+        return tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trip with id " + tripId + " not found"));
+    }
+
+    private User resolveCurrentUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() == Role.ROLE_ADMIN;
     }
 }

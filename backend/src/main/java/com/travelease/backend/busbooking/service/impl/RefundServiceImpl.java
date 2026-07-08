@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -200,6 +201,16 @@ public class RefundServiceImpl implements RefundService {
     public RefundResponse getRefundById(Long refundId) {
         Refund refund = refundRepository.findById(refundId)
                 .orElseThrow(() -> new ResourceNotFoundException("Refund", "id", refundId));
+        // Previously this method performed no ownership check of its own,
+        // relying entirely on RefundController's follow-up
+        // bookingService.getBookingById(...) call for enforcement - a latent
+        // single point of failure if that controller-side call were ever
+        // reordered or removed. Mirrors the same defense-in-depth check
+        // getRefunds already applies to its own query.
+        if (!securityUtil.getCurrentUserRoles().contains("ROLE_ADMIN")
+                && !refund.getBooking().getUserId().equals(securityUtil.getCurrentUserId())) {
+            throw new AccessDeniedException("You are not authorized to access this refund");
+        }
         return refundMapper.toResponse(refund);
     }
 

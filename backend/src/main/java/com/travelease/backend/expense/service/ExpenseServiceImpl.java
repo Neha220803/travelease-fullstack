@@ -1,5 +1,6 @@
 package com.travelease.backend.expense.service;
 
+import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.expense.dto.CreateExpenseRequest;
@@ -19,7 +20,6 @@ import com.travelease.backend.trip.repository.TripRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +51,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional
     public ExpenseResponse createSharedExpense(UUID tripId, CreateExpenseRequest request, String currentUserEmail) {
         Trip trip = findTrip(tripId);
-        ensureCurrentUserIsMember(tripId, currentUserEmail);
+        requireActiveMember(trip, currentUserEmail);
         tripAuthorizationService.requireMutableTrip(trip);
 
         Set<UUID> participantIds = new LinkedHashSet<>(request.participantIds());
@@ -110,8 +110,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     @Transactional(readOnly = true)
     public List<ExpenseResponse> getTripExpenses(UUID tripId, String currentUserEmail) {
-        findTrip(tripId);
-        ensureCurrentUserIsMember(tripId, currentUserEmail);
+        Trip trip = findTrip(tripId);
+        requireActiveMember(trip, currentUserEmail);
         return expenseRepository.findByTripIdOrderByCreatedAtDesc(tripId).stream()
                 .map(expenseMapper::toResponse)
                 .toList();
@@ -120,8 +120,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     @Transactional(readOnly = true)
     public ExpenseResponse getTripExpense(UUID tripId, UUID expenseId, String currentUserEmail) {
-        findTrip(tripId);
-        ensureCurrentUserIsMember(tripId, currentUserEmail);
+        Trip trip = findTrip(tripId);
+        requireActiveMember(trip, currentUserEmail);
         Expense expense = expenseRepository.findByIdAndTripId(expenseId, tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense with id " + expenseId + " not found"));
         return expenseMapper.toResponse(expense);
@@ -132,10 +132,23 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Trip with id " + tripId + " not found"));
     }
 
-    private void ensureCurrentUserIsMember(UUID tripId, String email) {
-        if (!tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(tripId, email, TripMemberStatus.ACCEPTED)) {
-            throw new AccessDeniedException("Current user is not a member of this trip");
-        }
+    // Centralized onto TripAuthorizationService (Organizer or ACCEPTED member,
+    // ADMIN bypasses) rather than the previous self-rolled ACCEPTED-only check,
+    // matching the pattern already proven by Itinerary and every Trip-
+    // attachment endpoint - these three endpoints are generic trip-wide views/
+    // mutations, not a "my own row" lookup, so admin oversight applies cleanly.
+    private void requireActiveMember(Trip trip, String currentUserEmail) {
+        User currentUser = resolveCurrentUser(currentUserEmail);
+        tripAuthorizationService.requireMember(trip, currentUser.getId(), isAdmin(currentUser));
+    }
+
+    private User resolveCurrentUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() == Role.ROLE_ADMIN;
     }
 
     private Map<UUID, BigDecimal> resolveShares(

@@ -25,15 +25,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
-@Tag(name = "Enterprise Reporting & Export", description = "Report generation and export APIs")
+@Tag(name = "Enterprise Reporting & Export", description = "Report generation and export for ROLE_PROVIDER, "
+        + "tenant-isolated by transport providerId. Every filter's providerId is resolved and validated "
+        + "server-side via SecurityUtil.resolveEffectiveProviderId before the underlying query runs.")
 public class ReportController {
+
+    private static final String PROVIDER_SCOPE_DESCRIPTION = "ACCESS: ROLE_PROVIDER (transport) or ROLE_ADMIN. "
+            + "SCOPE: ROLE_PROVIDER forced to its own providerId; ROLE_ADMIN may pass any providerId or omit it.";
 
     private final ReportService reportService;
     private final SecurityUtil securityUtil;
 
     @PostMapping("/generate")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Generate report by type with filters", description = "Generate report by type with filters")
+    @Operation(summary = "Generate report by type with filters", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<ReportResponse>> generateReport(
             @RequestParam ReportType reportType,
             @RequestBody(required = false) ReportFilterRequest filters) {
@@ -48,7 +53,7 @@ public class ReportController {
 
     @PostMapping("/export")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Export report as CSV or Excel", description = "Export report as CSV or Excel")
+    @Operation(summary = "Export report as CSV or Excel", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<?> exportReport(@Valid @RequestBody ReportExportRequest request) {
         ReportFilterRequest filters = new ReportFilterRequest();
         filters.setProviderId(securityUtil.resolveEffectiveProviderId(request.getProviderId()));
@@ -80,7 +85,7 @@ public class ReportController {
 
     @GetMapping("/history")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get report history with filters", description = "Get report history with filters")
+    @Operation(summary = "Get report history with filters", description = PROVIDER_SCOPE_DESCRIPTION)
     public ResponseEntity<ApiResponse<List<ReportHistoryResponse>>> getReportHistory(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) ReportType reportType,
@@ -92,4 +97,3 @@ public class ReportController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Report history fetched successfully", response, "/api/reports/history"));
     }
 }
-

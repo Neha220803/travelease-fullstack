@@ -4,6 +4,8 @@ import com.travelease.backend.itinerary.dto.ItineraryRequest;
 import com.travelease.backend.itinerary.dto.ItineraryResponse;
 import com.travelease.backend.itinerary.service.ItineraryService;
 import com.travelease.backend.shared.exception.InvalidRequestException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +20,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/itinerary")
 @CrossOrigin(origins = "http://localhost:4200")
+@Tag(name = "Trip Itinerary", description = "Itinerary item management, fully delegated to "
+        + "TripAuthorizationService (unlike Budget/Expense/Settlement, which still use self-rolled membership "
+        + "checks) - so ROLE_ADMIN bypasses the Trip-relationship check consistently here.")
 public class ItineraryController {
 
     @Autowired
@@ -29,6 +34,10 @@ public class ItineraryController {
     // ─────────────────────────────────────────────────────
     @PostMapping
     @PreAuthorize("hasAnyRole('TRAVELER','ADMIN')")
+    @Operation(summary = "Add an itinerary item", description = "ACCESS: ROLE_TRAVELER or ROLE_ADMIN.\n\n"
+            + "SCOPE: Trip Organizer or ACCEPTED member (ROLE_ADMIN bypasses via "
+            + "TripAuthorizationService.requireMember).\n\n"
+            + "LIFECYCLE: Rejected when the Trip is COMPLETED or CANCELLED.")
     public ResponseEntity<ItineraryResponse> addItem(
             @RequestBody ItineraryRequest request,
             Authentication authentication) {
@@ -46,6 +55,9 @@ public class ItineraryController {
     // ─────────────────────────────────────────────────────
     @GetMapping
     @PreAuthorize("hasAnyRole('TRAVELER','ADMIN')")
+    @Operation(summary = "List/filter itinerary items for a trip", description = "ACCESS: ROLE_TRAVELER or "
+            + "ROLE_ADMIN.\n\n"
+            + "SCOPE: Trip Organizer or ACCEPTED member (ROLE_ADMIN bypasses).")
     public ResponseEntity<List<ItineraryResponse>> getItinerary(
             @RequestParam String tripId,
             @RequestParam(required = false) String activityDate,
@@ -87,6 +99,10 @@ public class ItineraryController {
     // ─────────────────────────────────────────────────────
     @PutMapping("/{itineraryId}")
     @PreAuthorize("hasAnyRole('TRAVELER','ADMIN')")
+    @Operation(summary = "Update an itinerary item (or mark complete/incomplete)", description = "ACCESS: "
+            + "ROLE_TRAVELER or ROLE_ADMIN.\n\n"
+            + "SCOPE: Trip Organizer or ACCEPTED member (ROLE_ADMIN bypasses).\n\n"
+            + "LIFECYCLE: Rejected when the Trip is COMPLETED or CANCELLED.")
     public ResponseEntity<ItineraryResponse> updateItem(
             @PathVariable String itineraryId,
             @RequestBody ItineraryRequest request,
@@ -102,6 +118,10 @@ public class ItineraryController {
     // ─────────────────────────────────────────────────────
     @DeleteMapping("/{itineraryId}")
     @PreAuthorize("hasAnyRole('TRAVELER','ADMIN')")
+    @Operation(summary = "Delete an itinerary item", description = "ACCESS: ROLE_TRAVELER or ROLE_ADMIN.\n\n"
+            + "SCOPE: Trip Organizer only (not just any ACCEPTED member) via "
+            + "TripAuthorizationService.requireOrganizer - ROLE_ADMIN bypasses.\n\n"
+            + "LIFECYCLE: Rejected when the Trip is COMPLETED or CANCELLED.")
     public ResponseEntity<Map<String, String>> deleteItem(
             @PathVariable String itineraryId,
             Authentication authentication) {
@@ -118,6 +138,8 @@ public class ItineraryController {
     // ─────────────────────────────────────────────────────
     @GetMapping("/progress")
     @PreAuthorize("hasAnyRole('TRAVELER','ADMIN')")
+    @Operation(summary = "Get itinerary completion progress for a trip", description = "ACCESS: ROLE_TRAVELER "
+            + "or ROLE_ADMIN.\n\nSCOPE: Trip Organizer or ACCEPTED member (ROLE_ADMIN bypasses).")
     public ResponseEntity<Map<String, Object>> getProgress(
             @RequestParam String tripId,
             Authentication authentication) {

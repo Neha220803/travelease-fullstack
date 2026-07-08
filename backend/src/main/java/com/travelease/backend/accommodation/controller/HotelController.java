@@ -6,6 +6,8 @@ import com.travelease.backend.accommodation.dto.HotelReviewResponse;
 import com.travelease.backend.accommodation.dto.ReviewRequest;
 import com.travelease.backend.accommodation.service.AccommodationService;
 import com.travelease.backend.shared.dto.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,11 +29,16 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/hotels")
 @RequiredArgsConstructor
+@Tag(name = "Hotel Catalog & Reviews", description = "Traveler-facing Hotel search/details and reviews. Not "
+        + "in SecurityConfig's permitAll list, so every endpoint here requires a valid JWT (any of the five "
+        + "roles) even though none carries a role-specific @PreAuthorize.")
 public class HotelController {
 
     private final AccommodationService accommodationService;
 
     @GetMapping
+    @Operation(summary = "Search Hotels", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "SCOPE: Read-only catalog search across every Hotel Provider's hotels, not tenant-scoped.")
     public ResponseEntity<ApiResponse<List<HotelResponse>>> searchHotels(
             @RequestParam(required = false) Integer destinationId,
             @RequestParam(required = false) String status,
@@ -42,18 +49,25 @@ public class HotelController {
     }
 
     @GetMapping("/{hotelId}")
+    @Operation(summary = "Get Hotel details", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "SCOPE: Read-only, not tenant-scoped.")
     public ResponseEntity<ApiResponse<HotelDetailsResponse>> getHotel(@PathVariable UUID hotelId) {
         HotelDetailsResponse response = accommodationService.getHotelDetails(hotelId);
         return ResponseEntity.ok(ApiResponse.success(response, "Hotel details retrieved"));
     }
 
     @GetMapping("/{hotelId}/reviews")
+    @Operation(summary = "List Hotel reviews", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "SCOPE: Read-only, not owner-scoped - returns every Traveler's reviews for this hotel.")
     public ResponseEntity<ApiResponse<List<HotelReviewResponse>>> getReviews(@PathVariable UUID hotelId) {
         List<HotelReviewResponse> response = accommodationService.getReviews(hotelId);
         return ResponseEntity.ok(ApiResponse.success(response, "Hotel reviews retrieved"));
     }
 
     @PostMapping("/{hotelId}/reviews")
+    @Operation(summary = "Add a Hotel review", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "IDENTITY: The review's author is resolved from the authenticated JWT, not a client-supplied "
+            + "field.")
     public ResponseEntity<ApiResponse<HotelReviewResponse>> addReview(
             @PathVariable UUID hotelId,
             @Valid @RequestBody ReviewRequest request,
@@ -64,6 +78,9 @@ public class HotelController {
     }
 
     @PutMapping("/{hotelId}/reviews/{reviewId}")
+    @Operation(summary = "Update my Hotel review", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "SCOPE: Original review author only - no ADMIN bypass on this ownership check. Another "
+            + "Traveler's review id returns 403.")
     public ResponseEntity<ApiResponse<HotelReviewResponse>> updateReview(
             @PathVariable UUID hotelId,
             @PathVariable UUID reviewId,
@@ -80,6 +97,8 @@ public class HotelController {
     }
 
     @DeleteMapping("/{hotelId}/reviews/{reviewId}")
+    @Operation(summary = "Delete my Hotel review", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "SCOPE: Original review author only, same as update above - no ADMIN bypass.")
     public ResponseEntity<ApiResponse<Void>> deleteReview(
             @PathVariable UUID hotelId,
             @PathVariable UUID reviewId,

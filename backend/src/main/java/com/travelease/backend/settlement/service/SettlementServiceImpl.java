@@ -1,6 +1,8 @@
 package com.travelease.backend.settlement.service;
 
+import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
+import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.expense.entity.ExpenseParticipant;
 import com.travelease.backend.expense.repository.ExpenseParticipantRepository;
 import com.travelease.backend.settlement.dto.SettlementResponse;
@@ -12,9 +14,9 @@ import com.travelease.backend.settlement.repository.SettlementRepository;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
 import com.travelease.backend.trip.entity.TripMember;
-import com.travelease.backend.trip.entity.TripMemberStatus;
 import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.repository.TripRepository;
+import com.travelease.backend.trip.security.TripAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -41,6 +43,8 @@ public class SettlementServiceImpl implements SettlementService {
     private final ExpenseParticipantRepository expenseParticipantRepository;
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
+    private final UserRepository userRepository;
+    private final TripAuthorizationService tripAuthorizationService;
     private final SettlementMapper settlementMapper;
 
     @Override
@@ -91,7 +95,13 @@ public class SettlementServiceImpl implements SettlementService {
     private List<Settlement> recalculateSettlements(UUID tripId, String currentUserEmail) {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Trip with id " + tripId + " not found"));
-        ensureCurrentUserIsMember(tripId, currentUserEmail);
+        // Centralized onto TripAuthorizationService (Organizer or ACCEPTED
+        // member, ADMIN bypasses) rather than the previous self-rolled
+        // ACCEPTED-only check, matching Budget.getTripSummary/Expense's
+        // pattern. getMySettlements additionally filters to the caller's own
+        // participant rows afterward, so an admin bypassing this check who
+        // isn't a participant simply gets an empty list there, not an error.
+        requireActiveMember(trip, currentUserEmail);
 
         Map<PairKey, BigDecimal> directDebts = calculateDirectDebts(tripId);
         Map<PairKey, BigDecimal> netDebts = netReciprocalDebts(directDebts);
@@ -179,10 +189,18 @@ public class SettlementServiceImpl implements SettlementService {
         return settlement;
     }
 
-    private void ensureCurrentUserIsMember(UUID tripId, String email) {
-        if (!tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(tripId, email, TripMemberStatus.ACCEPTED)) {
-            throw new AccessDeniedException("Current user is not a member of this trip");
-        }
+    private void requireActiveMember(Trip trip, String currentUserEmail) {
+        User currentUser = resolveCurrentUser(currentUserEmail);
+        tripAuthorizationService.requireMember(trip, currentUser.getId(), isAdmin(currentUser));
+    }
+
+    private User resolveCurrentUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() == Role.ROLE_ADMIN;
     }
 
     private record PairKey(UUID payerId, UUID receiverId) {

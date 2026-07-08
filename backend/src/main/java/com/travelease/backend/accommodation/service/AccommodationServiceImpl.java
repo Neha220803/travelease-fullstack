@@ -56,6 +56,15 @@ public class AccommodationServiceImpl implements AccommodationService {
     private static final String CHECKED_OUT = "CHECKED_OUT";
     private static final String MAINTENANCE = "MAINTENANCE";
 
+    /**
+     * Statuses eligible for a NEW Trip attachment - mirrors busbooking's
+     * TRIP_ATTACHABLE_STATUSES (CONFIRMED or COMPLETED, never CANCELLED) and
+     * ActivityBooking's equivalent: CHECKED_IN/CHECKED_OUT are this domain's
+     * "the stay occurred" historical states, analogous to Bus's COMPLETED and
+     * Activity's ATTENDED/NO_SHOW.
+     */
+    private static final List<String> TRIP_ATTACHABLE_STATUSES = List.of(CONFIRMED, CHECKED_IN, CHECKED_OUT);
+
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
     private final HotelBookingRepository bookingRepository;
@@ -318,6 +327,20 @@ public class AccommodationServiceImpl implements AccommodationService {
         // another traveler's private booking merely by knowing its id.
         HotelBooking booking = getBookingEntity(request.bookingId());
         ensureBookingOwner(booking, currentUserEmail);
+
+        if (booking.getTripId() != null && booking.getTripId().equals(tripId)) {
+            // Already attached to this exact trip - idempotent, not an error
+            // (mirrors busbooking's/ActivityBooking's Trip-attachment precedent).
+            return toBookingResponse(booking);
+        }
+        if (booking.getTripId() != null) {
+            throw new InvalidRequestException("Hotel booking is already attached to a different trip");
+        }
+        if (!TRIP_ATTACHABLE_STATUSES.contains(booking.getBookingStatus())) {
+            throw new InvalidRequestException(
+                    "Hotel booking status " + booking.getBookingStatus() + " cannot be attached to a trip; "
+                            + "only CONFIRMED, CHECKED_IN, or CHECKED_OUT bookings are eligible");
+        }
 
         booking.setTripId(tripId);
         return toBookingResponse(bookingRepository.save(booking));

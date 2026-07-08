@@ -20,13 +20,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/routes")
 @RequiredArgsConstructor
-@Tag(name = "Route Management", description = "Endpoints for managing bus routes")
+@Tag(name = "Route Management", description = "Bus routes are global reference data (no per-provider ownership "
+        + "concept) - creation/update/delete is ROLE_ADMIN only; reads are PUBLIC.")
 public class RouteController {
 
     private final RouteService routeService;
 
     @GetMapping
-    @Operation(summary = "Get routes with optional filters", description = "Get routes with optional filters")
+    @Operation(summary = "Get routes with optional filters", description = "ACCESS: PUBLIC (no JWT required).")
     public ResponseEntity<ApiResponse<List<RouteResponse>>> getRoutes(
             @RequestParam(required = false) RouteStatus status) {
         List<RouteResponse> response = routeService.getRoutes(status);
@@ -34,7 +35,7 @@ public class RouteController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get route by ID", description = "Get route by ID")
+    @Operation(summary = "Get route by ID", description = "ACCESS: PUBLIC (no JWT required).")
     public ResponseEntity<ApiResponse<RouteResponse>> getRouteById(@PathVariable Long id) {
         RouteResponse response = routeService.getRouteById(id);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Route fetched successfully", response, "/api/routes/" + id));
@@ -42,7 +43,8 @@ public class RouteController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create a new route", description = "Create a new route")
+    @Operation(summary = "Create a new route", description = "ACCESS: ROLE_ADMIN only. No provider ownership "
+            + "concept exists for Routes.")
     public ResponseEntity<ApiResponse<RouteResponse>> createRoute(@Valid @RequestBody RouteRequest request) {
         RouteResponse response = routeService.createRoute(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -51,7 +53,7 @@ public class RouteController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update route by ID", description = "Update route by ID")
+    @Operation(summary = "Update route by ID", description = "ACCESS: ROLE_ADMIN only.")
     public ResponseEntity<ApiResponse<RouteResponse>> updateRoute(@PathVariable Long id,
                                                                    @Valid @RequestBody RouteRequest request) {
         RouteResponse response = routeService.updateRoute(id, request);
@@ -60,7 +62,7 @@ public class RouteController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete route by ID", description = "Delete route by ID")
+    @Operation(summary = "Delete route by ID", description = "ACCESS: ROLE_ADMIN only.")
     public ResponseEntity<ApiResponse<MessageResponse>> deleteRoute(@PathVariable Long id) {
         routeService.deleteRoute(id);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Route deleted successfully", new MessageResponse("Route deleted successfully"), "/api/routes/" + id));

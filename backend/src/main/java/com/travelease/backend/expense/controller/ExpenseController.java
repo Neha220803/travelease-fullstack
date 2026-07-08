@@ -24,13 +24,23 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/trips/{tripId}/expenses")
 @RequiredArgsConstructor
-@Tag(name = "Trip Expenses", description = "Shared expense endpoints for accepted trip members")
+@Tag(name = "Trip Expenses", description = "Shared expense endpoints for ACCEPTED trip members. Membership is "
+        + "checked via a self-rolled query rather than TripAuthorizationService (mixed migration state: the "
+        + "terminal-Trip lifecycle guard on create IS delegated to TripAuthorizationService.requireMutableTrip, "
+        + "but the membership check itself is not) - so there is no ROLE_ADMIN bypass on membership: an ADMIN "
+        + "who is not itself an ACCEPTED member of the trip also receives 403.")
 public class ExpenseController {
 
     private final ExpenseService expenseService;
 
     @PostMapping
-    @Operation(summary = "Create a shared expense", description = "ACCESS: AUTHENTICATED\nSCOPE: Accepted trip member only. Creates a trip expense and allocates shares to accepted trip participants.\nLIFECYCLE: Mutation is rejected once the Trip is COMPLETED or CANCELLED.\nIDENTITY: The current user is resolved from the JWT/email in the security context.")
+    @Operation(summary = "Create a shared expense", description = "ACCESS: AUTHENTICATED.\n\n"
+            + "SCOPE: ACCEPTED trip member only (no ADMIN bypass). Creates a trip expense and allocates shares "
+            + "to accepted trip participants; the payer and every listed participant must themselves be "
+            + "ACCEPTED members of this trip.\n\n"
+            + "LIFECYCLE: Rejected once the Trip is COMPLETED or CANCELLED (delegates to "
+            + "TripAuthorizationService.requireMutableTrip).\n\n"
+            + "IDENTITY: The current user is resolved from the JWT/email in the security context.")
     public ResponseEntity<ApiResponse<ExpenseResponse>> createSharedExpense(
             @PathVariable UUID tripId,
             @Valid @RequestBody CreateExpenseRequest request,
@@ -42,7 +52,9 @@ public class ExpenseController {
     }
 
     @GetMapping
-    @Operation(summary = "List trip expenses", description = "ACCESS: AUTHENTICATED\nSCOPE: Accepted trip member only. Returns expenses recorded on the trip.\nIDENTITY: The current user is resolved from the JWT/email in the security context.")
+    @Operation(summary = "List trip expenses", description = "ACCESS: AUTHENTICATED.\n\n"
+            + "SCOPE: ACCEPTED trip member only (no ADMIN bypass). Returns expenses recorded on the trip.\n\n"
+            + "IDENTITY: The current user is resolved from the JWT/email in the security context.")
     public ResponseEntity<ApiResponse<List<ExpenseResponse>>> getTripExpenses(
             @PathVariable UUID tripId,
             Authentication authentication
@@ -52,7 +64,10 @@ public class ExpenseController {
     }
 
     @GetMapping("/{expenseId}")
-    @Operation(summary = "Get trip expense by ID", description = "ACCESS: AUTHENTICATED\nSCOPE: Accepted trip member only. Returns a specific expense that belongs to the trip.\nIDENTITY: The current user is resolved from the JWT/email in the security context.")
+    @Operation(summary = "Get trip expense by ID", description = "ACCESS: AUTHENTICATED.\n\n"
+            + "SCOPE: ACCEPTED trip member only (no ADMIN bypass). Returns a specific expense that belongs to "
+            + "the trip.\n\n"
+            + "IDENTITY: The current user is resolved from the JWT/email in the security context.")
     public ResponseEntity<ApiResponse<ExpenseResponse>> getTripExpense(
             @PathVariable UUID tripId,
             @PathVariable UUID expenseId,

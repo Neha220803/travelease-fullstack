@@ -9,7 +9,6 @@ import com.travelease.backend.expense.repository.ExpenseRepository;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.trip.entity.Trip;
 import com.travelease.backend.trip.entity.TravelerTripStatus;
-import com.travelease.backend.trip.entity.TripMemberStatus;
 import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.repository.TripRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
@@ -80,8 +79,7 @@ class ExpenseServiceImplLifecycleTest {
         User alice = user("alice@travelease.test");
         Trip trip = trip(alice, TravelerTripStatus.COMPLETED);
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
-        when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
-                trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
 
         CreateExpenseRequest request = new CreateExpenseRequest(
                 new BigDecimal("100.00"), "Food", "Dinner", LocalDate.now(),
@@ -100,8 +98,7 @@ class ExpenseServiceImplLifecycleTest {
         User alice = user("alice@travelease.test");
         Trip trip = trip(alice, TravelerTripStatus.CANCELLED);
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
-        when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
-                trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
 
         CreateExpenseRequest request = new CreateExpenseRequest(
                 new BigDecimal("100.00"), "Food", "Dinner", LocalDate.now(),
@@ -109,5 +106,30 @@ class ExpenseServiceImplLifecycleTest {
 
         assertThatThrownBy(() -> service.createSharedExpense(trip.getId(), request, alice.getEmail()))
                 .isInstanceOf(InvalidRequestException.class);
+    }
+
+    @Test
+    void adminBypassesMembershipCheckForGetTripExpenses() {
+        // Phase 4 fix: getTripExpenses/getTripExpense/createSharedExpense's
+        // membership check is now centralized onto TripAuthorizationService,
+        // gaining the same ADMIN bypass Itinerary/Trip-attachment already have
+        // (previously an own-rolled ACCEPTED-only check denied non-member ADMIN).
+        TripAuthorizationService realAuth = new TripAuthorizationService(tripMemberRepository);
+        ExpenseServiceImpl service = new ExpenseServiceImpl(
+                expenseRepository, tripRepository, tripMemberRepository, userRepository, expenseMapper, realAuth);
+
+        User alice = user("alice@travelease.test");
+        Trip trip = trip(alice, TravelerTripStatus.PLANNING);
+        User admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setEmail("admin@travelease.test");
+        admin.setRole(Role.ROLE_ADMIN);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+        when(expenseRepository.findByTripIdOrderByCreatedAtDesc(trip.getId())).thenReturn(List.of());
+
+        service.getTripExpenses(trip.getId(), admin.getEmail());
+        // No exception thrown - admin bypassed the membership check despite not
+        // being a trip member; behavior verified via the no-throw assertion above.
     }
 }

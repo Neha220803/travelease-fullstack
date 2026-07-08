@@ -30,7 +30,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/refunds")
 @RequiredArgsConstructor
-@Tag(name = "Refund Management", description = "Endpoints for managing refunds")
+@Tag(name = "Refund Management", description = "Refunds are owned indirectly through their Booking "
+        + "(Refund.bookingId -> Booking.userId), not by provider. No @PreAuthorize role gate on the read "
+        + "endpoints - ownership/oversight is enforced by a side-effect call into "
+        + "BookingService.getBookingById (which throws for a non-owning, non-admin caller).")
 public class RefundController {
 
     private final RefundService refundService;
@@ -38,7 +41,11 @@ public class RefundController {
     private final SecurityUtil securityUtil;
 
     @GetMapping
-    @Operation(summary = "Get refunds with optional filters", description = "Get refunds with optional filters")
+    @Operation(summary = "Get refunds with optional filters", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "SCOPE: If bookingId is supplied, the caller must own that booking (or be ROLE_ADMIN) - enforced "
+            + "via a side-effect call to BookingService.getBookingById. Without a bookingId filter, only "
+            + "ROLE_ADMIN may list refunds at all (any other caller gets 403); RefundServiceImpl additionally "
+            + "re-scopes non-admin queries to the caller's own bookings as defense-in-depth.")
     public ResponseEntity<ApiResponse<List<RefundResponse>>> getRefunds(
             @RequestParam(required = false) String reference,
             @RequestParam(required = false) Long bookingId,
@@ -54,7 +61,10 @@ public class RefundController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get refund by ID", description = "Get refund by ID")
+    @Operation(summary = "Get refund by ID", description = "ACCESS: AUTHENTICATED (any role).\n\n"
+            + "SCOPE: Owner of the refund's underlying booking only (or ROLE_ADMIN) - enforced via a "
+            + "side-effect call to BookingService.getBookingById after fetching the refund itself; "
+            + "RefundServiceImpl.getRefundById performs no ownership check on its own.")
     public ResponseEntity<ApiResponse<RefundResponse>> getRefundById(@PathVariable Long id) {
         RefundResponse response = refundService.getRefundById(id);
         bookingService.getBookingById(response.getBookingId()); // ownership check side effect
@@ -63,7 +73,8 @@ public class RefundController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Transition refund status (process/approve/complete/reject/fail)", description = "Transition refund status (process/approve/complete/reject/fail)")
+    @Operation(summary = "Transition refund status (process/approve/complete/reject/fail)",
+            description = "ACCESS: ROLE_ADMIN only.")
     public ResponseEntity<ApiResponse<RefundResponse>> transitionRefundStatus(
             @PathVariable Long id,
             @Valid @RequestBody RefundStatusTransitionRequest request) {

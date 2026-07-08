@@ -205,6 +205,60 @@ class AccommodationServiceImplTripAuthorizationTest {
         assertThat(response.tripId()).isEqualTo(trip.getId());
     }
 
+    // --- Trip-attachment consistency fixes (Phase 4): status eligibility,
+    // idempotent same-trip attach, cross-trip reattachment rejection - mirrors
+    // the precedent already proven by Bus/Activity Booking attachment. ---
+
+    @Test
+    void cancelledHotelBookingCannotBeNewlyAttached() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        HotelBooking booking = bookingOwnedBy(alice);
+        booking.setBookingStatus("CANCELLED");
+        UUID bookingId = booking.getId();
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> accommodationService.attachBookingToTrip(
+                trip.getId(), new AttachHotelBookingRequest(bookingId), alice.getEmail()))
+                .isInstanceOf(com.travelease.backend.shared.exception.InvalidRequestException.class);
+    }
+
+    @Test
+    void duplicateSameTripHotelBookingAttachIsIdempotent() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        HotelBooking booking = bookingOwnedBy(alice);
+        booking.setTripId(trip.getId());
+        UUID bookingId = booking.getId();
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        HotelBookingResponse response = accommodationService.attachBookingToTrip(
+                trip.getId(), new AttachHotelBookingRequest(bookingId), alice.getEmail());
+
+        assertThat(response.tripId()).isEqualTo(trip.getId());
+    }
+
+    @Test
+    void crossTripReattachmentOfHotelBookingIsRejected() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip tripA = trip(alice);
+        Trip tripB = trip(alice);
+        HotelBooking booking = bookingOwnedBy(alice);
+        booking.setTripId(tripA.getId());
+        UUID bookingId = booking.getId();
+        when(tripRepository.findById(tripB.getId())).thenReturn(Optional.of(tripB));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> accommodationService.attachBookingToTrip(
+                tripB.getId(), new AttachHotelBookingRequest(bookingId), alice.getEmail()))
+                .isInstanceOf(com.travelease.backend.shared.exception.InvalidRequestException.class);
+    }
+
     @Test
     void acceptedMemberCanAttachOwnHotelBooking() {
         User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
