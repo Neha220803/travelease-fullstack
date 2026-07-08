@@ -2,12 +2,17 @@
   <div class="lg:col-span-2 space-y-6">
     <div hlmCard>
       <div hlmCardHeader class="flex flex-row items-center justify-between">
-        <h3 hlmCardTitle>Expenses</h3>
+        <div>
+          <h3 hlmCardTitle>Expenses</h3>
+          @if (totalElements() > 0) {
+            <p class="text-xs text-muted-foreground mt-1">{{ totalElements() }} total</p>
+          }
+        </div>
         <hlm-dialog>
           <button hlmDialogTrigger hlmBtn size="sm">
             <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Expense
           </button>
-          <ng-template hlmDialogPortal>
+          <ng-template hlmDialogPortal let-ctx>
             <hlm-dialog-content>
               <div hlmDialogHeader>
                 <h3 hlmDialogTitle>New Expense</h3>
@@ -15,21 +20,21 @@
               <div class="space-y-3">
                 <div class="space-y-2">
                   <label hlmLabel for="expense-name">Expense Name</label>
-                  <input hlmInput id="expense-name" placeholder="Water Sports" />
+                  <input hlmInput id="expense-name" placeholder="Water Sports" [value]="newExpenseName()" (input)="newExpenseName.set($any($event.target).value)" />
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div class="space-y-2">
                     <label hlmLabel for="expense-amount">Amount</label>
-                    <input hlmInput id="expense-amount" type="number" placeholder="3000" />
+                    <input hlmInput id="expense-amount" type="number" min="0" placeholder="3000" [value]="newExpenseAmount() || ''" (input)="newExpenseAmount.set($any($event.target).value ? +$any($event.target).value : null)" />
                   </div>
                   <div class="space-y-2">
                     <label hlmLabel>Paid By</label>
-                    <hlm-select [value]="defaultPaidBy">
-                      <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+                    <hlm-select [value]="newExpensePayerId()" (valueChange)="newExpensePayerId.set($event || '')">
+                      <hlm-select-trigger><span class="truncate">{{ payerName() }}</span></hlm-select-trigger>
                       <ng-template hlmSelectPortal>
                         <hlm-select-content>
-                          @for (m of members; track m.id) {
-                            <hlm-select-item [value]="m.name">{{ m.name }}</hlm-select-item>
+                          @for (m of members(); track m.tripMemberId) {
+                            <hlm-select-item [value]="m.userId">{{ m.name }}</hlm-select-item>
                           }
                         </hlm-select-content>
                       </ng-template>
@@ -37,34 +42,85 @@
                   </div>
                 </div>
                 <div class="space-y-2">
-                  <label hlmLabel for="participants">Participants</label>
-                  <input hlmInput id="participants" placeholder="Raj, Arun, Sarathy" />
+                  <div class="flex items-center justify-between mb-2">
+                    <label hlmLabel>Participants & Split</label>
+                    <div class="flex items-center bg-muted p-1 rounded-md">
+                      <button hlmBtn size="sm" variant="ghost" class="h-7 px-3 text-xs" [class.bg-background]="newExpenseSplitMode() === 'EQUAL'" [class.shadow-sm]="newExpenseSplitMode() === 'EQUAL'" (click)="newExpenseSplitMode.set('EQUAL')">Equal</button>
+                      <button hlmBtn size="sm" variant="ghost" class="h-7 px-3 text-xs" [class.bg-background]="newExpenseSplitMode() === 'CUSTOM'" [class.shadow-sm]="newExpenseSplitMode() === 'CUSTOM'" (click)="newExpenseSplitMode.set('CUSTOM')">Custom</button>
+                    </div>
+                  </div>
+                  <div class="space-y-2 max-h-48 overflow-y-auto pr-2 border rounded-md p-3">
+                    @for (m of members(); track m.userId) {
+                      <div class="flex items-center justify-between">
+                        <label hlmLabel class="flex items-center gap-2 font-normal cursor-pointer">
+                          <hlm-checkbox [checked]="newExpenseParticipants().has(m.userId)" (checkedChange)="toggleParticipant(m.userId)"></hlm-checkbox>
+                          <span>{{ m.name }}</span>
+                        </label>
+                        @if (newExpenseSplitMode() === 'CUSTOM') {
+                          <input hlmInput type="number" min="0" class="w-24 h-8 text-right" placeholder="₹0" 
+                                 [disabled]="!newExpenseParticipants().has(m.userId)"
+                                 [attr.disabled]="!newExpenseParticipants().has(m.userId) ? '' : null"
+                                 [class.opacity-50]="!newExpenseParticipants().has(m.userId)"
+                                 [class.pointer-events-none]="!newExpenseParticipants().has(m.userId)"
+                                 [value]="newExpenseCustomShares()[m.userId] || ''" 
+                                 (input)="updateCustomShare(m.userId, $any($event.target).value)" />
+                        }
+                      </div>
+                    }
+                  </div>
                 </div>
               </div>
               <div hlmDialogFooter>
-                <button hlmBtn>Save Expense</button>
+                <button hlmBtn [disabled]="!isFormValid() || isSaving()" (click)="onSaveExpense(ctx)">
+                  {{ isSaving() ? 'Saving...' : 'Save Expense' }}
+                </button>
               </div>
             </hlm-dialog-content>
           </ng-template>
         </hlm-dialog>
       </div>
       <div hlmCardContent class="space-y-2">
-        @for (e of expenses; track e.id) {
-          <div class="flex items-center gap-4 p-3 rounded-lg border">
-            <div class="h-10 w-10 rounded-md bg-primary/10 text-primary grid place-items-center">
-              <ng-icon name="lucideWallet" class="h-5 w-5" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-medium">{{ e.name }}</p>
-              <p class="text-xs text-muted-foreground">
-                Paid by {{ e.paidBy }} · split with {{ e.participants.length }}
-              </p>
-            </div>
-            <div class="text-right">
-              <p class="font-semibold tabular-nums">₹{{ e.amount.toLocaleString() }}</p>
-              <app-status-badge [status]="e.status" />
-            </div>
+        @if (loadingExpenses()) {
+          <p class="text-sm text-muted-foreground py-4 text-center">Loading expenses…</p>
+        } @else if (error()) {
+          <p class="text-sm text-destructive py-4 text-center">{{ error() }}</p>
+        } @else if (expenses().length === 0) {
+          <div class="flex flex-col items-center gap-2 py-8 text-center">
+            <ng-icon name="lucideWallet" class="h-10 w-10 text-muted-foreground/50" />
+            <p class="text-sm text-muted-foreground">No expenses recorded yet.</p>
+            <p class="text-xs text-muted-foreground">Click "Add Expense" to get started.</p>
           </div>
+        } @else {
+          @for (e of expenses(); track e.id) {
+            <div class="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors" (click)="openExpenseDetail(e)">
+              <div class="h-10 w-10 rounded-md bg-primary/10 text-primary grid place-items-center">
+                <ng-icon name="lucideWallet" class="h-5 w-5" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium">{{ e.description }}</p>
+                <p class="text-xs text-muted-foreground">
+                  Paid by {{ displayExpensePayer(e) }} · split with {{ e.participants.length }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="font-semibold tabular-nums">₹{{ e.amount.toLocaleString() }}</p>
+                <span class="text-xs text-muted-foreground">{{ e.category }}</span>
+              </div>
+            </div>
+          }
+
+          <!-- Load More / Pagination -->
+          @if (!isLastPage()) {
+            <div class="flex justify-center pt-3">
+              <button hlmBtn variant="outline" size="sm" [disabled]="loadingMore()" (click)="loadNextPage()">
+                @if (loadingMore()) {
+                  <ng-icon name="lucideLoader2" class="h-4 w-4 mr-1 animate-spin" />Loading…
+                } @else {
+                  <ng-icon name="lucideChevronDown" class="h-4 w-4 mr-1" />Load More
+                }
+              </button>
+            </div>
+          }
         }
       </div>
     </div>
@@ -74,31 +130,131 @@
     <div hlmCard>
       <div hlmCardHeader><h3 hlmCardTitle class="text-base">Settlement Summary</h3></div>
       <div hlmCardContent class="space-y-3">
-        <div class="p-3 rounded-md bg-destructive/10">
-          <p class="text-xs text-muted-foreground">You owe</p>
-          <p class="text-xl font-semibold text-destructive">₹2,300</p>
-          <p class="text-xs">to Raj and Arun</p>
-        </div>
-        <div class="p-3 rounded-md bg-success/10">
-          <p class="text-xs text-muted-foreground">You'll receive</p>
-          <p class="text-xl font-semibold text-success">₹5,400</p>
-          <p class="text-xs">from Priya and Neha</p>
-        </div>
+        @if (loadingSettlements()) {
+          <p class="text-sm text-muted-foreground text-center py-2">Loading…</p>
+        } @else if (settlementSummary(); as summary) {
+          <div class="p-3 rounded-md bg-destructive/10">
+            <p class="text-xs text-muted-foreground">You owe</p>
+            <p class="text-xl font-semibold text-destructive">₹{{ summary.totalPayable.toLocaleString() }}</p>
+          </div>
+          <div class="p-3 rounded-md bg-success/10">
+            <p class="text-xs text-muted-foreground">You'll receive</p>
+            <p class="text-xl font-semibold text-success">₹{{ summary.totalReceivable.toLocaleString() }}</p>
+          </div>
+        } @else {
+          <p class="text-sm text-muted-foreground text-center py-2">No settlement data available.</p>
+        }
       </div>
     </div>
     <div hlmCard>
       <div hlmCardHeader><h3 hlmCardTitle class="text-base">Pending Settlements</h3></div>
       <div hlmCardContent class="space-y-2">
-        @for (s of pendingSettlements; track s.from + s.to) {
-          <div class="flex items-center justify-between text-sm py-1.5">
-            <span>{{ s.from }} → {{ s.to }}</span>
-            <div class="flex items-center gap-2">
-              <span class="font-medium tabular-nums">₹{{ s.amount }}</span>
-              <button hlmBtn size="sm" variant="outline">Mark Paid</button>
+        @if (pendingSettlements().length === 0) {
+          <p class="text-sm text-muted-foreground text-center py-2">All settled up!</p>
+        } @else {
+          @for (s of visibleSettlements(); track s.id) {
+            <div class="flex items-center justify-between text-sm py-1.5">
+              <span>
+                <span [class.font-semibold]="s.payerId === currentUserId()">{{ displayPayerName(s) }}</span>
+                <span class="text-muted-foreground mx-1">{{ displayPaysVerb(s) }}</span>
+                <span [class.font-semibold]="s.receiverId === currentUserId()">{{ displayReceiverName(s) }}</span>
+              </span>
+              <div class="flex items-center gap-2">
+                <span class="font-medium tabular-nums">₹{{ s.amount.toLocaleString() }}</span>
+                @if (s.receiverId === currentUserId()) {
+                  <button hlmBtn size="sm" variant="outline" (click)="onMarkPaid(s)">Mark Paid</button>
+                }
+              </div>
             </div>
-          </div>
+          }
+
+          <!-- View All button -->
+          @if (hasMoreSettlements()) {
+            <hlm-dialog>
+              <button hlmDialogTrigger hlmBtn variant="ghost" size="sm" class="w-full mt-2 text-muted-foreground">
+                View All ({{ pendingSettlements().length }})
+              </button>
+              <ng-template hlmDialogPortal let-ctx>
+                <hlm-dialog-content>
+                  <div hlmDialogHeader>
+                    <h3 hlmDialogTitle>All Pending Settlements</h3>
+                    <p class="text-sm text-muted-foreground">{{ pendingSettlements().length }} pending settlements</p>
+                  </div>
+                  <div class="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
+                    @for (s of pendingSettlements(); track s.id) {
+                      <div class="flex items-center justify-between text-sm py-2 px-3 rounded-lg border">
+                        <span>
+                          <span [class.font-semibold]="s.payerId === currentUserId()">{{ displayPayerName(s) }}</span>
+                          <span class="text-muted-foreground mx-1">{{ displayPaysVerb(s) }}</span>
+                          <span [class.font-semibold]="s.receiverId === currentUserId()">{{ displayReceiverName(s) }}</span>
+                        </span>
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium tabular-nums">₹{{ s.amount.toLocaleString() }}</span>
+                          @if (s.receiverId === currentUserId()) {
+                            <button hlmBtn size="sm" variant="outline" (click)="onMarkPaid(s)">Mark Paid</button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </hlm-dialog-content>
+              </ng-template>
+            </hlm-dialog>
+          }
         }
       </div>
     </div>
   </div>
 </div>
+
+<!-- Expense Detail Popup -->
+@if (selectedExpense(); as expense) {
+  <hlm-dialog [state]="showExpenseDetail() ? 'open' : 'closed'" (closed)="closeExpenseDetail()">
+    <ng-template hlmDialogPortal>
+      <hlm-dialog-content>
+        <div hlmDialogHeader>
+          <h3 hlmDialogTitle>{{ expense.description }}</h3>
+          <p class="text-sm text-muted-foreground">Expense Details</p>
+        </div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <p class="text-xs text-muted-foreground">Amount</p>
+              <p class="text-lg font-semibold">₹{{ expense.amount.toLocaleString() }}</p>
+            </div>
+            <div class="space-y-1">
+              <p class="text-xs text-muted-foreground">Paid By</p>
+              <p class="text-lg font-semibold">{{ displayExpensePayer(expense) }}</p>
+            </div>
+            <div class="space-y-1">
+              <p class="text-xs text-muted-foreground">Category</p>
+              <p class="font-medium">{{ expense.category }}</p>
+            </div>
+            <div class="space-y-1">
+              <p class="text-xs text-muted-foreground">Date</p>
+              <p class="font-medium">{{ expense.expenseDate }}</p>
+            </div>
+          </div>
+
+          <div class="border-t pt-3">
+            <p class="text-sm font-medium mb-2">Split Breakdown ({{ expense.participants.length }} participants)</p>
+            <div class="space-y-1.5 max-h-48 overflow-y-auto">
+              @for (p of expense.participants; track p.userId) {
+                <div class="flex items-center justify-between text-sm py-1.5 px-3 rounded-md bg-muted/50">
+                  <span [class.font-semibold]="p.userId === currentUserId()">
+                    {{ displayParticipantName(p.userId, p.name) }}
+                  </span>
+                  <span class="font-medium tabular-nums">₹{{ p.shareAmount.toLocaleString() }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+        <div hlmDialogFooter>
+          <button hlmBtn variant="outline" (click)="closeExpenseDetail()">Close</button>
+        </div>
+      </hlm-dialog-content>
+    </ng-template>
+  </hlm-dialog>
+}
+
