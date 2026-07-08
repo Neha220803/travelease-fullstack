@@ -1,20 +1,31 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { API_BASE_URL } from '@app/core/api/api-config';
 import { ApiResponse } from '@app/core/api/api-response.model';
 import {
   CreateExpenseRequest,
   ExpenseResponse,
+  PagedResponse,
 } from '@app/features/trips/services/trip-expense.models';
 
 @Injectable({ providedIn: 'root' })
 export class TripExpenseService {
   private readonly http = inject(HttpClient);
 
-  listTripExpenses(tripId: string): Observable<ExpenseResponse[]> {
+  listTripExpenses(
+    tripId: string,
+    page = 0,
+    size = 10,
+  ): Observable<PagedResponse<ExpenseResponse>> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
     return this.http
-      .get<ApiResponse<ExpenseResponse[]>>(`${API_BASE_URL}/api/trips/${tripId}/expenses`)
+      .get<ApiResponse<PagedResponse<ExpenseResponse>>>(
+        `${API_BASE_URL}/api/trips/${tripId}/expenses`,
+        { params },
+      )
       .pipe(map((response) => response.data));
   }
 
@@ -32,3 +43,4 @@ export class TripExpenseService {
       .pipe(map((response) => response.data));
   }
 }
+

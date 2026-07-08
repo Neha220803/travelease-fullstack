@@ -13,4 +13,6 @@ public interface HotelBookingRepository extends JpaRepository<HotelBooking, UUID
     List<HotelBooking> findByHotelId(UUID hotelId);
 
     List<HotelBooking> findByBookedByEmail(String email);
+
+    List<HotelBooking> findByHotel_ProviderId(Long providerId);
 }

@@ -24,6 +24,10 @@ import { TripsService } from '@app/features/trips/services/trips.service';
 import { TripMember } from '@app/features/trips/services/trip.models';
 import { AuthService } from '@app/core/auth/auth.service';
 
+/** Max settlement rows visible before "View All" is shown */
+const SETTLEMENT_DISPLAY_LIMIT = 5;
+const EXPENSE_PAGE_SIZE = 10;
+
 @Component({
   selector: 'app-trip-expenses-tab',
   imports: [
@@ -58,6 +62,29 @@ export class TripExpensesTab {
   protected readonly loadingExpenses = signal(true);
   protected readonly loadingSettlements = signal(true);
   protected readonly error = signal<string | null>(null);
+
+  // --- Pagination ---
+  protected readonly currentPage = signal(0);
+  protected readonly totalPages = signal(0);
+  protected readonly totalElements = signal(0);
+  protected readonly isLastPage = signal(true);
+  protected readonly loadingMore = signal(false);
+
+  // --- Current User ---
+  protected readonly currentUserId = computed(() => this.authService.currentUser()?.id ?? '');
+
+  // --- Expense Detail Popup ---
+  protected readonly selectedExpense = signal<ExpenseResponse | null>(null);
+  protected readonly showExpenseDetail = computed(() => this.selectedExpense() !== null);
+
+  // --- Settlement View All ---
+  protected readonly visibleSettlements = computed(() =>
+    this.pendingSettlements().slice(0, SETTLEMENT_DISPLAY_LIMIT),
+  );
+  protected readonly hasMoreSettlements = computed(
+    () => this.pendingSettlements().length > SETTLEMENT_DISPLAY_LIMIT,
+  );
+  protected readonly showAllSettlements = signal(false);
 
   // --- Form State ---
   protected readonly newExpenseName = signal('');
@@ -99,16 +126,7 @@ export class TripExpensesTab {
   constructor() {
     const tripId = this.tripId();
 
-    this.expenseService.listTripExpenses(tripId).subscribe({
-      next: (expenses) => {
-        this.expenses.set(expenses);
-        this.loadingExpenses.set(false);
-      },
-      error: () => {
-        this.error.set('Could not load expenses. Please try again.');
-        this.loadingExpenses.set(false);
-      },
-    });
+    this.loadExpenses(tripId, 0);
 
     this.tripsService.getTripMembers(tripId).subscribe({
       next: (members) => {
@@ -132,8 +150,15 @@ export class TripExpensesTab {
     this.settlementService.getSettlementSummary(tripId).subscribe({
       next: (summary) => {
         this.settlementSummary.set(summary);
+        const currentId = this.currentUserId();
         this.pendingSettlements.set(
-          summary.settlements.filter((s) => s.status === 'PENDING'),
+          summary.settlements
+            .filter((s) => s.status === 'PENDING')
+            .sort((a, b) => {
+              const aIsReceiver = a.receiverId === currentId ? 1 : 0;
+              const bIsReceiver = b.receiverId === currentId ? 1 : 0;
+              return bIsReceiver - aIsReceiver;
+            }),
         );
         this.loadingSettlements.set(false);
       },
@@ -141,6 +166,79 @@ export class TripExpensesTab {
         this.loadingSettlements.set(false);
       },
     });
+  }
+
+  // --- Display Helpers ---
+
+  protected displayPayerName(settlement: SettlementResponse): string {
+    return settlement.payerId === this.currentUserId() ? 'You' : settlement.payerName;
+  }
+
+  protected displayReceiverName(settlement: SettlementResponse): string {
+    return settlement.receiverId === this.currentUserId() ? 'You' : settlement.receiverName;
+  }
+
+  protected displayPaysVerb(settlement: SettlementResponse): string {
+    return settlement.payerId === this.currentUserId() ? 'pay' : 'pays';
+  }
+
+  protected displayExpensePayer(expense: ExpenseResponse): string {
+    return expense.payerId === this.currentUserId() ? 'You' : expense.payerName;
+  }
+
+  protected displayParticipantName(userId: string, name: string): string {
+    return userId === this.currentUserId() ? 'You' : name;
+  }
+
+  // --- Expense Detail Popup ---
+
+  protected openExpenseDetail(expense: ExpenseResponse): void {
+    this.selectedExpense.set(expense);
+  }
+
+  protected closeExpenseDetail(): void {
+    this.selectedExpense.set(null);
+  }
+
+  // --- Settlement View All ---
+
+  protected openAllSettlements(): void {
+    this.showAllSettlements.set(true);
+  }
+
+  protected closeAllSettlements(): void {
+    this.showAllSettlements.set(false);
+  }
+
+  // --- Pagination ---
+
+  private loadExpenses(tripId: string, page: number): void {
+    this.expenseService.listTripExpenses(tripId, page, EXPENSE_PAGE_SIZE).subscribe({
+      next: (pagedResult) => {
+        if (page === 0) {
+          this.expenses.set(pagedResult.content);
+        } else {
+          this.expenses.update((list) => [...list, ...pagedResult.content]);
+        }
+        this.currentPage.set(pagedResult.page);
+        this.totalPages.set(pagedResult.totalPages);
+        this.totalElements.set(pagedResult.totalElements);
+        this.isLastPage.set(pagedResult.last);
+        this.loadingExpenses.set(false);
+        this.loadingMore.set(false);
+      },
+      error: () => {
+        this.error.set('Could not load expenses. Please try again.');
+        this.loadingExpenses.set(false);
+        this.loadingMore.set(false);
+      },
+    });
+  }
+
+  protected loadNextPage(): void {
+    if (this.isLastPage() || this.loadingMore()) return;
+    this.loadingMore.set(true);
+    this.loadExpenses(this.tripId(), this.currentPage() + 1);
   }
 
   protected onMarkPaid(settlement: SettlementResponse): void {
@@ -227,7 +325,8 @@ export class TripExpensesTab {
 
     this.expenseService.createExpense(this.tripId(), payload).subscribe({
       next: (expense) => {
-        this.expenses.update(list => [...list, expense]);
+        this.expenses.update(list => [expense, ...list]);
+        this.totalElements.update(n => n + 1);
         this.isSaving.set(false);
         this.resetForm();
         
@@ -247,8 +346,15 @@ export class TripExpensesTab {
     this.settlementService.getSettlementSummary(this.tripId()).subscribe({
       next: (summary) => {
         this.settlementSummary.set(summary);
+        const currentId = this.currentUserId();
         this.pendingSettlements.set(
-          summary.settlements.filter((s) => s.status === 'PENDING'),
+          summary.settlements
+            .filter((s) => s.status === 'PENDING')
+            .sort((a, b) => {
+              const aIsReceiver = a.receiverId === currentId ? 1 : 0;
+              const bIsReceiver = b.receiverId === currentId ? 1 : 0;
+              return bIsReceiver - aIsReceiver;
+            }),
         );
       }
     });

@@ -62,6 +62,8 @@ public interface AccommodationService {
 
     HotelBookingResponse getBooking(UUID bookingId, String currentUserEmail);
 
+    List<HotelBookingResponse> getProviderBookings();
+
     HotelBookingResponse updateBooking(UUID bookingId, HotelBookingRequest request, String currentUserEmail);
 
     HotelBookingResponse cancelBooking(UUID bookingId, String currentUserEmail);
