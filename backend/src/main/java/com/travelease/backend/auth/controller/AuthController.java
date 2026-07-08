@@ -3,6 +3,7 @@ package com.travelease.backend.auth.controller;
 import com.travelease.backend.auth.dto.LoginRequest;
 import com.travelease.backend.auth.dto.LoginResponse;
 import com.travelease.backend.auth.dto.RegisterRequest;
+import com.travelease.backend.auth.dto.SecurityAnswerRequest;
 import com.travelease.backend.auth.dto.UserResponse;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.service.AuthService;
@@ -43,6 +44,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse loginResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(loginResponse, "Login successful"));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Verify the recovery answer for a traveler", description = "ACCESS: PUBLIC\nSCOPE: Validates the stored recovery answer for password reset flow support.\nIDENTITY: Requires the user's email and the answer to the configured recovery question.")
+    public ResponseEntity<ApiResponse<Boolean>> verifySecurityAnswer(@Valid @RequestBody SecurityAnswerRequest request) {
+        boolean verified = userService.verifySecurityAnswer(request.email(), request.answer());
+        return ResponseEntity.ok(ApiResponse.success(verified, verified ? "Security answer verified" : "Security answer did not match"));
     }
 
     @GetMapping("/me")

@@ -14,7 +14,7 @@ describe('AdminUsers', () => {
 
   it('renders exactly members.length * 2 rows with unique ids', () => {
     const fixture = TestBed.createComponent(AdminUsers);
-    const rows = fixture.componentInstance.rows;
+    const rows = fixture.componentInstance.rows();
     expect(rows).toHaveLength(members.length * 2);
     const uniqueIds = new Set(rows.map((r) => r.id));
     expect(uniqueIds.size).toBe(rows.length);

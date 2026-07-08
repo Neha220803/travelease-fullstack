@@ -27,6 +27,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import org.mockito.ArgumentCaptor;
+
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
@@ -41,7 +43,14 @@ class UserServiceImplTest {
 
     @Test
     void registerSavesNewUserWithHashedPasswordAndTravelerRole() {
-        RegisterRequest request = new RegisterRequest("Asha", "asha@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest request = new RegisterRequest(
+                "Asha",
+                "asha@example.com",
+                "9999999999",
+                "Passw0rd1",
+                "What is the name of the hospital where you were born?",
+                "City General"
+        );
         when(userRepository.existsByEmail("asha@example.com")).thenReturn(false);
         when(passwordEncoder.encode("Passw0rd1")).thenReturn("hashed-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
@@ -59,8 +68,41 @@ class UserServiceImplTest {
     }
 
     @Test
+    void registerStoresSecurityQuestionAndHashedAnswerForTravelers() {
+        RegisterRequest request = new RegisterRequest(
+                "Asha",
+                "asha@example.com",
+                "9999999999",
+                "Passw0rd1",
+                "What is the name of the hospital where you were born?",
+                "City General"
+        );
+        when(userRepository.existsByEmail("asha@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("Passw0rd1")).thenReturn("hashed-password");
+        when(passwordEncoder.encode("City General")).thenReturn("hashed-answer");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        User savedUser = captor.getValue();
+
+        assertThat(savedUser.getRole()).isEqualTo(Role.ROLE_TRAVELER);
+        assertThat(savedUser.getSecurityQuestion()).isEqualTo("What is the name of the hospital where you were born?");
+        assertThat(savedUser.getSecurityAnswerHash()).isEqualTo("hashed-answer");
+    }
+
+    @Test
     void registerRejectsDuplicateEmail() {
-        RegisterRequest request = new RegisterRequest("Asha", "asha@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest request = new RegisterRequest(
+                "Asha",
+                "asha@example.com",
+                "9999999999",
+                "Passw0rd1",
+                "What is the name of the hospital where you were born?",
+                "City General"
+        );
         when(userRepository.existsByEmail("asha@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.register(request))

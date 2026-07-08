@@ -33,7 +33,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void registerThenLoginThenMeWorksEndToEnd() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-flow@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-flow@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
         ResponseEntity<ApiResponse> registerResponse =
                 restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -72,7 +72,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void registerRejectsDuplicateEmail() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-dup@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-dup@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         ResponseEntity<ApiResponse> secondResponse =
@@ -83,7 +83,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void loginRejectsWrongPassword() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-wrong@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-wrong@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         LoginRequest loginRequest = new LoginRequest("asha-wrong@example.com", "WrongPassword1");
@@ -94,7 +94,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void registerRejectsInvalidPayload() {
-        RegisterRequest invalidRequest = new RegisterRequest("", "not-an-email", "9999999999", "short");
+        RegisterRequest invalidRequest = new RegisterRequest("", "not-an-email", "9999999999", "short", "", "");
 
         ResponseEntity<ApiResponse> response =
                 restTemplate.postForEntity("/api/auth/register", invalidRequest, ApiResponse.class);

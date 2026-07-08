@@ -29,6 +29,12 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Column(nullable = false)
+    private String securityQuestion;
+
+    @Column(nullable = false)
+    private String securityAnswerHash;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

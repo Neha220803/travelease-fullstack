@@ -2,29 +2,51 @@
 <p class="text-sm text-muted-foreground mt-1 mb-6">Start planning your first group trip in minutes.</p>
 
 <form class="space-y-4" (submit)="onSubmit($event)">
+  @if (error()) {
+    <div class="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {{ error() }}
+    </div>
+  }
+
   <div class="grid grid-cols-2 gap-3">
     <div class="space-y-2">
       <label hlmLabel for="name">Name</label>
-      <input hlmInput id="name" placeholder="Jane Doe" />
+      <input hlmInput id="name" name="name" placeholder="Jane Doe" />
     </div>
     <div class="space-y-2">
       <label hlmLabel for="phone">Phone</label>
-      <input hlmInput id="phone" placeholder="+91 9876543210" />
+      <input hlmInput id="phone" name="phone" placeholder="+91 9876543210" />
     </div>
   </div>
   <div class="space-y-2">
     <label hlmLabel for="email">Email</label>
-    <input hlmInput id="email" type="email" placeholder="you@example.com" />
+    <input hlmInput id="email" name="email" type="email" placeholder="you@example.com" />
   </div>
   <div class="space-y-2">
     <label hlmLabel for="password">Password</label>
-    <input hlmInput id="password" type="password" placeholder="At least 8 characters" />
+    <input hlmInput id="password" name="password" type="password" placeholder="At least 8 characters" />
   </div>
   <div class="space-y-2">
-    <label hlmLabel for="confirm">Confirm password</label>
-    <input hlmInput id="confirm" type="password" />
+    <label hlmLabel for="confirmPassword">Confirm password</label>
+    <input hlmInput id="confirmPassword" name="confirmPassword" type="password" />
   </div>
-  <button hlmBtn type="submit" class="w-full">Create account</button>
+  <div class="space-y-2">
+    <label hlmLabel for="securityQuestion">Security question</label>
+    <input
+      hlmInput
+      id="securityQuestion"
+      name="securityQuestion"
+      value="What is the name of the hospital where you were born?"
+      readonly
+    />
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="securityAnswer">Your answer</label>
+    <input hlmInput id="securityAnswer" name="securityAnswer" placeholder="Enter your answer" />
+  </div>
+  <button hlmBtn type="submit" class="w-full" [disabled]="submitting()">
+    {{ submitting() ? 'Creating account...' : 'Create account' }}
+  </button>
 </form>
 
 <p class="text-sm text-muted-foreground mt-6 text-center">

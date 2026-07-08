@@ -25,6 +25,8 @@ import { ItineraryService } from '@app/features/trips/services/itinerary.service
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { ActivitiesService } from '@app/core/activities/activities.service';
 import { RecommendationsService } from '@app/core/recommendations/recommendations.service';
+import { HotelsService } from '@app/core/hotels/hotels.service';
+import { AccommodationService } from '@app/features/trips/services/accommodation.service';
 import { Trip, TripMember } from '@app/features/trips/services/trip.models';
 import { Destination } from '@app/core/destinations/destination.models';
 import { UsersService } from '@app/core/users/users.service';
@@ -131,6 +133,13 @@ async function renderWithTripId(
       },
       { provide: ActivitiesService, useValue: { getActivities: () => of([]) } },
       { provide: RecommendationsService, useValue: { getRecommendations: () => of([]) } },
+      { provide: HotelsService, useValue: { searchHotels: () => of([]) } },
+      {
+        provide: AccommodationService,
+        useValue: {
+          getAccommodationSummary: () => of({ tripId: 'goa-2026', bookingCount: 0, totalAmount: 0, bookings: [] }),
+        },
+      },
       {
         provide: ItineraryService,
         useValue: {

@@ -1,0 +1,37 @@
+<app-page-header title="My Tickets" subtitle="Track the support tickets you've raised.">
+  <a action hlmBtn routerLink="/support/contact">
+    <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" /> New Ticket
+  </a>
+</app-page-header>
+
+@if (loading()) {
+  <p class="text-sm text-muted-foreground py-6">Loading your tickets…</p>
+} @else if (error()) {
+  <p class="text-sm text-destructive py-6">Could not load your tickets. Please try again.</p>
+} @else if (tickets().length === 0) {
+  <div hlmCard class="mt-4">
+    <div hlmCardContent class="pt-6 text-center text-sm text-muted-foreground">
+      You haven't raised any support tickets yet.
+    </div>
+  </div>
+} @else {
+  <div class="mt-4 space-y-3">
+    @for (ticket of tickets(); track ticket.ticketId) {
+      <a
+        [routerLink]="['/support/tickets', ticket.ticketId]"
+        hlmCard
+        class="block p-4 hover:bg-accent/5 transition-colors"
+      >
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="font-medium">{{ ticket.subject }}</p>
+            <p class="text-xs text-muted-foreground mt-1">
+              {{ ticket.category }} · Raised {{ ticket.createdAt | date: 'mediumDate' }}
+            </p>
+          </div>
+          <app-status-badge [status]="ticket.status" />
+        </div>
+      </a>
+    }
+  </div>
+}

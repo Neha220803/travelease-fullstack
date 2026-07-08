@@ -1,4 +1,49 @@
-<app-page-header title="Users" subtitle="All registered travelers and organizers." />
+<app-page-header title="Users" subtitle="Create traveler or provider accounts from the admin dashboard." />
+
+<div hlmCard class="mb-6">
+  <div hlmCardContent class="pt-5">
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="space-y-2">
+        <label class="text-sm font-medium">Full name</label>
+        <input hlmInput placeholder="Jane Doe" [value]="form().name" (input)="updateField('name', $any($event.target).value)" />
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm font-medium">Email</label>
+        <input hlmInput type="email" placeholder="jane@example.com" [value]="form().email" (input)="updateField('email', $any($event.target).value)" />
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm font-medium">Phone</label>
+        <input hlmInput placeholder="9999999999" [value]="form().phone" (input)="updateField('phone', $any($event.target).value)" />
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm font-medium">Password</label>
+        <input hlmInput type="password" placeholder="Create password" [value]="form().password" (input)="updateField('password', $any($event.target).value)" />
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm font-medium">Role</label>
+        <select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" [value]="form().role" (change)="updateRole($any($event.target).value)">
+          <option value="TRAVELER">Traveler</option>
+          <option value="PROVIDER">Bus Provider</option>
+          <option value="HOTEL_PROVIDER">Hotel Provider</option>
+          <option value="ACTIVITY_PROVIDER">Activity Provider</option>
+        </select>
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm font-medium">Security answer</label>
+        <input hlmInput placeholder="Birth hospital" [value]="form().securityAnswer" (input)="updateField('securityAnswer', $any($event.target).value)" />
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+      <button hlmBtn (click)="createUser()" [disabled]="submitting()">
+        {{ submitting() ? 'Creating…' : 'Create user' }}
+      </button>
+      @if (message()) {
+        <span class="text-sm text-muted-foreground">{{ message() }}</span>
+      }
+    </div>
+  </div>
+</div>
 
 <div hlmCard>
   <div hlmCardContent class="pt-5">
@@ -20,7 +65,7 @@
         <div class="col-span-2">Status</div>
         <div class="col-span-1 text-right">Actions</div>
       </div>
-      @for (m of rows; track m.id) {
+      @for (m of rows(); track m.id) {
         <div class="grid grid-cols-12 px-4 py-3 items-center border-b last:border-0 text-sm">
           <div class="col-span-4 flex items-center gap-3">
             <hlm-avatar class="h-8 w-8">

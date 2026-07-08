@@ -22,6 +22,12 @@ public record RegisterRequest(
                 regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",
                 message = "password must contain at least one letter and one digit"
         )
-        String password
+        String password,
+
+        @NotBlank(message = "security question is required")
+        String securityQuestion,
+
+        @NotBlank(message = "security answer is required")
+        String securityAnswer
 ) {
 }
