@@ -67,6 +67,8 @@ class ActivityBookingConcurrencyTest {
         user.setEmail(email);
         user.setPhone("9999999999");
         user.setPasswordHash("not-used-in-this-test");
+        user.setSecurityQuestion("Question?");
+        user.setSecurityAnswerHash("hashed-answer");
         user.setRole(Role.ROLE_TRAVELER);
         return userRepository.save(user);
     }

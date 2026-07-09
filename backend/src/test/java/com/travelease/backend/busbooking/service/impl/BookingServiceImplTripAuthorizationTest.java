@@ -2,6 +2,7 @@ package com.travelease.backend.busbooking.service.impl;
 
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
+import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.busbooking.dto.request.AttachBusBookingRequest;
 import com.travelease.backend.busbooking.dto.response.TripBusBookingResponse;
 import com.travelease.backend.busbooking.dto.response.TripBusBookingSummaryResponse;
@@ -55,6 +56,10 @@ class BookingServiceImplTripAuthorizationTest {
     private TripRepository tripRepository;
     @Mock
     private TripMemberRepository tripMemberRepository;
+    @Mock
+    private com.travelease.backend.itinerary.service.NotificationService notificationService;
+    @Mock
+    private UserRepository userRepository;
 
     private BookingServiceImpl bookingService;
 
@@ -63,7 +68,8 @@ class BookingServiceImplTripAuthorizationTest {
         bookingService = new BookingServiceImpl(
                 bookingRepository, null, null, null, null, null,
                 securityUtil, null, null, null,
-                tripRepository, new TripAuthorizationService(tripMemberRepository));
+                tripRepository, tripMemberRepository, new TripAuthorizationService(tripMemberRepository),
+                notificationService, userRepository);
     }
 
     private User user(UUID id) {
