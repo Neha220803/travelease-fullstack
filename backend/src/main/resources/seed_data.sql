@@ -780,3 +780,46 @@ INSERT INTO hotel_reviews (review_id, hotel_id, user_id, rating, comment, create
 -- ============================================================
 -- SEED DATA COMPLETE
 -- ============================================================
+
+-- ====== ADDED BY AGENT: Mumbai to Goa Buses ======
+INSERT INTO routes (source, destination, distance_km, duration_hours, status, created_at) VALUES ('Mumbai', 'Goa', 600.0, 12.0, 'ACTIVE', '2026-01-01 10:00:00');
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-11', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-13', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-15', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-17', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-19', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-21', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-23', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+
+-- ====== ADDED BY AGENT: Dummy Destinations and Hotels ======
+
+INSERT INTO destinations (destination_name, state, country, description, is_active) VALUES 
+('Goa', 'Goa', 'India', 'Beach destination', 1),
+('Mumbai', 'Maharashtra', 'India', 'City of dreams', 1);
+
+INSERT INTO hotels (destination_id, hotel_name, address, star_rating, status, created_at, updated_at) VALUES 
+(1, 'Taj Exotica', 'Benaulim, Goa', 5, 'ACTIVE', '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(1, 'Goa Marriott', 'Panjim, Goa', 5, 'ACTIVE', '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(2, 'Taj Mahal Palace', 'Colaba, Mumbai', 5, 'ACTIVE', '2026-01-01 10:00:00', '2026-01-01 10:00:00');
+
+INSERT INTO hotel_rooms (hotel_id, room_type, price_per_night, total_rooms, available_rooms, status) VALUES 
+(1, 'Standard', 8000.00, 20, 20, 'ACTIVE'),
+(1, 'Deluxe', 12000.00, 10, 10, 'ACTIVE'),
+(2, 'Standard', 7000.00, 15, 15, 'ACTIVE'),
+(3, 'Standard', 15000.00, 30, 30, 'ACTIVE');
+
+-- ====== ADDED BY AGENT: Trips and Expenses Dummy Data ======
+-- Add a dummy trip for user
+INSERT INTO trips (trip_id, trip_name, organizer_id, source_location, destination_id, budget_amount, category_id, start_date, end_date, status, created_at, updated_at) VALUES
+('TRP-001', 'Goa Trip', '44444444-4444-4444-4444-444444444444', 'Mumbai', 1, 50000.00, 1, '2026-07-20', '2026-07-25', 'PLANNING', '2026-01-01 10:00:00', '2026-01-01 10:00:00');
+
+INSERT INTO trip_members (trip_id, user_id, member_status, joined_date, budget_amount) VALUES
+('TRP-001', '44444444-4444-4444-4444-444444444444', 'ACCEPTED', '2026-01-01 10:00:00', 50000.00);
+
+-- Hotel Booking
+INSERT INTO trip_hotel_bookings (trip_id, hotel_id, check_in_date, check_out_date, room_type, room_number, total_amount, booking_status) VALUES
+('TRP-001', 1, '2026-07-20', '2026-07-25', 'Standard', '101', 40000.00, 'CONFIRMED');
+
+-- Expense
+INSERT INTO expenses (trip_id, payer_id, amount, expense_date, description, category_id, receipt_url, created_at, updated_at) VALUES
+('TRP-001', '44444444-4444-4444-4444-444444444444', 5000.00, '2026-07-21', 'Food and Drinks', 1, NULL, '2026-07-21 10:00:00', '2026-07-21 10:00:00');
