@@ -65,8 +65,7 @@
           <div class="md:col-span-2 flex flex-col items-end gap-2">
             <p class="text-lg font-semibold">₹{{ b.fare }}</p>
             <div class="flex gap-2">
-              <button hlmBtn variant="outline" size="sm" disabled>View Seats</button>
-              <button hlmBtn size="sm" disabled>Select</button>
+              <button hlmBtn variant="outline" size="sm" (click)="viewSeats(b)">View Seats</button>
             </div>
           </div>
         </div>
@@ -95,60 +94,73 @@
   </div>
 }
 
-<div hlmCard class="mt-6">
-  <div hlmCardHeader><h3 hlmCardTitle>Seat Allocation — Volvo Multi-Axle Sleeper</h3></div>
+@if (seatLayout()) {
+<div hlmCard class="mt-6" id="seat-allocation">
+  <div hlmCardHeader><h3 hlmCardTitle>Seat Allocation — {{ selectedBusName() }}</h3></div>
   <div hlmCardContent>
     <div class="flex flex-col md:flex-row gap-6">
       <div class="rounded-xl border bg-muted/20 p-5">
         <p class="text-xs text-muted-foreground mb-3 text-center">Driver</p>
         <div class="grid grid-cols-5 gap-2">
-          @for (seat of seats; track seat.index) {
-            <div
-              class="h-8 w-8 rounded-md border grid place-items-center text-[10px] font-medium"
+          @for (seat of seatLayout()?.seats; track seat.id) {
+            <button
+              type="button"
+              (click)="toggleSeat(seat)"
+              [disabled]="seat.status !== 'AVAILABLE'"
+              class="h-8 w-8 rounded-md border grid place-items-center text-[10px] font-medium transition-colors"
               [class]="
-                seat.booked
-                  ? 'bg-muted text-muted-foreground border-border'
-                  : seat.selected
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : seat.recommended
-                      ? 'bg-accent/20 border-accent text-accent'
-                      : 'bg-card border-border'
+                seat.status !== 'AVAILABLE'
+                  ? 'bg-muted text-muted-foreground border-border cursor-not-allowed'
+                  : selectedSeatIds().includes(seat.id)
+                    ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
+                    : 'bg-card border-border hover:bg-accent hover:text-accent-foreground'
               "
             >
-              {{ seat.index + 1 }}
-            </div>
+              {{ seat.seatNumber }}
+            </button>
           }
         </div>
-        <div class="flex gap-4 mt-4 text-xs text-muted-foreground">
+        <div class="flex gap-4 mt-4 text-xs text-muted-foreground justify-center">
           <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-card border"></span>Available</span>
-          <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-muted border"></span>Booked</span>
+          <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-muted border"></span>Booked/Locked</span>
           <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-primary"></span>Selected</span>
-          <span class="flex items-center gap-1.5"
-            ><span class="h-3 w-3 rounded bg-accent/30 border border-accent"></span>Recommended</span
-          >
         </div>
       </div>
       <div class="flex-1 space-y-3">
         <div>
           <p class="text-sm font-medium mb-2">Selected Seats</p>
           <div class="flex gap-2 flex-wrap">
-            @for (s of selectedSeatLabels; track s) {
-              <span hlmBadge variant="outline" class="border-primary text-primary">Seat {{ s }}</span>
+            @for (s of selectedSeatObjects; track s.id) {
+              <span hlmBadge variant="outline" class="border-primary text-primary">Seat {{ s.seatNumber }}</span>
+            }
+            @if (selectedSeatObjects.length === 0) {
+              <span class="text-xs text-muted-foreground">No seats selected</span>
             }
           </div>
         </div>
-        <div class="p-3 rounded-md bg-warning/10 flex gap-2 text-sm text-[oklch(0.40_0.12_75)]">
-          <ng-icon name="lucideAlertTriangle" class="h-4 w-4 shrink-0 mt-0.5" />
-          <span>Group may be split — only 2 adjacent pairs available. Consider Volvo at 22:00 for 6 consecutive seats.</span>
+        <div class="p-3 rounded-md bg-muted/50 flex gap-2 text-sm">
+          <ng-icon name="lucideInfo" class="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+          <span class="text-muted-foreground">Select up to {{ members().length }} seats for your group.</span>
         </div>
-        <div class="flex justify-between items-center pt-3 border-t">
+        <div class="flex justify-between items-center pt-3 border-t mt-auto">
           <div>
-            <p class="text-xs text-muted-foreground">Total · 4 seats</p>
-            <p class="text-lg font-semibold">₹7,400</p>
+            <p class="text-xs text-muted-foreground">Total · {{ selectedSeatIds().length }} seats</p>
+            <p class="text-lg font-semibold">₹{{ totalFare }}</p>
           </div>
-          <button hlmBtn disabled>Proceed</button>
+          <button 
+            hlmBtn 
+            [disabled]="selectedSeatIds().length === 0 || isBooking()"
+            (click)="bookSelectedSeats()"
+          >
+            @if (isBooking()) {
+              Booking...
+            } @else {
+              Proceed to Book
+            }
+          </button>
         </div>
       </div>
     </div>
   </div>
 </div>
+}

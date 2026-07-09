@@ -8,28 +8,15 @@ import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { ScheduleService } from '@app/features/trips/services/schedule.service';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
-import { BusSearchResult, TripBusBooking } from '@app/features/trips/services/schedule.models';
+import {
+  BusSearchResult,
+  TripBusBooking,
+  SeatLayoutResponse,
+  SeatResponse,
+  PassengerDetailDto,
+} from '@app/features/trips/services/schedule.models';
 import { Trip, TripMember } from '@app/features/trips/services/trip.models';
 import { fromIsoDate, toIsoDate } from '@app/core/dates/date-utils';
-
-interface SeatInfo {
-  index: number;
-  booked: boolean;
-  selected: boolean;
-  recommended: boolean;
-}
-
-const BOOKED_SEATS = [2, 5, 7, 11, 14, 18, 22, 25];
-const SELECTED_SEATS = [12, 13, 17, 19];
-const RECOMMENDED_SEATS = [12, 13, 17, 19, 8, 9];
-const SELECTED_SEAT_LABELS = ['13', '14', '18', '20'];
-
-const SEATS: SeatInfo[] = Array.from({ length: 30 }, (_, i) => ({
-  index: i,
-  booked: BOOKED_SEATS.includes(i),
-  selected: SELECTED_SEATS.includes(i),
-  recommended: RECOMMENDED_SEATS.includes(i),
-}));
 
 @Component({
   selector: 'app-trip-travel-tab',
@@ -58,8 +45,12 @@ export class TripTravelTab implements OnInit {
   protected readonly tripBookings = signal<TripBusBooking[]>([]);
   protected readonly searchDate = signal<Date | undefined>(undefined);
 
-  public readonly seats = SEATS;
-  protected readonly selectedSeatLabels = SELECTED_SEAT_LABELS;
+  protected readonly selectedScheduleId = signal<number | null>(null);
+  protected readonly selectedBusName = signal<string | null>(null);
+  protected readonly seatLayout = signal<SeatLayoutResponse | null>(null);
+  protected readonly fetchingSeats = signal(false);
+  protected readonly selectedSeatIds = signal<number[]>([]);
+  protected readonly isBooking = signal(false);
 
   ngOnInit(): void {
     const trip = this.trip();
@@ -75,11 +66,13 @@ export class TripTravelTab implements OnInit {
       error: () => this.searching.set(false),
     });
 
-    this.scheduleService.getTripBusBookings(trip.tripId).subscribe({
+    this.loadTripBookings(trip.tripId);
+  }
+
+  private loadTripBookings(tripId: string): void {
+    this.scheduleService.getTripBusBookings(tripId).subscribe({
       next: (summary) => this.tripBookings.set(summary.bookings),
-      error: () => {
-        // "Already booked" list just stays empty.
-      },
+      error: () => {},
     });
   }
 
@@ -94,6 +87,100 @@ export class TripTravelTab implements OnInit {
 
   protected suitableForGroup(bus: BusSearchResult): boolean {
     return bus.availableSeats >= this.members().length;
+  }
+
+  protected viewSeats(bus: BusSearchResult): void {
+    this.selectedScheduleId.set(bus.scheduleId);
+    this.selectedBusName.set(bus.busName);
+    this.selectedSeatIds.set([]);
+    this.fetchingSeats.set(true);
+
+    this.scheduleService.getSeats(bus.scheduleId).subscribe({
+      next: (layout) => {
+        this.seatLayout.set(layout);
+        this.fetchingSeats.set(false);
+      },
+      error: () => {
+        alert('Failed to load seats');
+        this.fetchingSeats.set(false);
+      },
+    });
+  }
+
+  protected toggleSeat(seat: SeatResponse): void {
+    if (seat.status !== 'AVAILABLE') return;
+
+    const current = this.selectedSeatIds();
+    const maxSeats = this.members().length;
+
+    if (current.includes(seat.id)) {
+      this.selectedSeatIds.set(current.filter((id) => id !== seat.id));
+    } else {
+      if (current.length >= maxSeats) {
+        alert(`You can only select up to ${maxSeats} seats based on your group size.`);
+        return;
+      }
+      this.selectedSeatIds.set([...current, seat.id]);
+    }
+  }
+
+  protected get selectedSeatObjects(): SeatResponse[] {
+    const layout = this.seatLayout();
+    if (!layout) return [];
+    return layout.seats.filter((s) => this.selectedSeatIds().includes(s.id));
+  }
+
+  protected get totalFare(): number {
+    const bus = this.results().find((b) => b.scheduleId === this.selectedScheduleId());
+    if (!bus) return 0;
+    return this.selectedSeatIds().length * bus.fare;
+  }
+
+  protected bookSelectedSeats(): void {
+    const scheduleId = this.selectedScheduleId();
+    const seatIds = this.selectedSeatIds();
+    if (!scheduleId || seatIds.length === 0) return;
+
+    this.isBooking.set(true);
+
+    const passengerDetails: PassengerDetailDto[] = seatIds.map((seatId, index) => {
+      const member = this.members()[index];
+      return {
+        seatId,
+        passengerName: member ? member.name : `Passenger ${index + 1}`,
+        passengerAge: 25, // Default age
+        passengerGender: 'Other', // Default gender
+      };
+    });
+
+    this.scheduleService
+      .createBooking({
+        scheduleId,
+        seatIds,
+        passengerDetails,
+      })
+      .subscribe({
+        next: (bookingResp) => {
+          this.scheduleService.attachBookingToTrip(this.trip().tripId, bookingResp.bookingId).subscribe({
+            next: () => {
+              alert('Bus booked and added to trip!');
+              this.isBooking.set(false);
+              this.selectedScheduleId.set(null);
+              this.seatLayout.set(null);
+              this.selectedSeatIds.set([]);
+              this.loadTripBookings(this.trip().tripId);
+            },
+            error: () => {
+              alert('Booking succeeded, but failed to attach to trip.');
+              this.isBooking.set(false);
+            },
+          });
+        },
+        error: () => {
+          alert('Failed to create bus booking.');
+          this.isBooking.set(false);
+        },
+      });
   }
 
   private runSearch(source: string, destination: string, date: string): void {
