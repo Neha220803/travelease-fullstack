@@ -1,10 +1,14 @@
 package com.travelease.backend.auth.controller;
 
+import com.travelease.backend.auth.dto.ChangePasswordRequest;
 import com.travelease.backend.auth.dto.LoginRequest;
 import com.travelease.backend.auth.dto.LoginResponse;
+import com.travelease.backend.auth.dto.MeResponse;
 import com.travelease.backend.auth.dto.PartnerRegisterRequest;
 import com.travelease.backend.auth.dto.RegisterRequest;
+import com.travelease.backend.auth.dto.ResetPasswordRequest;
 import com.travelease.backend.auth.dto.SecurityAnswerRequest;
+import com.travelease.backend.auth.dto.UpdateProfileRequest;
 import com.travelease.backend.auth.dto.UserResponse;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.service.AuthService;
@@ -19,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -62,13 +67,38 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(verified, verified ? "Security answer verified" : "Security answer did not match"));
     }
 
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset a forgotten password using the security answer", description = "ACCESS: PUBLIC\nSCOPE: Verifies the security answer for the given email then updates the password hash.\nIDENTITY: No JWT is required; identity is proven by the email + security answer pair, not by an authenticated session.")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        userService.changePassword(request.email(), request.securityAnswer(), request.newPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Password reset successfully"));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Get the current authenticated user", description = "ACCESS: AUTHENTICATED\nSCOPE: Returns the user resolved from the current JWT identity.\nIDENTITY: The authenticated email from the security context is used; no client-supplied userId is trusted.")
-    public ResponseEntity<ApiResponse<UserResponse>> me(Authentication authentication) {
+    public ResponseEntity<ApiResponse<MeResponse>> me(Authentication authentication) {
         User user = userService.getByEmail(authentication.getName());
-        UserResponse response = new UserResponse(
-                user.getId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole().name(), user.getProviderId()
+        return ResponseEntity.ok(ApiResponse.success(toMeResponse(user), "Current user retrieved"));
+    }
+
+    @PutMapping("/me")
+    @Operation(summary = "Update the current authenticated user's profile", description = "ACCESS: AUTHENTICATED\nSCOPE: Updates name and phone for the user resolved from the current JWT identity.\nIDENTITY: The authenticated email from the security context is used; no client-supplied userId is trusted.")
+    public ResponseEntity<ApiResponse<MeResponse>> updateMe(@Valid @RequestBody UpdateProfileRequest request, Authentication authentication) {
+        User user = userService.updateProfile(authentication.getName(), request.name(), request.phone());
+        return ResponseEntity.ok(ApiResponse.success(toMeResponse(user), "Profile updated successfully"));
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Change the current authenticated user's password", description = "ACCESS: AUTHENTICATED\nSCOPE: Verifies the security answer then updates the password hash for the user resolved from the current JWT identity.\nIDENTITY: The authenticated email from the security context is used; no client-supplied userId is trusted.")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+        userService.changePassword(authentication.getName(), request.securityAnswer(), request.newPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Password changed successfully"));
+    }
+
+    private MeResponse toMeResponse(User user) {
+        return new MeResponse(
+                user.getId(), user.getName(), user.getEmail(), user.getPhone(),
+                user.getRole().name(), user.getProviderId(), user.getSecurityQuestion()
         );
-        return ResponseEntity.ok(ApiResponse.success(response, "Current user retrieved"));
     }
 }

@@ -31,4 +31,8 @@ public interface UserService {
     User getByEmail(String email);
 
     List<UserResponse> searchTravelers(String query);
+
+    User updateProfile(String email, String name, String phone);
+
+    void changePassword(String email, String securityAnswer, String newPassword);
 }

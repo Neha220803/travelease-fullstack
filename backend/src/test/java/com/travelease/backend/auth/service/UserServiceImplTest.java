@@ -264,6 +264,59 @@ class UserServiceImplTest {
     }
 
     @Test
+    void updateProfileUpdatesNameAndPhone() {
+        User user = new User();
+        user.setEmail("asha@example.com");
+        user.setName("Asha");
+        user.setPhone("9999999999");
+        when(userRepository.findByEmail("asha@example.com")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User updated = userService.updateProfile("asha@example.com", "Asha Rao", "8888888888");
+
+        assertThat(updated.getName()).isEqualTo("Asha Rao");
+        assertThat(updated.getPhone()).isEqualTo("8888888888");
+    }
+
+    @Test
+    void updateProfileThrowsWhenUserNotFound() {
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.updateProfile("missing@example.com", "Name", "123"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void changePasswordUpdatesHashWhenSecurityAnswerMatches() {
+        User user = new User();
+        user.setEmail("asha@example.com");
+        user.setSecurityAnswerHash("hashed-answer");
+        when(userRepository.findByEmail("asha@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("City General", "hashed-answer")).thenReturn(true);
+        when(passwordEncoder.encode("NewPassw0rd1")).thenReturn("hashed-new-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userService.changePassword("asha@example.com", "City General", "NewPassw0rd1");
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPasswordHash()).isEqualTo("hashed-new-password");
+    }
+
+    @Test
+    void changePasswordThrowsWhenSecurityAnswerDoesNotMatch() {
+        User user = new User();
+        user.setEmail("asha@example.com");
+        user.setSecurityAnswerHash("hashed-answer");
+        when(userRepository.findByEmail("asha@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Wrong Answer", "hashed-answer")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.changePassword("asha@example.com", "Wrong Answer", "NewPassw0rd1"))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(userRepository, org.mockito.Mockito.never()).save(any(User.class));
+    }
+
+    @Test
     void searchTravelersReturnsMatchingTravelersMappedToResponses() {
         User user = new User();
         user.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));

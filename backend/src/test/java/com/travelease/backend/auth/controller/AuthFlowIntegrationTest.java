@@ -63,6 +63,7 @@ class AuthFlowIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> userData = (Map<String, Object>) meResponse.getBody().data();
         assertThat(userData.get("email")).isEqualTo("asha-flow@example.com");
+        assertThat(userData.get("securityQuestion")).isEqualTo("What is your birth hospital?");
     }
 
     @Test
@@ -155,6 +156,104 @@ class AuthFlowIntegrationTest {
 
         ResponseEntity<ApiResponse> response =
                 restTemplate.postForEntity("/api/auth/register", invalidRequest, ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void updateProfileChangesNameAndPhoneForAuthenticatedUser() {
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-update@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
+        String token = loginAndGetToken("asha-update@example.com", "Passw0rd1");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        Map<String, String> updateBody = Map.of("name", "Asha Rao", "phone", "8888888888");
+        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                "/api/auth/me", HttpMethod.PUT, new HttpEntity<>(updateBody, headers), ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) response.getBody().data();
+        assertThat(data.get("name")).isEqualTo("Asha Rao");
+        assertThat(data.get("phone")).isEqualTo("8888888888");
+    }
+
+    @Test
+    void updateProfileRejectsBlankName() {
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-update-blank@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
+        String token = loginAndGetToken("asha-update-blank@example.com", "Passw0rd1");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        Map<String, String> updateBody = Map.of("name", "", "phone", "8888888888");
+        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                "/api/auth/me", HttpMethod.PUT, new HttpEntity<>(updateBody, headers), ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void changePasswordAllowsLoginWithNewPasswordAfterCorrectSecurityAnswer() {
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-pwd@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
+        String token = loginAndGetToken("asha-pwd@example.com", "Passw0rd1");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        Map<String, String> changeBody = Map.of("securityAnswer", "City General", "newPassword", "NewPassw0rd1");
+        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                "/api/auth/change-password", HttpMethod.POST, new HttpEntity<>(changeBody, headers), ApiResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        LoginRequest newLogin = new LoginRequest("asha-pwd@example.com", "NewPassw0rd1");
+        ResponseEntity<ApiResponse> loginResponse = restTemplate.postForEntity("/api/auth/login", newLogin, ApiResponse.class);
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void changePasswordRejectsWrongSecurityAnswer() {
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-pwd-wrong@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
+        String token = loginAndGetToken("asha-pwd-wrong@example.com", "Passw0rd1");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        Map<String, String> changeBody = Map.of("securityAnswer", "Wrong Answer", "newPassword", "NewPassw0rd1");
+        ResponseEntity<ApiResponse> response = restTemplate.exchange(
+                "/api/auth/change-password", HttpMethod.POST, new HttpEntity<>(changeBody, headers), ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void resetPasswordAllowsLoginWithNewPasswordWithoutAnyAuthToken() {
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-reset@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
+
+        Map<String, String> resetBody = Map.of(
+                "email", "asha-reset@example.com",
+                "securityAnswer", "City General",
+                "newPassword", "NewPassw0rd1");
+        ResponseEntity<ApiResponse> response = restTemplate.postForEntity("/api/auth/reset-password", resetBody, ApiResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        LoginRequest newLogin = new LoginRequest("asha-reset@example.com", "NewPassw0rd1");
+        ResponseEntity<ApiResponse> loginResponse = restTemplate.postForEntity("/api/auth/login", newLogin, ApiResponse.class);
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void resetPasswordRejectsWrongSecurityAnswer() {
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-reset-wrong@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
+
+        Map<String, String> resetBody = Map.of(
+                "email", "asha-reset-wrong@example.com",
+                "securityAnswer", "Wrong Answer",
+                "newPassword", "NewPassw0rd1");
+        ResponseEntity<ApiResponse> response = restTemplate.postForEntity("/api/auth/reset-password", resetBody, ApiResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }

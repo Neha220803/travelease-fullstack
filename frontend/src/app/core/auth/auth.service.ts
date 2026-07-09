@@ -83,6 +83,16 @@ export class AuthService {
     );
   }
 
+  async resetPassword(email: string, securityAnswer: string, newPassword: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post<ApiResponse<unknown>>(`${API_BASE_URL}/api/auth/reset-password`, {
+        email,
+        securityAnswer,
+        newPassword,
+      }),
+    );
+  }
+
   logout(): void {
     this.tokenSignal.set(null);
     this.userSignal.set(null);
