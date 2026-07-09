@@ -68,6 +68,20 @@ export class AuthService {
     );
   }
 
+  async registerPartner(payload: {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    role: string;
+    securityQuestion: string;
+    securityAnswer: string;
+  }): Promise<void> {
+    await firstValueFrom(
+      this.http.post<ApiResponse<unknown>>(`${API_BASE_URL}/api/auth/register/partner`, payload),
+    );
+  }
+
   logout(): void {
     this.tokenSignal.set(null);
     this.userSignal.set(null);

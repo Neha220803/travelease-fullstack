@@ -1,5 +1,5 @@
-<h1 class="text-2xl font-semibold tracking-tight">Create your account</h1>
-<p class="text-sm text-muted-foreground mt-1 mb-6">Start planning your first group trip in minutes.</p>
+<h1 class="text-2xl font-semibold tracking-tight">Register your business</h1>
+<p class="text-sm text-muted-foreground mt-1 mb-6">Apply as a hotel, transport or activity partner. An admin will review your application.</p>
 
 <form class="space-y-4" (submit)="onSubmit($event)">
   @if (error()) {
@@ -7,10 +7,15 @@
       {{ error() }}
     </div>
   }
+  @if (success()) {
+    <div class="rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success">
+      {{ success() }}
+    </div>
+  }
 
   <div class="grid grid-cols-2 gap-3">
     <div class="space-y-2">
-      <label hlmLabel for="name">Name</label>
+      <label hlmLabel for="name">Business owner name</label>
       <input hlmInput id="name" name="name" placeholder="Jane Doe" />
     </div>
     <div class="space-y-2">
@@ -21,6 +26,18 @@
   <div class="space-y-2">
     <label hlmLabel for="email">Email</label>
     <input hlmInput id="email" name="email" type="email" placeholder="you@example.com" />
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="role">Partner type</label>
+    <select
+      id="role"
+      name="role"
+      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+    >
+      <option value="HOTEL_PROVIDER">Hotel Provider</option>
+      <option value="PROVIDER">Bus Provider</option>
+      <option value="ACTIVITY_PROVIDER">Activity Provider</option>
+    </select>
   </div>
   <div class="space-y-2">
     <label hlmLabel for="password">Password</label>
@@ -45,13 +62,10 @@
     <input hlmInput id="securityAnswer" name="securityAnswer" placeholder="Enter your answer" />
   </div>
   <button hlmBtn type="submit" class="w-full" [disabled]="submitting()">
-    {{ submitting() ? 'Creating account...' : 'Create account' }}
+    {{ submitting() ? 'Submitting...' : 'Submit application' }}
   </button>
 </form>
 
 <p class="text-sm text-muted-foreground mt-6 text-center">
-  Already have an account? <a routerLink="/login" class="text-primary font-medium">Sign in</a>
-</p>
-<p class="text-sm text-muted-foreground mt-2 text-center">
-  Are you a hotel, transport or activity partner? <a routerLink="/partner-register" class="text-primary font-medium">Register your business</a>
+  Not a partner? <a routerLink="/register" class="text-primary font-medium">Create a traveler account</a>
 </p>

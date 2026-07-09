@@ -2,6 +2,7 @@ package com.travelease.backend.auth.controller;
 
 import com.travelease.backend.auth.dto.LoginRequest;
 import com.travelease.backend.auth.dto.LoginResponse;
+import com.travelease.backend.auth.dto.PartnerRegisterRequest;
 import com.travelease.backend.auth.dto.RegisterRequest;
 import com.travelease.backend.auth.dto.SecurityAnswerRequest;
 import com.travelease.backend.auth.dto.UserResponse;
@@ -37,6 +38,14 @@ public class AuthController {
         UserResponse user = userService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(user, "User registered successfully"));
+    }
+
+    @PostMapping("/register/partner")
+    @Operation(summary = "Register a new partner (provider) account", description = "ACCESS: PUBLIC\nSCOPE: Creates a hotel/transport/activity provider account pending admin approval.\nIDENTITY: No JWT is required.")
+    public ResponseEntity<ApiResponse<UserResponse>> registerPartner(@Valid @RequestBody PartnerRegisterRequest request) {
+        UserResponse user = userService.registerPartner(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(user, "Partner application submitted and awaiting admin approval"));
     }
 
     @PostMapping("/login")

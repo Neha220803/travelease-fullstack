@@ -1,11 +1,15 @@
 package com.travelease.backend.auth.service;
 
+import com.travelease.backend.auth.dto.PartnerRegisterRequest;
+import com.travelease.backend.auth.dto.PendingPartnerResponse;
 import com.travelease.backend.auth.dto.RegisterRequest;
 import com.travelease.backend.auth.dto.UserResponse;
+import com.travelease.backend.auth.entity.ApprovalStatus;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.shared.exception.DuplicateResourceException;
+import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -68,6 +73,26 @@ class UserServiceImplTest {
     }
 
     @Test
+    void registerDefaultsToApprovedStatus() {
+        RegisterRequest request = new RegisterRequest(
+                "Asha",
+                "asha@example.com",
+                "9999999999",
+                "Passw0rd1",
+                "What is the name of the hospital where you were born?",
+                "City General"
+        );
+        when(userRepository.existsByEmail("asha@example.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(ApprovalStatus.APPROVED);
+    }
+
+    @Test
     void registerStoresSecurityQuestionAndHashedAnswerForTravelers() {
         RegisterRequest request = new RegisterRequest(
                 "Asha",
@@ -107,6 +132,118 @@ class UserServiceImplTest {
 
         assertThatThrownBy(() -> userService.register(request))
                 .isInstanceOf(DuplicateResourceException.class);
+    }
+
+    @Test
+    void registerPartnerCreatesPendingProviderAccount() {
+        PartnerRegisterRequest request = new PartnerRegisterRequest(
+                "Priya", "priya@example.com", "9999999999", "Passw0rd1", "HOTEL_PROVIDER",
+                "What is the name of the hospital where you were born?", "City General");
+        when(userRepository.existsByEmail("priya@example.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.registerPartner(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(ApprovalStatus.PENDING);
+        assertThat(captor.getValue().getRole()).isEqualTo(Role.ROLE_HOTEL_PROVIDER);
+        assertThat(response.role()).isEqualTo(Role.ROLE_HOTEL_PROVIDER.name());
+    }
+
+    @Test
+    void registerPartnerRejectsNonProviderRole() {
+        PartnerRegisterRequest request = new PartnerRegisterRequest(
+                "Priya", "priya@example.com", "9999999999", "Passw0rd1", "TRAVELER",
+                "What is the name of the hospital where you were born?", "City General");
+        when(userRepository.existsByEmail("priya@example.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.registerPartner(request))
+                .isInstanceOf(InvalidRequestException.class);
+    }
+
+    @Test
+    void registerPartnerRejectsDuplicateEmail() {
+        PartnerRegisterRequest request = new PartnerRegisterRequest(
+                "Priya", "priya@example.com", "9999999999", "Passw0rd1", "HOTEL_PROVIDER",
+                "What is the name of the hospital where you were born?", "City General");
+        when(userRepository.existsByEmail("priya@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.registerPartner(request))
+                .isInstanceOf(DuplicateResourceException.class);
+    }
+
+    @Test
+    void listPendingPartnersReturnsOnlyPendingProviderAccounts() {
+        User hotelPartner = new User();
+        hotelPartner.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
+        hotelPartner.setName("Hotel Partner");
+        hotelPartner.setEmail("hotel@example.com");
+        hotelPartner.setRole(Role.ROLE_HOTEL_PROVIDER);
+        hotelPartner.setStatus(ApprovalStatus.PENDING);
+        hotelPartner.setCreatedAt(LocalDateTime.of(2026, 7, 1, 9, 0));
+        when(userRepository.findByStatusAndRoleIn(eq(ApprovalStatus.PENDING), any()))
+                .thenReturn(List.of(hotelPartner));
+
+        List<PendingPartnerResponse> responses = userService.listPendingPartners();
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).email()).isEqualTo("hotel@example.com");
+        assertThat(responses.get(0).role()).isEqualTo(Role.ROLE_HOTEL_PROVIDER.name());
+    }
+
+    @Test
+    void approvePartnerSetsStatusApproved() {
+        User pending = new User();
+        pending.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
+        pending.setRole(Role.ROLE_HOTEL_PROVIDER);
+        pending.setStatus(ApprovalStatus.PENDING);
+        when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.approvePartner(pending.getId());
+
+        assertThat(response.role()).isEqualTo(Role.ROLE_HOTEL_PROVIDER.name());
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(ApprovalStatus.APPROVED);
+    }
+
+    @Test
+    void rejectPartnerSetsStatusRejected() {
+        User pending = new User();
+        pending.setId(UUID.fromString("22222222-2222-2222-2222-222222222222"));
+        pending.setRole(Role.ROLE_PROVIDER);
+        pending.setStatus(ApprovalStatus.PENDING);
+        when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userService.rejectPartner(pending.getId());
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(ApprovalStatus.REJECTED);
+    }
+
+    @Test
+    void approvePartnerThrowsWhenUserNotFound() {
+        UUID id = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.approvePartner(id))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void approvePartnerThrowsWhenUserIsNotAPendingProvider() {
+        User traveler = new User();
+        traveler.setId(UUID.fromString("44444444-4444-4444-4444-444444444444"));
+        traveler.setRole(Role.ROLE_TRAVELER);
+        traveler.setStatus(ApprovalStatus.APPROVED);
+        when(userRepository.findById(traveler.getId())).thenReturn(Optional.of(traveler));
+
+        assertThatThrownBy(() -> userService.approvePartner(traveler.getId()))
+                .isInstanceOf(InvalidRequestException.class);
     }
 
     @Test

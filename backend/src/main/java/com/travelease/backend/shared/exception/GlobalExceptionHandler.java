@@ -33,6 +33,12 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("INVALID_CREDENTIALS", "Invalid email or password"));
     }
 
+    @ExceptionHandler(AccountNotApprovedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccountNotApproved(AccountNotApprovedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("ACCOUNT_NOT_APPROVED", ex.getMessage()));
+    }
+
     @ExceptionHandler({ResourceNotFoundException.class, com.travelease.backend.busbooking.exception.ResourceNotFoundException.class})
     public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

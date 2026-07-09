@@ -831,12 +831,12 @@ describe('PartnerRegister', () => {
     fillForm(el);
 
     (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     const req = http.expectOne(`${API_BASE_URL}/api/auth/register/partner`);
     expect(req.request.body.role).toBe('HOTEL_PROVIDER');
     req.flush({ success: true, data: { id: '1' }, message: 'ok', error: null });
-    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.success()).toContain('awaiting admin approval');
@@ -844,6 +844,8 @@ describe('PartnerRegister', () => {
   });
 });
 ```
+
+Note: `await new Promise((resolve) => setTimeout(resolve, 0))` is used here instead of `fixture.whenStable()` after `req.flush(...)` — in this zoneless test harness, `whenStable()` does not reliably wait for the microtask continuation of a DOM-event-triggered `async` handler wrapped in `firstValueFrom`; a macrotask flush does. (`auth.service.spec.ts`'s tests avoid this entirely by awaiting the service's returned promise directly instead of going through a component/DOM event.)
 
 - [ ] **Step 6: Run test to verify it fails**
 
@@ -872,7 +874,7 @@ export class PartnerRegister {
   private readonly authService = inject(AuthService);
 
   protected readonly error = signal<string | null>(null);
-  protected readonly success = signal<string | null>(null);
+  public readonly success = signal<string | null>(null);
   protected readonly submitting = signal(false);
 
   protected async onSubmit(event: Event): Promise<void> {
@@ -1136,7 +1138,7 @@ describe('AdminApprovals', () => {
     const approveReq = http.expectOne(`${API_BASE_URL}/api/admin/partners/p1/approve`);
     expect(approveReq.request.method).toBe('PUT');
     approveReq.flush({ success: true, data: null, message: 'Partner approved', error: null });
-    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.approvals()).toHaveLength(1);

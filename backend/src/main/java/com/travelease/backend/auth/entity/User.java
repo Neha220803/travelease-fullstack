@@ -45,4 +45,13 @@ public class User extends BaseEntity {
      */
     @Column(name = "provider_id")
     private Long providerId;
+
+    /**
+     * Defaults to APPROVED so existing traveler self-registration and
+     * admin-created accounts are unaffected. Only partner self-registration
+     * (registerPartner) explicitly sets this to PENDING.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ApprovalStatus status = ApprovalStatus.APPROVED;
 }

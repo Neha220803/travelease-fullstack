@@ -2,10 +2,12 @@ package com.travelease.backend.auth.service;
 
 import com.travelease.backend.auth.dto.LoginRequest;
 import com.travelease.backend.auth.dto.LoginResponse;
+import com.travelease.backend.auth.entity.ApprovalStatus;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.security.JwtService;
+import com.travelease.backend.shared.exception.AccountNotApprovedException;
 import com.travelease.backend.shared.exception.InvalidCredentialsException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -77,6 +79,30 @@ class AuthServiceImplTest {
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    @Test
+    void loginRejectsPendingPartnerAccount() {
+        User user = existingUser();
+        user.setStatus(ApprovalStatus.PENDING);
+        when(userRepository.findByEmail("asha@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Passw0rd1", "hashed-password")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("asha@example.com", "Passw0rd1")))
+                .isInstanceOf(AccountNotApprovedException.class)
+                .hasMessage("Your partner account is awaiting admin approval");
+    }
+
+    @Test
+    void loginRejectsRejectedPartnerAccount() {
+        User user = existingUser();
+        user.setStatus(ApprovalStatus.REJECTED);
+        when(userRepository.findByEmail("asha@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Passw0rd1", "hashed-password")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("asha@example.com", "Passw0rd1")))
+                .isInstanceOf(AccountNotApprovedException.class)
+                .hasMessage("Your partner application was rejected");
     }
 
     @Test
