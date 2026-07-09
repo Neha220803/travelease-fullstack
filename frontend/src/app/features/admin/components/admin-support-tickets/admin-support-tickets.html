@@ -1,0 +1,107 @@
+<app-page-header title="Support Tickets" subtitle="Review and respond to tickets raised by travelers." />
+
+<div class="flex flex-wrap gap-3 mt-4">
+  <hlm-select [value]="categoryFilter()" (valueChange)="onCategoryFilterChange($event)">
+    <hlm-select-trigger class="w-48"><hlm-select-value /></hlm-select-trigger>
+    <ng-template hlmSelectPortal>
+      <hlm-select-content>
+        @for (option of categoryFilters; track option.value) {
+          <hlm-select-item [value]="option.value">{{ option.label }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </ng-template>
+  </hlm-select>
+  <hlm-select [value]="statusFilter()" (valueChange)="onStatusFilterChange($event)">
+    <hlm-select-trigger class="w-48"><hlm-select-value /></hlm-select-trigger>
+    <ng-template hlmSelectPortal>
+      <hlm-select-content>
+        @for (option of statusFilters; track option.value) {
+          <hlm-select-item [value]="option.value">{{ option.label }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </ng-template>
+  </hlm-select>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+  <div>
+    @if (loading()) {
+      <p class="text-sm text-muted-foreground py-6">Loading tickets…</p>
+    } @else if (error()) {
+      <p class="text-sm text-destructive py-6">Could not load tickets.</p>
+    } @else if (tickets().length === 0) {
+      <p class="text-sm text-muted-foreground py-6">No tickets match these filters.</p>
+    } @else {
+      <div class="space-y-2">
+        @for (ticket of tickets(); track ticket.ticketId) {
+          <button
+            type="button"
+            hlmCard
+            class="w-full text-left p-4 hover:bg-accent/5 transition-colors"
+            (click)="selectTicket(ticket.ticketId)"
+          >
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="font-medium">{{ ticket.subject }}</p>
+                <p class="text-xs text-muted-foreground mt-1">
+                  {{ ticket.userName }} · {{ ticket.category }} · {{ ticket.createdAt | date: 'mediumDate' }}
+                </p>
+              </div>
+              <app-status-badge [status]="ticket.status" />
+            </div>
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <div>
+    @if (detailLoading()) {
+      <p class="text-sm text-muted-foreground py-6">Loading ticket…</p>
+    } @else if (selectedDetail(); as d) {
+      <div hlmCard class="p-4">
+        <div class="flex items-center justify-between gap-4">
+          <h3 class="font-semibold">{{ d.ticket.subject }}</h3>
+          <hlm-select [value]="d.ticket.status" (valueChange)="onStatusChange($event)">
+            <hlm-select-trigger class="w-40"><hlm-select-value /></hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                @for (status of statusOptions; track status) {
+                  <hlm-select-item [value]="status">{{ status }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">
+          {{ d.ticket.userName }} · {{ d.ticket.category }} · {{ d.ticket.createdAt | date: 'medium' }}
+        </p>
+        <p class="text-sm mt-3 whitespace-pre-line">{{ d.ticket.description }}</p>
+
+        <h4 class="text-sm font-semibold mt-4 mb-2">Replies</h4>
+        @if (d.replies.length === 0) {
+          <p class="text-sm text-muted-foreground">No replies yet.</p>
+        } @else {
+          <div class="space-y-2">
+            @for (reply of d.replies; track reply.replyId) {
+              <div class="rounded-md bg-muted p-3">
+                <p class="text-sm">{{ reply.message }}</p>
+                <p class="text-xs text-muted-foreground mt-1">{{ reply.createdAt | date: 'medium' }}</p>
+              </div>
+            }
+          </div>
+        }
+
+        <form class="mt-4 space-y-2" (submit)="onSubmitReply($event, replyInput.value, replyInput)">
+          <textarea hlmTextarea class="w-full min-h-20" placeholder="Write a reply…" #replyInput></textarea>
+          @if (replyError()) {
+            <p class="text-xs text-destructive">{{ replyError() }}</p>
+          }
+          <button hlmBtn size="sm" type="submit" [disabled]="replySubmitting()">Reply</button>
+        </form>
+      </div>
+    } @else {
+      <p class="text-sm text-muted-foreground py-6">Select a ticket to view details.</p>
+    }
+  </div>
+</div>

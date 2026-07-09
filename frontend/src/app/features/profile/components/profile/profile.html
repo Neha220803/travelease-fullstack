@@ -1,41 +1,82 @@
 <app-page-header title="Profile" subtitle="Manage your account and travel preferences." />
 
-<div class="grid lg:grid-cols-3 gap-6">
-  <div hlmCard>
-    <div hlmCardContent class="pt-6 text-center">
-      <hlm-avatar class="h-24 w-24 mx-auto mb-3">
-        <span hlmAvatarFallback class="bg-primary text-primary-foreground text-2xl">SR</span>
-      </hlm-avatar>
-      <h3 class="font-semibold">{{ name }}</h3>
-      <p class="text-sm text-muted-foreground">{{ email }}</p>
-      <button hlmBtn variant="outline" size="sm" class="mt-4">Change photo</button>
+@if (loading()) {
+  <div class="grid gap-6 xl:grid-cols-[320px,1fr]">
+    <div hlmCard>
+      <div hlmCardContent class="p-6 text-center">
+        <div class="mx-auto mb-4 h-24 w-24 rounded-full bg-muted animate-pulse"></div>
+        <div class="mx-auto mb-2 h-5 w-32 rounded bg-muted animate-pulse"></div>
+        <div class="mx-auto h-4 w-44 rounded bg-muted/80 animate-pulse"></div>
+      </div>
     </div>
-  </div>
-  <div hlmCard class="lg:col-span-2">
-    <div hlmCardHeader>
-      <h3 hlmCardTitle>Account details</h3>
-    </div>
-    <div hlmCardContent class="grid md:grid-cols-2 gap-4">
-      <div class="space-y-2">
-        <label hlmLabel>Name</label>
-        <input hlmInput [value]="name" />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel>Email</label>
-        <input hlmInput [value]="email" />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel>Phone</label>
-        <input hlmInput [value]="phone" />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel>Default city</label>
-        <input hlmInput [value]="defaultCity" />
-      </div>
-      <div class="md:col-span-2 flex gap-3">
-        <button hlmBtn>Save changes</button>
-        <button hlmBtn variant="outline">Change password</button>
+    <div hlmCard>
+      <div hlmCardContent class="grid gap-4 p-6 md:grid-cols-2">
+        <div class="h-20 rounded-lg bg-muted animate-pulse"></div>
+        <div class="h-20 rounded-lg bg-muted animate-pulse"></div>
+        <div class="h-20 rounded-lg bg-muted animate-pulse"></div>
+        <div class="h-20 rounded-lg bg-muted animate-pulse"></div>
       </div>
     </div>
   </div>
-</div>
+} @else if (error()) {
+  <div class="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+    {{ error() }}
+  </div>
+} @else {
+  <div class="grid gap-6 xl:grid-cols-[320px,1fr]">
+    <div hlmCard class="overflow-hidden">
+      <div hlmCardContent class="p-6 text-center">
+        <hlm-avatar class="mx-auto mb-4 h-24 w-24">
+          <span hlmAvatarFallback class="bg-primary text-primary-foreground text-2xl">
+            {{ initials(profile()?.name) }}
+          </span>
+        </hlm-avatar>
+        <h3 class="text-lg font-semibold">{{ profile()?.name ?? 'Traveler' }}</h3>
+        <p class="mt-1 text-sm text-muted-foreground">{{ profile()?.email ?? 'No email available' }}</p>
+        <div class="mt-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          {{ roleLabel(profile()?.role) }}
+        </div>
+      </div>
+    </div>
+
+    <div hlmCard class="overflow-hidden">
+      <div hlmCardHeader class="border-b border-border/60">
+        <h3 hlmCardTitle>Account details</h3>
+        <p class="text-sm text-muted-foreground">Your profile is synced from the authenticated account.</p>
+      </div>
+      <div hlmCardContent class="grid gap-4 p-6 md:grid-cols-2">
+        <div class="space-y-2">
+          <label hlmLabel>Full name</label>
+          <input hlmInput [value]="profile()?.name ?? ''" />
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Email</label>
+          <input hlmInput [value]="profile()?.email ?? ''" />
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Phone</label>
+          <input hlmInput [value]="profile()?.phone || 'Not provided yet'" />
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Preferred city</label>
+          <input hlmInput value="Not specified yet" />
+        </div>
+
+        <div class="md:col-span-2 rounded-xl border border-border/70 bg-muted/30 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium">Travel preferences</p>
+              <p class="text-sm text-muted-foreground">We’ll use these to tailor recommendations and trip planning.</p>
+            </div>
+            <span class="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">Live</span>
+          </div>
+        </div>
+
+        <div class="md:col-span-2 flex flex-wrap gap-3">
+          <button hlmBtn>Save changes</button>
+          <button hlmBtn variant="outline">Change password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

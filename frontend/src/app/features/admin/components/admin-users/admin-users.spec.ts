@@ -1,46 +1,52 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideIcons } from '@ng-icons/core';
 import { lucideSearch } from '@ng-icons/lucide';
-import { members } from '@app/core/mock-data';
+import { API_BASE_URL } from '@app/core/api/api-config';
 import { AdminUsers } from '@app/features/admin/components/admin-users/admin-users';
 
 describe('AdminUsers', () => {
-  beforeEach(async () => {
+  async function setup() {
     await TestBed.configureTestingModule({
       imports: [AdminUsers],
-      providers: [provideIcons({ lucideSearch })],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideIcons({ lucideSearch })],
     }).compileComponents();
-  });
 
-  it('renders exactly members.length * 2 rows with unique ids', () => {
     const fixture = TestBed.createComponent(AdminUsers);
-    const rows = fixture.componentInstance.rows;
-    expect(rows).toHaveLength(members.length * 2);
-    const uniqueIds = new Set(rows.map((r) => r.id));
-    expect(uniqueIds.size).toBe(rows.length);
-  });
+    const http = TestBed.inject(HttpTestingController);
+    return { fixture, http };
+  }
 
-  it('renders each member name, email, and role (twice each)', () => {
-    const fixture = TestBed.createComponent(AdminUsers);
+  const usersResponse = {
+    success: true,
+    message: 'Users retrieved',
+    error: null,
+    data: [
+      { id: 'u1', name: 'Asha Rao', email: 'asha@example.com', role: 'ROLE_TRAVELER' },
+      { id: 'u2', name: 'Rahul Hotel Provider', email: 'hotel@example.com', role: 'ROLE_HOTEL_PROVIDER' },
+    ],
+  };
+
+  it('loads users from the admin users endpoint and renders each row', async () => {
+    const { fixture, http } = await setup();
     fixture.detectChanges();
+
+    const req = http.expectOne(`${API_BASE_URL}/api/admin/users`);
+    expect(req.request.method).toBe('GET');
+    req.flush(usersResponse);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    const rows = fixture.componentInstance.rows();
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ id: 'u1', name: 'Asha Rao', email: 'asha@example.com', role: 'Role Traveler' });
+    expect(rows[1]).toMatchObject({ id: 'u2', name: 'Rahul Hotel Provider', email: 'hotel@example.com', role: 'Role Hotel Provider' });
+
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const m of members) {
-      const nameOccurrences = text.split(m.name).length - 1;
-      expect(nameOccurrences).toBe(2);
-      expect(text).toContain(m.email);
-      expect(text).toContain(m.role);
-    }
-  });
+    expect(text).toContain('Asha Rao');
+    expect(text).toContain('Rahul Hotel Provider');
 
-  it('gives Accepted and Pending rows visibly different status badge classes', () => {
-    const fixture = TestBed.createComponent(AdminUsers);
-    fixture.detectChanges();
-    const badges = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('app-status-badge span'),
-    ) as HTMLElement[];
-    const acceptedBadge = badges.find((b) => b.textContent === 'Accepted')!;
-    const pendingBadge = badges.find((b) => b.textContent === 'Pending')!;
-    expect(acceptedBadge.className).toContain('text-success');
-    expect(pendingBadge.className).toContain('border-warning/20');
+    http.verify();
   });
 });

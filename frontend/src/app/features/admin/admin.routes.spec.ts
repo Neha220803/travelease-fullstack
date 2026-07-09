@@ -9,6 +9,7 @@ import { AdminUsers } from '@app/features/admin/components/admin-users/admin-use
 import { AdminTrips } from '@app/features/admin/components/admin-trips/admin-trips';
 import { AdminBuses } from '@app/features/admin/components/admin-buses/admin-buses';
 import { AdminHotels } from '@app/features/admin/components/admin-hotels/admin-hotels';
+import { AdminSupportTickets } from '@app/features/admin/components/admin-support-tickets/admin-support-tickets';
 import { AdminReports } from '@app/features/admin/components/admin-reports/admin-reports';
 import { ADMIN_ROUTES } from './admin.routes';
 
@@ -35,6 +36,7 @@ describe('ADMIN_ROUTES', () => {
       'trips',
       'buses',
       'hotels',
+      'support-tickets',
       'reports',
     ]);
   });
@@ -51,6 +53,7 @@ describe('ADMIN_ROUTES', () => {
       AdminTrips,
       AdminBuses,
       AdminHotels,
+      AdminSupportTickets,
       AdminReports,
     ];
     for (let i = 0; i < children.length; i++) {

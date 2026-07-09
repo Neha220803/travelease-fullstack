@@ -16,6 +16,13 @@ export const AUTH_ROUTES: Routes = [
         loadComponent: () =>
           import('@app/features/auth/components/register/register').then((m) => m.Register),
       },
+      {
+        path: 'partner-register',
+        loadComponent: () =>
+          import('@app/features/auth/components/partner-register/partner-register').then(
+            (m) => m.PartnerRegister,
+          ),
+      },
     ],
   },
 ];

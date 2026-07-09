@@ -1,0 +1,71 @@
+<h1 class="text-2xl font-semibold tracking-tight">Register your business</h1>
+<p class="text-sm text-muted-foreground mt-1 mb-6">Apply as a hotel, transport or activity partner. An admin will review your application.</p>
+
+<form class="space-y-4" (submit)="onSubmit($event)">
+  @if (error()) {
+    <div class="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {{ error() }}
+    </div>
+  }
+  @if (success()) {
+    <div class="rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success">
+      {{ success() }}
+    </div>
+  }
+
+  <div class="grid grid-cols-2 gap-3">
+    <div class="space-y-2">
+      <label hlmLabel for="name">Business owner name</label>
+      <input hlmInput id="name" name="name" placeholder="Jane Doe" />
+    </div>
+    <div class="space-y-2">
+      <label hlmLabel for="phone">Phone</label>
+      <input hlmInput id="phone" name="phone" placeholder="+91 9876543210" />
+    </div>
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="email">Email</label>
+    <input hlmInput id="email" name="email" type="email" placeholder="you@example.com" />
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="role">Partner type</label>
+    <select
+      id="role"
+      name="role"
+      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+    >
+      <option value="HOTEL_PROVIDER">Hotel Provider</option>
+      <option value="PROVIDER">Bus Provider</option>
+      <option value="ACTIVITY_PROVIDER">Activity Provider</option>
+    </select>
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="password">Password</label>
+    <input hlmInput id="password" name="password" type="password" placeholder="At least 8 characters" />
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="confirmPassword">Confirm password</label>
+    <input hlmInput id="confirmPassword" name="confirmPassword" type="password" />
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="securityQuestion">Security question</label>
+    <input
+      hlmInput
+      id="securityQuestion"
+      name="securityQuestion"
+      value="What is the name of the hospital where you were born?"
+      readonly
+    />
+  </div>
+  <div class="space-y-2">
+    <label hlmLabel for="securityAnswer">Your answer</label>
+    <input hlmInput id="securityAnswer" name="securityAnswer" placeholder="Enter your answer" />
+  </div>
+  <button hlmBtn type="submit" class="w-full" [disabled]="submitting()">
+    {{ submitting() ? 'Submitting...' : 'Submit application' }}
+  </button>
+</form>
+
+<p class="text-sm text-muted-foreground mt-6 text-center">
+  Not a partner? <a routerLink="/register" class="text-primary font-medium">Create a traveler account</a>
+</p>

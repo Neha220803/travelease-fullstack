@@ -1,6 +1,8 @@
 package com.travelease.backend.expense.repository;
 
 import com.travelease.backend.expense.entity.Expense;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -14,5 +16,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
     List<Expense> findByTripIdOrderByCreatedAtDesc(UUID tripId);
 
     @EntityGraph(attributePaths = {"payer", "participants", "participants.user"})
+    Page<Expense> findByTripIdOrderByCreatedAtDesc(UUID tripId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"payer", "participants", "participants.user"})
     Optional<Expense> findByIdAndTripId(UUID id, UUID tripId);
 }
+

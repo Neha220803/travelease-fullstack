@@ -6,6 +6,7 @@ import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.expense.dto.CreateExpenseRequest;
 import com.travelease.backend.expense.mapper.ExpenseMapper;
 import com.travelease.backend.expense.repository.ExpenseRepository;
+import com.travelease.backend.itinerary.service.NotificationService;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.trip.entity.Trip;
 import com.travelease.backend.trip.entity.TravelerTripStatus;
@@ -44,6 +45,8 @@ class ExpenseServiceImplLifecycleTest {
     private UserRepository userRepository;
     @Mock
     private ExpenseMapper expenseMapper;
+    @Mock
+    private NotificationService notificationService;
 
     private User user(String email) {
         User user = new User();
@@ -75,7 +78,7 @@ class ExpenseServiceImplLifecycleTest {
         // per its own javadoc) so the lock is exercised end-to-end, not mocked away.
         TripAuthorizationService realAuth = new TripAuthorizationService(tripMemberRepository);
         ExpenseServiceImpl service = new ExpenseServiceImpl(
-                expenseRepository, tripRepository, tripMemberRepository, userRepository, expenseMapper, realAuth);
+                expenseRepository, tripRepository, tripMemberRepository, userRepository, expenseMapper, realAuth, notificationService);
 
         User alice = user("alice@travelease.test");
         Trip trip = trip(alice, TravelerTripStatus.COMPLETED);
@@ -95,7 +98,7 @@ class ExpenseServiceImplLifecycleTest {
     void createSharedExpenseIsRejectedOnCancelledTrip() {
         TripAuthorizationService realAuth = new TripAuthorizationService(tripMemberRepository);
         ExpenseServiceImpl service = new ExpenseServiceImpl(
-                expenseRepository, tripRepository, tripMemberRepository, userRepository, expenseMapper, realAuth);
+                expenseRepository, tripRepository, tripMemberRepository, userRepository, expenseMapper, realAuth, notificationService);
 
         User alice = user("alice@travelease.test");
         Trip trip = trip(alice, TravelerTripStatus.CANCELLED);

@@ -2,7 +2,9 @@ package com.travelease.backend.auth.controller;
 
 import com.travelease.backend.auth.dto.LoginRequest;
 import com.travelease.backend.auth.dto.LoginResponse;
+import com.travelease.backend.auth.dto.PartnerRegisterRequest;
 import com.travelease.backend.auth.dto.RegisterRequest;
+import com.travelease.backend.auth.dto.SecurityAnswerRequest;
 import com.travelease.backend.auth.dto.UserResponse;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.service.AuthService;
@@ -38,11 +40,26 @@ public class AuthController {
                 .body(ApiResponse.success(user, "User registered successfully"));
     }
 
+    @PostMapping("/register/partner")
+    @Operation(summary = "Register a new partner (provider) account", description = "ACCESS: PUBLIC\nSCOPE: Creates a hotel/transport/activity provider account pending admin approval.\nIDENTITY: No JWT is required.")
+    public ResponseEntity<ApiResponse<UserResponse>> registerPartner(@Valid @RequestBody PartnerRegisterRequest request) {
+        UserResponse user = userService.registerPartner(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(user, "Partner application submitted and awaiting admin approval"));
+    }
+
     @PostMapping("/login")
     @Operation(summary = "Login with email and password", description = "ACCESS: PUBLIC\nSCOPE: Authenticates credentials and returns the login response.\nIDENTITY: No JWT is required.")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse loginResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(loginResponse, "Login successful"));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Verify the recovery answer for a traveler", description = "ACCESS: PUBLIC\nSCOPE: Validates the stored recovery answer for password reset flow support.\nIDENTITY: Requires the user's email and the answer to the configured recovery question.")
+    public ResponseEntity<ApiResponse<Boolean>> verifySecurityAnswer(@Valid @RequestBody SecurityAnswerRequest request) {
+        boolean verified = userService.verifySecurityAnswer(request.email(), request.answer());
+        return ResponseEntity.ok(ApiResponse.success(verified, verified ? "Security answer verified" : "Security answer did not match"));
     }
 
     @GetMapping("/me")

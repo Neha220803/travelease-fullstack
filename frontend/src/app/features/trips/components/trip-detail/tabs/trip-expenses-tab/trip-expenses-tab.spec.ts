@@ -1,32 +1,103 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideIcons } from '@ng-icons/core';
 import { lucidePlus, lucideWallet } from '@ng-icons/lucide';
-import { expenses } from '@app/core/mock-data';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { of } from 'rxjs';
 import { TripExpensesTab } from '@app/features/trips/components/trip-detail/tabs/trip-expenses-tab/trip-expenses-tab';
 
+const TRIP_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 describe('TripExpensesTab', () => {
+  let httpMock: HttpTestingController;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [TripExpensesTab],
-      providers: [provideIcons({ lucidePlus, lucideWallet })],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideIcons({ lucidePlus, lucideWallet }),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of(convertToParamMap({ tripId: TRIP_ID })),
+          },
+        },
+      ],
     }).compileComponents();
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
-  it('renders every expense with the correct split-with count', () => {
+  function flushPendingRequests() {
+    // Flush expenses
+    const expensesReq = httpMock.expectOne(
+      `http://localhost:8080/api/trips/${TRIP_ID}/expenses`,
+    );
+    expensesReq.flush({ success: true, data: [], message: 'ok', error: null });
+
+    // Flush members
+    const membersReq = httpMock.expectOne(
+      `http://localhost:8080/api/trips/${TRIP_ID}/members`,
+    );
+    membersReq.flush({ success: true, data: [], message: 'ok', error: null });
+
+    // Flush settlement summary
+    const settlementsReq = httpMock.expectOne(
+      `http://localhost:8080/api/trips/${TRIP_ID}/settlements/summary`,
+    );
+    settlementsReq.flush({
+      success: true,
+      data: { tripId: TRIP_ID, totalPayable: 0, totalReceivable: 0, settlements: [] },
+      message: 'ok',
+      error: null,
+    });
+  }
+
+  it('should create the component', () => {
     const fixture = TestBed.createComponent(TripExpensesTab);
     fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const e of expenses) {
-      expect(text).toContain(e.name);
-      expect(text).toContain(`split with ${e.participants.length}`);
-    }
+    flushPendingRequests();
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('renders the hardcoded settlement summary amounts', () => {
+  it('shows empty state when no expenses exist', () => {
     const fixture = TestBed.createComponent(TripExpensesTab);
     fixture.detectChanges();
+    flushPendingRequests();
+    fixture.detectChanges();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('₹2,300');
-    expect(text).toContain('₹5,400');
+    expect(text).toContain('No expenses recorded yet.');
+  });
+
+  it('shows settlement amounts from the API', () => {
+    const fixture = TestBed.createComponent(TripExpensesTab);
+    fixture.detectChanges();
+
+    // Flush expenses
+    httpMock
+      .expectOne(`http://localhost:8080/api/trips/${TRIP_ID}/expenses`)
+      .flush({ success: true, data: [], message: 'ok', error: null });
+
+    // Flush members
+    httpMock
+      .expectOne(`http://localhost:8080/api/trips/${TRIP_ID}/members`)
+      .flush({ success: true, data: [], message: 'ok', error: null });
+
+    // Flush settlement summary with values
+    httpMock
+      .expectOne(`http://localhost:8080/api/trips/${TRIP_ID}/settlements/summary`)
+      .flush({
+        success: true,
+        data: { tripId: TRIP_ID, totalPayable: 2500, totalReceivable: 3000, settlements: [] },
+        message: 'ok',
+        error: null,
+      });
+
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('2,500');
+    expect(text).toContain('3,000');
   });
 });
