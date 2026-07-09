@@ -41,6 +41,11 @@ export const TRAVELER_ROUTES: Routes = [
             (m) => m.INVITATIONS_ROUTES,
           ),
       },
+      {
+        path: 'support',
+        loadChildren: () =>
+          import('@app/features/support/support.routes').then((m) => m.SUPPORT_ROUTES),
+      },
     ],
   },
 ];

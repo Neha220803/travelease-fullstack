@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideIcons } from '@ng-icons/core';
-import { lucideClock, lucidePlus, lucideSparkles } from '@ng-icons/lucide';
-import { of } from 'rxjs';
+import { lucideCheckCircle2, lucideClock, lucidePlus, lucideSparkles, lucideX } from '@ng-icons/lucide';
+import { of, throwError } from 'rxjs';
 import { TripItineraryTab } from '@app/features/trips/components/trip-detail/tabs/trip-itinerary-tab/trip-itinerary-tab';
 import { ActivitiesService } from '@app/core/activities/activities.service';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
 import { Activity } from '@app/core/activities/activity.models';
-import { ItineraryItem } from '@app/features/trips/services/itinerary.models';
+import { ItineraryItem, ItineraryProgress } from '@app/features/trips/services/itinerary.models';
 import { Trip } from '@app/features/trips/services/trip.models';
 
 const TRIP: Trip = {
@@ -51,13 +51,31 @@ const ITEMS: ItineraryItem[] = [
   },
 ];
 
-async function render(list = () => of(ITEMS), create = vi.fn()) {
+const PROGRESS: ItineraryProgress = {
+  tripId: 't1',
+  totalActivities: 1,
+  completedActivities: 0,
+  pendingActivities: 1,
+  completionPercentage: 0,
+};
+
+async function render(itineraryService: Partial<ItineraryService> = {}) {
   await TestBed.configureTestingModule({
     imports: [TripItineraryTab],
     providers: [
-      provideIcons({ lucideClock, lucidePlus, lucideSparkles }),
+      provideIcons({ lucideClock, lucidePlus, lucideSparkles, lucideCheckCircle2, lucideX }),
       { provide: ActivitiesService, useValue: { getActivities: () => of(ACTIVITIES) } },
-      { provide: ItineraryService, useValue: { list, create } },
+      {
+        provide: ItineraryService,
+        useValue: {
+          list: () => of(ITEMS),
+          create: vi.fn(),
+          update: vi.fn(),
+          remove: vi.fn(),
+          getProgress: () => of(PROGRESS),
+          ...itineraryService,
+        },
+      },
     ],
   }).compileComponents();
 
@@ -96,7 +114,7 @@ describe('TripItineraryTab', () => {
 
   it('creates an itinerary item dated to the trip start date when the sidebar + is clicked', async () => {
     const create = vi.fn().mockReturnValue(of({ ...ITEMS[0], itineraryId: 'i2', activityId: 'a1' }));
-    const fixture = await render(() => of([]), create);
+    const fixture = await render({ list: () => of([]), create });
 
     // Two buttons render a lucidePlus icon: the decorative header "Add Activity"
     // button (no click handler) and the sidebar's per-activity "+" (which
@@ -119,7 +137,7 @@ describe('TripItineraryTab', () => {
 
   it('creates the itinerary item on the date picked once the date picker changes', async () => {
     const create = vi.fn().mockReturnValue(of({ ...ITEMS[0], itineraryId: 'i2', activityId: 'a1' }));
-    const fixture = await render(() => of([]), create);
+    const fixture = await render({ list: () => of([]), create });
 
     (fixture.componentInstance as unknown as { onAddDateChange: (date: Date) => void }).onAddDateChange(
       new Date(2026, 6, 14),
@@ -134,5 +152,91 @@ describe('TripItineraryTab', () => {
       activityDate: '2026-07-14',
       status: 'Pending',
     });
+  });
+
+  it('defaults the header dialog activity selection to the first available activity', async () => {
+    const fixture = await render();
+    expect(
+      (fixture.componentInstance as unknown as { selectedActivityId: () => string }).selectedActivityId(),
+    ).toBe('a1');
+  });
+
+  it('adds the selected activity when the header "Add Activity" dialog is submitted', async () => {
+    const create = vi.fn().mockReturnValue(of({ ...ITEMS[0], itineraryId: 'i2', activityId: 'a1' }));
+    const fixture = await render({ create });
+
+    (
+      fixture.componentInstance as unknown as { onAddActivitySubmit: () => void }
+    ).onAddActivitySubmit();
+    await fixture.whenStable();
+
+    expect(create).toHaveBeenCalledWith({
+      tripId: 't1',
+      activityId: 'a1',
+      activityDate: '2026-07-12',
+      status: 'Pending',
+    });
+  });
+
+  it('renders the completion progress bar from the backend summary', async () => {
+    const fixture = await render({
+      getProgress: () => of({ ...PROGRESS, completedActivities: 1, completionPercentage: 100 }),
+    });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('1 / 1 activities completed');
+    expect(text).toContain('100%');
+  });
+
+  it('toggles an item to Completed and refreshes progress', async () => {
+    const update = vi.fn().mockReturnValue(of({ ...ITEMS[0], status: 'Completed' }));
+    const getProgress = vi
+      .fn()
+      .mockReturnValueOnce(of(PROGRESS))
+      .mockReturnValueOnce(of({ ...PROGRESS, completedActivities: 1, completionPercentage: 100 }));
+    const fixture = await render({ update, getProgress });
+
+    (fixture.componentInstance as unknown as { toggleStatus: (item: ItineraryItem) => void }).toggleStatus(
+      ITEMS[0],
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(update).toHaveBeenCalledWith('i1', {
+      tripId: 't1',
+      activityId: 'a2',
+      activityDate: '2026-07-13',
+      status: 'Completed',
+    });
+    expect(getProgress).toHaveBeenCalledTimes(2);
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Completed');
+  });
+
+  it('removes an item from the list on successful delete', async () => {
+    const remove = vi.fn().mockReturnValue(of(undefined));
+    const fixture = await render({ remove });
+
+    (fixture.componentInstance as unknown as { deleteItem: (item: ItineraryItem) => void }).deleteItem(
+      ITEMS[0],
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(remove).toHaveBeenCalledWith('i1');
+    expect(days(fixture)).toHaveLength(0);
+  });
+
+  it('shows an error when deleting fails (e.g. non-organizer)', async () => {
+    const remove = vi.fn().mockReturnValue(throwError(() => new Error('Forbidden')));
+    const fixture = await render({ remove });
+
+    (fixture.componentInstance as unknown as { deleteItem: (item: ItineraryItem) => void }).deleteItem(
+      ITEMS[0],
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Only the trip organizer can delete itinerary items.');
   });
 });

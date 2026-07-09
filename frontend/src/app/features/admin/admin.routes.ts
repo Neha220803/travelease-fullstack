@@ -72,6 +72,13 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
+        path: 'support-tickets',
+        loadComponent: () =>
+          import('@app/features/admin/components/admin-support-tickets/admin-support-tickets').then(
+            (m) => m.AdminSupportTickets,
+          ),
+      },
+      {
         path: 'reports',
         loadComponent: () =>
           import('@app/features/admin/components/admin-reports/admin-reports').then(

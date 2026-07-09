@@ -185,6 +185,8 @@ public class DemoDataInitializer implements CommandLineRunner {
             user.setEmail(email);
             user.setPhone(phone);
             user.setPasswordHash(passwordEncoder.encode("password123"));
+            user.setSecurityQuestion("What is your birth hospital?");
+            user.setSecurityAnswerHash(passwordEncoder.encode("City General"));
             user.setRole(role);
             user.setProviderId(providerId);
             return userRepository.save(user);

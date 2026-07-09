@@ -22,6 +22,7 @@ describe('TRAVELER_ROUTES', () => {
       'profile',
       'notifications',
       'invitations',
+      'support',
     ]);
   });
 
@@ -54,5 +55,12 @@ describe('TRAVELER_ROUTES', () => {
     const invitationsChild = children.find((r) => r.path === 'invitations')!;
     const { INVITATIONS_ROUTES } = await import('@app/features/invitations/invitations.routes');
     expect(await invitationsChild.loadChildren!()).toBe(INVITATIONS_ROUTES);
+  });
+
+  it('lazily loads the support route group', async () => {
+    const children = TRAVELER_ROUTES[0].children ?? [];
+    const supportChild = children.find((r) => r.path === 'support')!;
+    const { SUPPORT_ROUTES } = await import('@app/features/support/support.routes');
+    expect(await supportChild.loadChildren!()).toBe(SUPPORT_ROUTES);
   });
 });

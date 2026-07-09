@@ -5,6 +5,7 @@ import { TripExpenseService } from '@app/features/trips/services/trip-expense.se
 import {
   CreateExpenseRequest,
   ExpenseResponse,
+  PagedResponse,
 } from '@app/features/trips/services/trip-expense.models';
 
 const TRIP_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
@@ -41,7 +42,7 @@ describe('TripExpenseService', () => {
   it('fetches and unwraps trip expenses', async () => {
     const { service, httpMock } = await setup();
 
-    let result: ExpenseResponse[] | undefined;
+    let result: PagedResponse<ExpenseResponse> | undefined;
     service.listTripExpenses(TRIP_ID).subscribe((expenses) => (result = expenses));
 
     const req = httpMock.expectOne(

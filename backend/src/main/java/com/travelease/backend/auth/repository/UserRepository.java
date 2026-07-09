@@ -1,5 +1,6 @@
 package com.travelease.backend.auth.repository;
 
+import com.travelease.backend.auth.entity.ApprovalStatus;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> findByRole(Role role);
 
     List<User> findByProviderId(Long providerId);
+    List<User> findByStatusAndRoleIn(ApprovalStatus status, List<Role> roles);
 
     @Query("SELECT u FROM User u WHERE u.role = :role "
             + "AND (LOWER(u.name) LIKE LOWER(CONCAT('%', :query, '%')) "

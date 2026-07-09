@@ -1,6 +1,7 @@
 package com.travelease.backend.auth.controller;
 
 import com.travelease.backend.auth.dto.LoginRequest;
+import com.travelease.backend.auth.dto.PartnerRegisterRequest;
 import com.travelease.backend.auth.dto.RegisterRequest;
 import com.travelease.backend.shared.dto.ApiResponse;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +35,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void registerThenLoginThenMeWorksEndToEnd() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-flow@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-flow@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
         ResponseEntity<ApiResponse> registerResponse =
                 restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -72,7 +74,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void registerRejectsDuplicateEmail() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-dup@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-dup@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         ResponseEntity<ApiResponse> secondResponse =
@@ -83,7 +85,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void loginRejectsWrongPassword() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-wrong@example.com", "9999999999", "Passw0rd1");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-wrong@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         LoginRequest loginRequest = new LoginRequest("asha-wrong@example.com", "WrongPassword1");
@@ -93,8 +95,63 @@ class AuthFlowIntegrationTest {
     }
 
     @Test
+    void partnerRegistrationStartsPendingAndBlocksLoginUntilApproved() {
+        PartnerRegisterRequest registerRequest = new PartnerRegisterRequest(
+                "Priya Partner", "priya-partner@example.com", "9999999999", "Passw0rd1",
+                "HOTEL_PROVIDER", "What is your birth hospital?", "City General");
+        ResponseEntity<ApiResponse> registerResponse =
+                restTemplate.postForEntity("/api/auth/register/partner", registerRequest, ApiResponse.class);
+        assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        LoginRequest loginRequest = new LoginRequest("priya-partner@example.com", "Passw0rd1");
+        ResponseEntity<ApiResponse> loginResponse =
+                restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);
+
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(loginResponse.getBody().error().code()).isEqualTo("ACCOUNT_NOT_APPROVED");
+    }
+
+    @Test
+    void adminApprovesPendingPartnerAllowingLogin() {
+        PartnerRegisterRequest registerRequest = new PartnerRegisterRequest(
+                "Priya Partner", "priya-approve@example.com", "9999999999", "Passw0rd1",
+                "HOTEL_PROVIDER", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register/partner", registerRequest, ApiResponse.class);
+
+        String adminToken = loginAndGetToken("admin@travelease.test", "password123");
+        HttpHeaders adminHeaders = new HttpHeaders();
+        adminHeaders.setBearerAuth(adminToken);
+
+        ResponseEntity<ApiResponse> pendingResponse = restTemplate.exchange(
+                "/api/admin/partners/pending", HttpMethod.GET, new HttpEntity<>(adminHeaders), ApiResponse.class);
+        assertThat(pendingResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> pending = (List<Map<String, Object>>) pendingResponse.getBody().data();
+        String partnerId = pending.stream()
+                .filter(p -> "priya-approve@example.com".equals(p.get("email")))
+                .findFirst().orElseThrow().get("id").toString();
+
+        ResponseEntity<ApiResponse> approveResponse = restTemplate.exchange(
+                "/api/admin/partners/" + partnerId + "/approve", HttpMethod.PUT, new HttpEntity<>(adminHeaders), ApiResponse.class);
+        assertThat(approveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        LoginRequest loginRequest = new LoginRequest("priya-approve@example.com", "Passw0rd1");
+        ResponseEntity<ApiResponse> loginResponse = restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private String loginAndGetToken(String email, String password) {
+        LoginRequest loginRequest = new LoginRequest(email, password);
+        ResponseEntity<ApiResponse> loginResponse = restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) loginResponse.getBody().data();
+        return (String) data.get("accessToken");
+    }
+
+    @Test
     void registerRejectsInvalidPayload() {
-        RegisterRequest invalidRequest = new RegisterRequest("", "not-an-email", "9999999999", "short");
+        RegisterRequest invalidRequest = new RegisterRequest("", "not-an-email", "9999999999", "short", "", "");
 
         ResponseEntity<ApiResponse> response =
                 restTemplate.postForEntity("/api/auth/register", invalidRequest, ApiResponse.class);

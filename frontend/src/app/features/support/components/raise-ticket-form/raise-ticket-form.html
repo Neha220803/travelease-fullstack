@@ -1,0 +1,48 @@
+<a hlmBtn variant="ghost" size="sm" class="mb-3" routerLink="/dashboard">
+  <ng-icon name="lucideArrowLeft" class="h-4 w-4 mr-1" />Back to dashboard
+</a>
+<app-page-header
+  title="Contact Support"
+  subtitle="Tell us what went wrong and our team will get back to you."
+/>
+
+<div hlmCard class="max-w-2xl">
+  <div hlmCardContent class="pt-6">
+    <form class="space-y-4" (submit)="onSubmit($event, subjectInput.value, descriptionInput.value)">
+      <div class="space-y-2">
+        <label hlmLabel>What is this about?</label>
+        <hlm-select [value]="category()" [itemToString]="categoryLabel" (valueChange)="onCategoryChange($event)">
+          <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (option of categoryOptions; track option.value) {
+                <hlm-select-item [value]="option.value">{{ option.label }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="subject">Subject</label>
+        <input hlmInput id="subject" placeholder="Briefly describe the issue" #subjectInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="description">Description</label>
+        <textarea
+          hlmTextarea
+          id="description"
+          class="w-full min-h-32"
+          placeholder="Give us the details so we can help"
+          #descriptionInput
+        ></textarea>
+      </div>
+      @if (error()) {
+        <p class="text-xs text-destructive">{{ error() }}</p>
+      }
+      <div class="flex gap-3 pt-2">
+        <button hlmBtn type="submit" [disabled]="submitting()">Submit Ticket</button>
+        <a hlmBtn variant="outline" routerLink="/support/tickets">View My Tickets</a>
+      </div>
+    </form>
+  </div>
+</div>
