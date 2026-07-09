@@ -3,10 +3,17 @@ import { NgIcon } from '@ng-icons/core';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
+import { HlmDialogImports } from '@spartan-ng/helm/dialog';
+import { HlmSelectImports } from '@spartan-ng/helm/select';
+import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { ActivitiesService } from '@app/core/activities/activities.service';
 import { Activity } from '@app/core/activities/activity.models';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
-import { ItineraryItem } from '@app/features/trips/services/itinerary.models';
+import {
+  ItineraryItem,
+  ItineraryProgress,
+  ItineraryStatus,
+} from '@app/features/trips/services/itinerary.models';
 import { Trip } from '@app/features/trips/services/trip.models';
 import { fromIsoDate, toIsoDate } from '@app/core/dates/date-utils';
 
@@ -20,7 +27,15 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 @Component({
   selector: 'app-trip-itinerary-tab',
-  imports: [NgIcon, HlmCardImports, HlmButtonImports, HlmDatePickerImports],
+  imports: [
+    NgIcon,
+    HlmCardImports,
+    HlmButtonImports,
+    HlmDatePickerImports,
+    HlmDialogImports,
+    HlmSelectImports,
+    HlmLabelImports,
+  ],
   templateUrl: './trip-itinerary-tab.html',
 })
 export class TripItineraryTab implements OnInit {
@@ -31,8 +46,13 @@ export class TripItineraryTab implements OnInit {
 
   protected readonly availableActivities = signal<Activity[]>([]);
   protected readonly items = signal<ItineraryItem[]>([]);
+  protected readonly progress = signal<ItineraryProgress | null>(null);
   protected readonly addError = signal<string | null>(null);
+  protected readonly itemError = signal<string | null>(null);
   protected readonly addDate = signal<Date | undefined>(undefined);
+  protected readonly selectedActivityId = signal<string>('');
+  protected readonly togglingId = signal<string | null>(null);
+  protected readonly deletingId = signal<string | null>(null);
   protected readonly minDate = computed(() => fromIsoDate(this.trip().startDate));
   protected readonly maxDate = computed(() => fromIsoDate(this.trip().endDate));
 
@@ -58,7 +78,12 @@ export class TripItineraryTab implements OnInit {
     this.addDate.set(fromIsoDate(trip.startDate));
 
     this.activitiesService.getActivities(trip.destinationId).subscribe({
-      next: (activities) => this.availableActivities.set(activities),
+      next: (activities) => {
+        this.availableActivities.set(activities);
+        if (activities.length > 0) {
+          this.selectedActivityId.set(activities[0].activityId);
+        }
+      },
       error: () => {
         // Sidebar just stays empty.
       },
@@ -70,6 +95,8 @@ export class TripItineraryTab implements OnInit {
         // Day-wise list just stays empty.
       },
     });
+
+    this.refreshProgress();
   }
 
   protected formatDate(iso: string): string {
@@ -78,6 +105,24 @@ export class TripItineraryTab implements OnInit {
 
   protected onAddDateChange(date: Date | undefined): void {
     this.addDate.set(date);
+  }
+
+  protected readonly activityIdToLabel = (id: string): string => {
+    const activity = this.availableActivities().find((a) => a.activityId === id);
+    return activity ? activity.activityName : id;
+  };
+
+  protected onSelectedActivityChange(activityId: string | null | undefined): void {
+    if (activityId) {
+      this.selectedActivityId.set(activityId);
+    }
+  }
+
+  protected onAddActivitySubmit(): void {
+    const activity = this.availableActivities().find((a) => a.activityId === this.selectedActivityId());
+    if (activity) {
+      this.onAddActivity(activity);
+    }
   }
 
   protected onAddActivity(activity: Activity): void {
@@ -92,8 +137,62 @@ export class TripItineraryTab implements OnInit {
         status: 'Pending',
       })
       .subscribe({
-        next: (item) => this.items.update((list) => [...list, item]),
+        next: (item) => {
+          this.items.update((list) => [...list, item]);
+          this.refreshProgress();
+        },
         error: () => this.addError.set('Could not add this activity. Please try again.'),
       });
+  }
+
+  protected toggleStatus(item: ItineraryItem): void {
+    const nextStatus: ItineraryStatus = item.status === 'Completed' ? 'Pending' : 'Completed';
+    this.itemError.set(null);
+    this.togglingId.set(item.itineraryId);
+    this.itineraryService
+      .update(item.itineraryId, {
+        tripId: item.tripId,
+        activityId: item.activityId,
+        activityDate: item.activityDate,
+        status: nextStatus,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.togglingId.set(null);
+          this.items.update((list) =>
+            list.map((i) => (i.itineraryId === updated.itineraryId ? updated : i)),
+          );
+          this.refreshProgress();
+        },
+        error: () => {
+          this.togglingId.set(null);
+          this.itemError.set('Could not update this item. Please try again.');
+        },
+      });
+  }
+
+  protected deleteItem(item: ItineraryItem): void {
+    this.itemError.set(null);
+    this.deletingId.set(item.itineraryId);
+    this.itineraryService.remove(item.itineraryId).subscribe({
+      next: () => {
+        this.deletingId.set(null);
+        this.items.update((list) => list.filter((i) => i.itineraryId !== item.itineraryId));
+        this.refreshProgress();
+      },
+      error: () => {
+        this.deletingId.set(null);
+        this.itemError.set('Could not remove this item. Only the trip organizer can delete itinerary items.');
+      },
+    });
+  }
+
+  private refreshProgress(): void {
+    this.itineraryService.getProgress(this.trip().tripId).subscribe({
+      next: (progress) => this.progress.set(progress),
+      error: () => {
+        // Progress bar just stays hidden.
+      },
+    });
   }
 }
