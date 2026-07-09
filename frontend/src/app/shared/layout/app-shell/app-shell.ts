@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
@@ -8,6 +8,7 @@ import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { Role, ROLE_HOME } from '@app/core/auth/auth.models';
 import { AuthService } from '@app/core/auth/auth.service';
+import { NotificationService } from '@app/features/notifications/services/notification.service';
 
 interface NavItem {
   to: string;
@@ -20,7 +21,6 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/dashboard', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
     { to: '/trips', label: 'My Trips', icon: 'lucidePlane' },
     { to: '/invitations', label: 'Invitations', icon: 'lucideMail' },
-    { to: '/expenses', label: 'Expenses', icon: 'lucideWallet' },
     { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
     { to: '/profile', label: 'Profile', icon: 'lucideUser' },
   ],
@@ -35,6 +35,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/admin/buses', label: 'Bus Management', icon: 'lucideBus' },
     { to: '/admin/hotels', label: 'Hotel Management', icon: 'lucideHotel' },
     { to: '/admin/reports', label: 'Reports', icon: 'lucideBarChart3' },
+    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   hotel: [
     { to: '/hotel', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -43,6 +44,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/hotel/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/hotel/reviews', label: 'Reviews', icon: 'lucideStar' },
     { to: '/hotel/reports', label: 'Reports', icon: 'lucideBarChart3' },
+    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   transport: [
     { to: '/transport', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -50,6 +52,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/transport/routes', label: 'Routes', icon: 'lucideRoute' },
     { to: '/transport/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/transport/reports', label: 'Reports', icon: 'lucideBarChart3' },
+    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   activity: [
     { to: '/activity', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -57,6 +60,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/activity/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/activity/capacity', label: 'Capacity', icon: 'lucideUsers' },
     { to: '/activity/reports', label: 'Reports', icon: 'lucideBarChart3' },
+    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
 };
 
@@ -85,6 +89,20 @@ export class AppShell {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly notificationService = inject(NotificationService);
+
+  protected readonly hasUnreadNotifications = signal(false);
+
+  constructor() {
+    // Only fetch if authenticated (which is usually true here)
+    if (this.authService.isAuthenticated()) {
+      this.notificationService.getNotifications(false).subscribe({
+        next: (notifications) => {
+          this.hasUnreadNotifications.set(notifications.length > 0);
+        }
+      });
+    }
+  }
 
   protected readonly role = toSignal(
     this.route.data.pipe(map((data) => (data['role'] as Role | undefined) ?? 'traveler')),

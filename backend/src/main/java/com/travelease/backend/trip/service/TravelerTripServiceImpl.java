@@ -3,6 +3,7 @@ package com.travelease.backend.trip.service;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
+import com.travelease.backend.itinerary.service.NotificationService;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.dto.AddTripMemberRequest;
@@ -48,6 +49,7 @@ public class TravelerTripServiceImpl implements TripService {
     private final UserRepository userRepository;
     private final TripAuthorizationService tripAuthorizationService;
     private final TravelerTripMapper tripMapper;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -123,6 +125,16 @@ public class TravelerTripServiceImpl implements TripService {
         trip.setEndDate(request.endDate());
         Trip saved = tripRepository.save(trip);
 
+        // Notify all accepted members except the organizer
+        tripMemberRepository.findByTripId(tripId).stream()
+                .filter(m -> m.getMemberStatus() == TripMemberStatus.ACCEPTED && !m.getUser().getId().equals(user.getId()))
+                .forEach(m -> notificationService.createNotification(
+                        m.getUser().getId().toString(),
+                        "TRIP",
+                        "Trip Updated",
+                        "Trip details for " + trip.getTripName() + " have been updated by the organizer."
+                ));
+
         return tripMapper.toResponse(saved, viewerRole(saved, user.getId()));
     }
 
@@ -161,6 +173,17 @@ public class TravelerTripServiceImpl implements TripService {
 
         trip.setStatus(target);
         Trip saved = tripRepository.save(trip);
+
+        // Notify all accepted members except the organizer
+        tripMemberRepository.findByTripId(tripId).stream()
+                .filter(m -> m.getMemberStatus() == TripMemberStatus.ACCEPTED && !m.getUser().getId().equals(user.getId()))
+                .forEach(m -> notificationService.createNotification(
+                        m.getUser().getId().toString(),
+                        "TRIP",
+                        "Trip Status Changed",
+                        "Trip " + trip.getTripName() + " status changed to " + target + "."
+                ));
+
         return tripMapper.toResponse(saved, viewerRole(saved, user.getId()));
     }
 
@@ -220,6 +243,15 @@ public class TravelerTripServiceImpl implements TripService {
         }
 
         TripMember saved = tripMemberRepository.save(member);
+
+        // Notify the invited user
+        notificationService.createNotification(
+                targetUser.getId().toString(),
+                "TRIP",
+                "Trip Invitation",
+                "You have been invited to join the trip: " + trip.getTripName()
+        );
+
         return tripMapper.toMemberResponse(saved);
     }
 
@@ -244,6 +276,15 @@ public class TravelerTripServiceImpl implements TripService {
         member.setMemberStatus(TripMemberStatus.ACCEPTED);
         member.setJoinedDate(LocalDateTime.now());
         TripMember saved = tripMemberRepository.save(member);
+
+        // Notify the organizer
+        notificationService.createNotification(
+                trip.getOrganizer().getId().toString(),
+                "TRIP",
+                "Invitation Accepted",
+                currentUser.getName() + " has accepted your invitation to join " + trip.getTripName()
+        );
+
         return tripMapper.toMemberResponse(saved);
     }
 

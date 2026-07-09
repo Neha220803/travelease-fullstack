@@ -7,6 +7,7 @@ import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.shared.exception.DuplicateResourceException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
+import com.travelease.backend.itinerary.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +22,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -37,6 +39,17 @@ public class UserServiceImpl implements UserService {
         user.setRole(Role.ROLE_TRAVELER);
 
         User saved = userRepository.save(user);
+
+        // Notify admins about the new user registration
+        userRepository.findByRole(Role.ROLE_ADMIN).forEach(admin -> {
+            notificationService.createNotification(
+                    admin.getId().toString(),
+                    "SYSTEM",
+                    "New User Registered",
+                    "User " + saved.getName() + " (" + saved.getEmail() + ") has registered."
+            );
+        });
+
         return toResponse(saved);
     }
 
