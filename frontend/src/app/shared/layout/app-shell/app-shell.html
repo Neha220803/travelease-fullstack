@@ -1,15 +1,11 @@
 <div class="min-h-screen flex bg-background">
   <aside class="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col fixed h-screen">
     <div class="px-6 py-5 border-b border-sidebar-border">
-      <a [routerLink]="home()" class="flex items-center gap-2">
-        <div
-          class="h-9 w-9 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground grid place-items-center font-bold"
-        >
-          T
-        </div>
+      <a [routerLink]="home()" class="flex items-center gap-3">
+        <img src="/images/logo white.png" alt="TravelEase Logo" class="h-8 w-auto object-contain" />
         <div>
-          <div class="font-semibold tracking-tight">TravelEase</div>
-          <div class="text-[11px] text-sidebar-foreground/60">{{ roleLabel() }} workspace</div>
+          <div class="font-bold tracking-tight text-lg leading-tight">TravelEase</div>
+          <div class="text-[11px] text-sidebar-foreground/60 leading-tight uppercase tracking-wider font-semibold mt-0.5">{{ roleLabel() }}</div>
         </div>
       </a>
     </div>

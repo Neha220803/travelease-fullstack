@@ -16,6 +16,7 @@ import { DestinationsService } from '@app/core/destinations/destinations.service
 import { Destination } from '@app/core/destinations/destination.models';
 import { TravelerPicker } from '@app/features/trips/components/traveler-picker/traveler-picker';
 import { TravelerSearchResult } from '@app/core/users/user-search.model';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
 
 type DialogStep = 'prompt' | 'picker';
 
@@ -40,6 +41,7 @@ export class NewTrip {
   private readonly router = inject(Router);
   private readonly tripsService = inject(TripsService);
   private readonly destinationsService = inject(DestinationsService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly tripTypes = ['Solo', 'Couple', 'Family', 'Friends', 'Corporate'];
   protected readonly tripType = signal('Friends');
@@ -127,6 +129,7 @@ export class NewTrip {
     this.tripsService.createTrip(payload).subscribe({
       next: (trip) => {
         this.submitting.set(false);
+        this.toastService.showSuccess('Trip created successfully');
         this.createdTripId.set(trip.tripId);
         this.invitedTravelers.set([]);
         this.memberInviteError.set(null);

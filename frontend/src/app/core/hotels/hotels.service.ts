@@ -18,4 +18,16 @@ export class HotelsService {
       .get<ApiResponse<Hotel[]>>(`${API_BASE_URL}/api/hotels`, { params })
       .pipe(map((response) => response.data));
   }
+
+  createBooking(payload: {
+    tripId?: string;
+    hotelId: string;
+    checkInDate: string;
+    checkOutDate: string;
+    roomType: string;
+  }): Observable<{ hotelBookingId: string }> {
+    return this.http
+      .post<ApiResponse<{ hotelBookingId: string }>>(`${API_BASE_URL}/api/hotel-bookings`, payload)
+      .pipe(map((response) => response.data));
+  }
 }

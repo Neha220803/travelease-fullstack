@@ -14,4 +14,10 @@ export class AccommodationService {
       .get<ApiResponse<AccommodationSummary>>(`${API_BASE_URL}/api/trips/${tripId}/accommodation-summary`)
       .pipe(map((response) => response.data));
   }
+
+  attachBookingToTrip(tripId: string, bookingId: string): Observable<any> {
+    return this.http
+      .post<ApiResponse<any>>(`${API_BASE_URL}/api/trips/${tripId}/hotel-bookings`, { bookingId })
+      .pipe(map((response) => response.data));
+  }
 }

@@ -13,6 +13,7 @@ import { HotelBooking } from '@app/features/trips/services/accommodation.models'
 import { Trip } from '@app/features/trips/services/trip.models';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { Destination } from '@app/core/destinations/destination.models';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
 
 @Component({
   selector: 'app-trip-accommodation-tab',
@@ -33,6 +34,7 @@ export class TripAccommodationTab implements OnInit {
   private readonly hotelsService = inject(HotelsService);
   private readonly accommodationService = inject(AccommodationService);
   private readonly destinationsService = inject(DestinationsService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly hotels = signal<Hotel[]>([]);
   protected readonly searching = signal(true);
@@ -94,6 +96,31 @@ export class TripAccommodationTab implements OnInit {
         this.searchError.set('Something went wrong searching hotels. Please try again.');
         this.searching.set(false);
       },
+    });
+  }
+
+  protected bookHotel(hotelId: string, roomType: string = 'Standard'): void {
+    const t = this.trip();
+    this.hotelsService.createBooking({
+      tripId: t.tripId,
+      hotelId,
+      checkInDate: t.startDate,
+      checkOutDate: t.endDate,
+      roomType
+    }).subscribe({
+      next: (res) => {
+        this.toastService.showSuccess('Hotel booked successfully');
+        // Attach
+        this.accommodationService.attachBookingToTrip(t.tripId, res.hotelBookingId).subscribe({
+          next: () => {
+            this.toastService.showSuccess('Attached to trip successfully');
+            // Refresh
+            this.accommodationService.getAccommodationSummary(t.tripId).subscribe(summary => this.tripBookings.set(summary.bookings));
+          },
+          error: () => this.toastService.showError('Failed to attach booking to trip')
+        });
+      },
+      error: () => this.toastService.showError('Failed to book hotel')
     });
   }
 }
