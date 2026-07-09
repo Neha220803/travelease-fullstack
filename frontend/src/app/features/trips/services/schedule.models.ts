@@ -81,7 +81,7 @@ export interface BookingRequest {
 }
 
 export interface BookingResponse {
-  bookingId: number;
+  id: number;
   bookingReference: string;
   status: BusBookingStatus;
   totalFare: number;

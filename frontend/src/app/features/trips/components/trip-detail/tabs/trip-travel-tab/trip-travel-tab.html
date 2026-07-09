@@ -4,11 +4,11 @@
     <div class="grid md:grid-cols-4 gap-3">
       <div class="space-y-1.5">
         <label hlmLabel for="source">Source</label>
-        <input hlmInput id="source" [value]="trip().sourceLocation" #sourceInput />
+        <input hlmInput id="source" [value]="trip().sourceLocation" disabled class="bg-muted text-muted-foreground" />
       </div>
       <div class="space-y-1.5">
         <label hlmLabel for="destination">Destination</label>
-        <input hlmInput id="destination" [value]="destinationName()" #destinationInput />
+        <input hlmInput id="destination" [value]="destinationName()" disabled class="bg-muted text-muted-foreground" />
       </div>
       <div class="space-y-1.5">
         <label hlmLabel for="date">Date</label>
@@ -17,7 +17,7 @@
         </hlm-date-picker>
       </div>
       <div class="flex items-end">
-        <button hlmBtn class="w-full" (click)="onSearch(sourceInput.value, destinationInput.value)">
+        <button hlmBtn class="w-full" (click)="onSearch(trip().sourceLocation, destinationName())">
           Search
         </button>
       </div>

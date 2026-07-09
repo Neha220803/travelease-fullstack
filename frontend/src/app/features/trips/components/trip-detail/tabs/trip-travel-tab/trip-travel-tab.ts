@@ -161,7 +161,7 @@ export class TripTravelTab implements OnInit {
       })
       .subscribe({
         next: (bookingResp) => {
-          this.scheduleService.attachBookingToTrip(this.trip().tripId, bookingResp.bookingId).subscribe({
+          this.scheduleService.attachBookingToTrip(this.trip().tripId, bookingResp.id).subscribe({
             next: () => {
               alert('Bus booked and added to trip!');
               this.isBooking.set(false);
@@ -176,8 +176,10 @@ export class TripTravelTab implements OnInit {
             },
           });
         },
-        error: () => {
-          alert('Failed to create bus booking.');
+        error: (err) => {
+          console.error(err);
+          const msg = err.error?.error?.message || err.error?.message || err.message || 'Unknown error';
+          alert('Failed to create bus booking: ' + msg);
           this.isBooking.set(false);
         },
       });
