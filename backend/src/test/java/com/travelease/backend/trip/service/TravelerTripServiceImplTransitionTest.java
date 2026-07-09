@@ -38,6 +38,8 @@ class TravelerTripServiceImplTransitionTest {
     private TripMemberRepository tripMemberRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private com.travelease.backend.itinerary.service.NotificationService notificationService;
 
     private TravelerTripServiceImpl tripService;
 
@@ -45,7 +47,7 @@ class TravelerTripServiceImplTransitionTest {
     void setUp() {
         tripService = new TravelerTripServiceImpl(
                 tripRepository, tripMemberRepository, userRepository,
-                new TripAuthorizationService(tripMemberRepository), new TravelerTripMapper());
+                new TripAuthorizationService(tripMemberRepository), new TravelerTripMapper(), notificationService);
     }
 
     private User user(String email, Role role) {

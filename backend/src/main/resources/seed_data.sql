@@ -40,7 +40,10 @@ INSERT INTO routes (source, destination, distance_km, duration_hours, status, cr
 ('Bangalore', 'Mumbai', 980.0, 16.0, 'ACTIVE', '2026-01-01 10:00:00'),
 ('Chennai', 'Hyderabad', 630.0, 10.0, 'ACTIVE', '2026-01-01 10:00:00'),
 ('Mumbai', 'Pune', 150.0, 3.0, 'ACTIVE', '2026-01-01 10:00:00'),
-('Bangalore', 'Coimbatore', 420.0, 7.5, 'ACTIVE', '2026-01-01 10:00:00');
+('Bangalore', 'Coimbatore', 420.0, 7.5, 'ACTIVE', '2026-01-01 10:00:00'),
+('Pune', 'Goa', 450.0, 10.0, 'ACTIVE', '2026-01-01 10:00:00'),
+('Mumbai', 'Goa', 600.0, 12.0, 'ACTIVE', '2026-01-01 10:00:00'),
+('Delhi', 'Manali', 550.0, 14.0, 'ACTIVE', '2026-01-01 10:00:00');
 
 -- ============================================================
 -- 3. SCHEDULES (bus + route + date)
@@ -54,7 +57,15 @@ INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arriva
 (4, 4, '2026-07-16', '18:00:00', '04:00:00', 750.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0),
 (5, 3, '2026-07-17', '19:00:00', '11:00:00', 1800.00, 38, 'SCHEDULED', '2026-01-10 10:00:00', 0),
 (1, 5, '2026-07-18', '06:00:00', '09:00:00', 450.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(2, 6, '2026-07-18', '21:30:00', '05:00:00', 950.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+(2, 6, '2026-07-18', '21:30:00', '05:00:00', 950.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(1, 7, '2026-07-20', '22:00:00', '08:00:00', 1200.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(2, 7, '2026-07-25', '21:30:00', '07:30:00', 1500.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(3, 8, '2026-08-01', '19:00:00', '07:00:00', 1800.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(4, 9, '2026-08-05', '18:00:00', '08:00:00', 1600.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(1, 8, '2026-07-13', '19:30:00', '07:30:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(2, 8, '2026-07-15', '20:00:00', '08:00:00', 1600.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(3, 8, '2026-07-17', '19:30:00', '07:30:00', 1500.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(4, 8, '2026-07-19', '20:30:00', '08:30:00', 1400.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0);
 
 -- ============================================================
 -- 4. SEATS (for each bus)
@@ -552,21 +563,22 @@ INSERT INTO booking_timeline (booking_id, event, description, occurred_at, metad
 -- the transport providers above):
 --   hotelprovider1@travelease.com -> HotelProvider1@123  (providerId 101)
 --   hotelprovider2@travelease.com -> HotelProvider2@123  (providerId 102)
+--   hotelprovider3@travelease.com -> HotelProvider3@123  (providerId 103)
 -- Password hashes generated with this application's actual PasswordEncoder bean
 -- (default strength 10), same method as the rows above.
 -- ROLE_HOTEL_PROVIDER is a separate business actor from ROLE_PROVIDER (transport);
--- its providerId tenant namespace (101/102) is intentionally disjoint from the
+-- its providerId tenant namespace (101/102/103) is intentionally disjoint from the
 -- transport providerId namespace (1/2) above - the two are never compared against
 -- each other (see SecurityUtil.resolveEffectiveHotelProviderId).
-INSERT INTO users (user_id, name, email, phone, password_hash, role, provider_id, created_at, updated_at) VALUES
-('44444444-4444-4444-4444-444444444444', 'System Admin', 'admin@travelease.com', '9999900001', '$2a$10$PTatZMsZe.8Uq9FYlGVxEuQFlRq6IOJJWj9bb9jnCxGDDJ9TYxSFG', 'ROLE_ADMIN', NULL, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('55555555-5555-5555-5555-555555555555', 'Priya Nair', 'traveler@travelease.com', '9999900002', '$2a$10$LKPljvx/NXnDyWf5ZlzEw.HOzVIo./fRTXrwGdJXkE90xJ0IEAPlC', 'ROLE_TRAVELER', NULL, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('66666666-6666-6666-6666-666666666666', 'Sharma Travels Owner', 'provider1@travelease.com', '9999900003', '$2a$10$6sV0MN6YKyr1GSmVdt4SqOn.rDjIj.DbIVaqUT49nrlVpQLzDz7/O', 'ROLE_PROVIDER', 1, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('77777777-7777-7777-7777-777777777777', 'Metro Express Owner', 'provider2@travelease.com', '9999900004', '$2a$10$QsDEbXY9AJjVrxdVu0afZeoy5omnxvmU.5Ys56VsgA3ep.u9R4n46', 'ROLE_PROVIDER', 2, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('e1000000-0000-0000-0000-000000000001', 'Grand Palace Hotels Owner', 'hotelprovider1@travelease.com', '9999900005', '$2a$10$IJDaiKMaNc5M1MBR28XbU.CQmw0yga.pKlJMMrbwruqbn2XqR/9JS', 'ROLE_HOTEL_PROVIDER', 101, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('e1000000-0000-0000-0000-000000000002', 'Coastal Stays Owner', 'hotelprovider2@travelease.com', '9999900006', '$2a$10$VtU3P1q94slg1MuCa4mZ5ObmdQ5V648HI.LE52ndMx6nMYj.cH306', 'ROLE_HOTEL_PROVIDER', 102, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('f1000000-0000-0000-0000-000000000001', 'Mumbai Adventures Owner', 'activityprovider1@travelease.com', '9999900007', '$2a$10$hbk0pveqX5qgbF81vFPivuAsu6W48GM85H8h.c625He3a3Aiue3PG', 'ROLE_ACTIVITY_PROVIDER', 201, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('f1000000-0000-0000-0000-000000000002', 'Goa Watersports Owner', 'activityprovider2@travelease.com', '9999900008', '$2a$10$Lw2akz9Apgz/IfVAGWdRt.tmFY9cyemWPM1DbFugcQ8sNK37KC9jW', 'ROLE_ACTIVITY_PROVIDER', 202, '2026-01-01 09:00:00', '2026-01-01 09:00:00');
+INSERT INTO users (user_id, name, email, phone, password_hash, role, provider_id, status, security_question, security_answer_hash, created_at, updated_at) VALUES
+('44444444-4444-4444-4444-444444444444', 'System Admin', 'admin@travelease.com', '9999900001', '$2a$10$PTatZMsZe.8Uq9FYlGVxEuQFlRq6IOJJWj9bb9jnCxGDDJ9TYxSFG', 'ROLE_ADMIN', NULL, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('55555555-5555-5555-5555-555555555555', 'Priya Nair', 'traveler@travelease.com', '9999900002', '$2a$10$LKPljvx/NXnDyWf5ZlzEw.HOzVIo./fRTXrwGdJXkE90xJ0IEAPlC', 'ROLE_TRAVELER', NULL, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('66666666-6666-6666-6666-666666666666', 'Sharma Travels Owner', 'provider1@travelease.com', '9999900003', '$2a$10$6sV0MN6YKyr1GSmVdt4SqOn.rDjIj.DbIVaqUT49nrlVpQLzDz7/O', 'ROLE_PROVIDER', 1, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('77777777-7777-7777-7777-777777777777', 'Metro Express Owner', 'provider2@travelease.com', '9999900004', '$2a$10$QsDEbXY9AJjVrxdVu0afZeoy5omnxvmU.5Ys56VsgA3ep.u9R4n46', 'ROLE_PROVIDER', 2, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e1000000-0000-0000-0000-000000000001', 'Grand Palace Hotels Owner', 'hotelprovider1@travelease.com', '9999900005', '$2a$10$IJDaiKMaNc5M1MBR28XbU.CQmw0yga.pKlJMMrbwruqbn2XqR/9JS', 'ROLE_HOTEL_PROVIDER', 101, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e1000000-0000-0000-0000-000000000002', 'Coastal Stays Owner', 'hotelprovider2@travelease.com', '9999900006', '$2a$10$VtU3P1q94slg1MuCa4mZ5ObmdQ5V648HI.LE52ndMx6nMYj.cH306', 'ROLE_HOTEL_PROVIDER', 102, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f1000000-0000-0000-0000-000000000001', 'Mumbai Adventures Owner', 'activityprovider1@travelease.com', '9999900007', '$2a$10$hbk0pveqX5qgbF81vFPivuAsu6W48GM85H8h.c625He3a3Aiue3PG', 'ROLE_ACTIVITY_PROVIDER', 201, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f1000000-0000-0000-0000-000000000002', 'Goa Watersports Owner', 'activityprovider2@travelease.com', '9999900008', '$2a$10$Lw2akz9Apgz/IfVAGWdRt.tmFY9cyemWPM1DbFugcQ8sNK37KC9jW', 'ROLE_ACTIVITY_PROVIDER', 202, 'APPROVED', 'What is your birth hospital?', '$2a$10$uUF4xsKQ0rI0J9L4xslBLO4nH7LbYd8ReLt4c5hd1tz9GmYTsYz0e', '2026-01-01 09:00:00', '2026-01-01 09:00:00');
 
 -- ============================================================
 -- 23. ACTIVITIES / ACTIVITY_SLOTS (Activity Provider tenant isolation)
@@ -591,24 +603,74 @@ INSERT INTO users (user_id, name, email, phone, password_hash, role, provider_id
 -- and the hotel namespace (101/102) - none are ever compared against each
 -- other (see SecurityUtil.resolveEffectiveActivityProviderId).
 --
--- One activity per Activity Provider tenant (201 / 202), each with two slots
--- with distinguishable date/time/capacity/price, so cross-provider ownership
--- checks have a real Provider-B resource to be denied against:
---   Activity A (provider 201) -> Slots A1/A2
---   Activity B (provider 202) -> Slots B1/B2
+-- Three activities per Activity Provider tenant (201 / 202) - deliberately
+-- disjoint destinations/names/dates between the two tenants (Mumbai-flavored
+-- for 201, Goa-flavored for 202) so cross-provider ownership checks have a
+-- real Provider-B resource to be denied against, and so the Activity Provider
+-- dashboard/reports demo shows two visibly different tenants rather than
+-- mirrored data:
+--   Provider 201 -> Heritage Walking Tour, Elephanta Caves Tour, Bollywood Studio Experience
+--   Provider 202 -> Jet Ski Experience, Scuba Diving Adventure, Sunset Dolphin Cruise
+-- Each activity has 1-2 slots split across the past (already-elapsed, for
+-- ATTENDED/NO_SHOW/CANCELLED history) and the future (bookable/upcoming, for
+-- CONFIRMED reservations), and activity_bookings below seeds a realistic mix
+-- of statuses across both so the dashboard/bookings/capacity/reports pages
+-- have real demo content instead of all-empty states out of the box.
 -- ============================================================
 INSERT INTO activities (activityid, provider_id, destinationid, activity_name, duration_hours, start_time, end_time, description) VALUES
 ('f2000000-0000-0000-0000-000000000001', 201, 1, 'Mumbai Heritage Walking Tour', 2.5, '09:00', '11:30', 'Guided walking tour of South Mumbai heritage sites'),
-('f2000000-0000-0000-0000-000000000002', 202, 2, 'Goa Jet Ski Experience', 1.0, '10:00', '11:00', 'Guided jet ski session along Candolim beach');
+('f2000000-0000-0000-0000-000000000004', 201, 1, 'Elephanta Caves Boat & Heritage Tour', 3.5, '08:00', '11:30', 'Boat ride to Elephanta Island with a guided tour of the rock-cut caves'),
+('f2000000-0000-0000-0000-000000000005', 201, 1, 'Bollywood Studio Experience', 2.0, '15:00', '17:00', 'Behind-the-scenes tour of a working Bollywood film studio'),
+('f2000000-0000-0000-0000-000000000002', 202, 2, 'Goa Jet Ski Experience', 1.0, '10:00', '11:00', 'Guided jet ski session along Candolim beach'),
+('f2000000-0000-0000-0000-000000000006', 202, 2, 'Goa Scuba Diving Adventure', 2.0, '07:00', '09:00', 'PADI-guided scuba diving experience off Grande Island'),
+('f2000000-0000-0000-0000-000000000007', 202, 2, 'Sunset Dolphin Cruise', 1.5, '17:30', '19:00', 'Evening boat cruise to spot dolphins along the Goan coastline');
 
 INSERT INTO activity_slots (activity_slot_id, activity_id, activity_date, start_time, end_time, price, capacity, created_at, updated_at) VALUES
 ('f3000000-0000-0000-0000-000000000001', 'f2000000-0000-0000-0000-000000000001', '2026-09-05', '09:00:00', '11:30:00', 800.00, 15, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000002', 'f2000000-0000-0000-0000-000000000001', '2026-09-06', '14:00:00', '16:30:00', 900.00, 10, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000005', 'f2000000-0000-0000-0000-000000000001', '2026-06-20', '09:00:00', '11:30:00', 800.00, 15, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000006', 'f2000000-0000-0000-0000-000000000001', '2026-07-05', '09:00:00', '11:30:00', 800.00, 15, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000007', 'f2000000-0000-0000-0000-000000000004', '2026-06-25', '08:00:00', '11:30:00', 1200.00, 20, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000008', 'f2000000-0000-0000-0000-000000000004', '2026-08-10', '08:00:00', '11:30:00', 1200.00, 20, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000009', 'f2000000-0000-0000-0000-000000000005', '2026-07-20', '15:00:00', '17:00:00', 1800.00, 12, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000003', 'f2000000-0000-0000-0000-000000000002', '2026-09-10', '10:00:00', '11:00:00', 1500.00, 6, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('f3000000-0000-0000-0000-000000000004', 'f2000000-0000-0000-0000-000000000002', '2026-09-10', '12:00:00', '13:00:00', 1500.00, 6, '2026-01-01 09:00:00', '2026-01-01 09:00:00');
+('f3000000-0000-0000-0000-000000000004', 'f2000000-0000-0000-0000-000000000002', '2026-09-10', '12:00:00', '13:00:00', 1500.00, 6, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000010', 'f2000000-0000-0000-0000-000000000002', '2026-06-15', '10:00:00', '11:00:00', 1500.00, 6, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000011', 'f2000000-0000-0000-0000-000000000002', '2026-07-06', '10:00:00', '11:00:00', 1500.00, 6, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000012', 'f2000000-0000-0000-0000-000000000006', '2026-06-28', '07:00:00', '09:00:00', 3500.00, 8, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000013', 'f2000000-0000-0000-0000-000000000006', '2026-08-05', '07:00:00', '09:00:00', 3500.00, 8, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('f3000000-0000-0000-0000-000000000014', 'f2000000-0000-0000-0000-000000000007', '2026-07-25', '17:30:00', '19:00:00', 1000.00, 25, '2026-01-01 09:00:00', '2026-01-01 09:00:00');
+
+-- activity_bookings columns (BaseEntity id override + domain columns):
+--   activity_booking_id, activity_slot_id, booked_by_user_id, participant_count,
+--   price_per_participant, total_amount, status, booked_at, cancelled_at,
+--   attendance_marked_at, trip_id, created_at, updated_at
+-- All booked by the seeded traveler (traveler@travelease.com). Statuses mix
+-- CONFIRMED (upcoming/actionable), ATTENDED/NO_SHOW (already marked, on
+-- already-elapsed slots) and CANCELLED, with booked_at mostly in "the current
+-- month" (2026-07) so Revenue (MTD) on the dashboard is non-zero out of the
+-- box. f3...0006 and f3...0011 are deliberately elapsed-but-still-CONFIRMED
+-- so the "Mark Attended / No-show" actions have a real target to demo live.
+INSERT INTO activity_bookings (activity_booking_id, activity_slot_id, booked_by_user_id, participant_count, price_per_participant, total_amount, status, booked_at, cancelled_at, attendance_marked_at, trip_id, created_at, updated_at) VALUES
+('f4000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000005', '55555555-5555-5555-5555-555555555555', 4, 800.00, 3200.00, 'ATTENDED', '2026-06-10 10:15:00', NULL, '2026-06-20 12:00:00', NULL, '2026-06-10 10:15:00', '2026-06-20 12:00:00'),
+('f4000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-000000000005', '55555555-5555-5555-5555-555555555555', 2, 800.00, 1600.00, 'NO_SHOW', '2026-06-12 09:00:00', NULL, '2026-06-20 12:05:00', NULL, '2026-06-12 09:00:00', '2026-06-20 12:05:00'),
+('f4000000-0000-0000-0000-000000000003', 'f3000000-0000-0000-0000-000000000006', '55555555-5555-5555-5555-555555555555', 3, 800.00, 2400.00, 'CONFIRMED', '2026-07-01 11:00:00', NULL, NULL, NULL, '2026-07-01 11:00:00', '2026-07-01 11:00:00'),
+('f4000000-0000-0000-0000-000000000004', 'f3000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 5, 800.00, 4000.00, 'CONFIRMED', '2026-07-03 16:20:00', NULL, NULL, NULL, '2026-07-03 16:20:00', '2026-07-03 16:20:00'),
+('f4000000-0000-0000-0000-000000000005', 'f3000000-0000-0000-0000-000000000007', '55555555-5555-5555-5555-555555555555', 6, 1200.00, 7200.00, 'ATTENDED', '2026-06-15 09:00:00', NULL, '2026-06-25 13:00:00', NULL, '2026-06-15 09:00:00', '2026-06-25 13:00:00'),
+('f4000000-0000-0000-0000-000000000006', 'f3000000-0000-0000-0000-000000000008', '55555555-5555-5555-5555-555555555555', 2, 1200.00, 2400.00, 'CONFIRMED', '2026-07-04 14:00:00', NULL, NULL, NULL, '2026-07-04 14:00:00', '2026-07-04 14:00:00'),
+('f4000000-0000-0000-0000-000000000007', 'f3000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', 2, 900.00, 1800.00, 'CANCELLED', '2026-07-02 08:30:00', '2026-07-06 10:00:00', NULL, NULL, '2026-07-02 08:30:00', '2026-07-06 10:00:00'),
+('f4000000-0000-0000-0000-000000000008', 'f3000000-0000-0000-0000-000000000010', '55555555-5555-5555-5555-555555555555', 2, 1500.00, 3000.00, 'ATTENDED', '2026-06-05 12:00:00', NULL, '2026-06-15 12:30:00', NULL, '2026-06-05 12:00:00', '2026-06-15 12:30:00'),
+('f4000000-0000-0000-0000-000000000009', 'f3000000-0000-0000-0000-000000000010', '55555555-5555-5555-5555-555555555555', 1, 1500.00, 1500.00, 'NO_SHOW', '2026-06-06 15:00:00', NULL, '2026-06-15 12:35:00', NULL, '2026-06-06 15:00:00', '2026-06-15 12:35:00'),
+('f4000000-0000-0000-0000-000000000010', 'f3000000-0000-0000-0000-000000000011', '55555555-5555-5555-5555-555555555555', 2, 1500.00, 3000.00, 'CONFIRMED', '2026-07-02 09:45:00', NULL, NULL, NULL, '2026-07-02 09:45:00', '2026-07-02 09:45:00'),
+('f4000000-0000-0000-0000-000000000011', 'f3000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', 3, 1500.00, 4500.00, 'CONFIRMED', '2026-07-05 10:00:00', NULL, NULL, NULL, '2026-07-05 10:00:00', '2026-07-05 10:00:00'),
+('f4000000-0000-0000-0000-000000000012', 'f3000000-0000-0000-0000-000000000012', '55555555-5555-5555-5555-555555555555', 2, 3500.00, 7000.00, 'ATTENDED', '2026-06-18 11:00:00', NULL, '2026-06-28 10:30:00', NULL, '2026-06-18 11:00:00', '2026-06-28 10:30:00'),
+('f4000000-0000-0000-0000-000000000013', 'f3000000-0000-0000-0000-000000000013', '55555555-5555-5555-5555-555555555555', 4, 3500.00, 14000.00, 'CONFIRMED', '2026-07-06 17:00:00', NULL, NULL, NULL, '2026-07-06 17:00:00', '2026-07-06 17:00:00'),
+('f4000000-0000-0000-0000-000000000014', 'f3000000-0000-0000-0000-000000000014', '55555555-5555-5555-5555-555555555555', 6, 1000.00, 6000.00, 'CONFIRMED', '2026-07-07 08:00:00', NULL, NULL, NULL, '2026-07-07 08:00:00', '2026-07-07 08:00:00'),
+('f4000000-0000-0000-0000-000000000015', 'f3000000-0000-0000-0000-000000000014', '55555555-5555-5555-5555-555555555555', 8, 1000.00, 8000.00, 'CONFIRMED', '2026-07-07 09:15:00', NULL, NULL, NULL, '2026-07-07 09:15:00', '2026-07-07 09:15:00'),
+('f4000000-0000-0000-0000-000000000016', 'f3000000-0000-0000-0000-000000000014', '55555555-5555-5555-5555-555555555555', 4, 1000.00, 4000.00, 'CANCELLED', '2026-07-04 14:00:00', '2026-07-08 09:00:00', NULL, NULL, '2026-07-04 14:00:00', '2026-07-08 09:00:00');
 
 -- ============================================================
--- 22. HOTELS / ROOMS / HOTEL_BOOKINGS (Hotel Provider tenant isolation)
+-- 22. HOTELS / ROOMS / HOTEL_BOOKINGS / HOTEL_REVIEWS (Hotel Provider tenant isolation)
 -- Entity columns:
 --   hotels: hotel_id, provider_id, destination_id, hotel_name, address, rating,
 --           price_per_night, amenities, status, policies, created_at, updated_at
@@ -617,27 +679,147 @@ INSERT INTO activity_slots (activity_slot_id, activity_id, activity_date, start_
 --   hotel_bookings: hotel_booking_id, trip_id, hotel_id, booked_by_user_id,
 --                   check_in_date, check_out_date, room_type, room_number,
 --                   total_amount, booking_status, created_at, updated_at
+--   hotel_reviews: review_id, hotel_id, user_id, rating, comment, created_at, updated_at
 --
--- Two hotels, one per Hotel Provider tenant (101 / 102), each with two rooms,
--- deliberately disjoint so cross-provider ownership checks have a real
--- Provider-B resource to be denied against:
---   Hotel A (provider 101) -> Rooms A1/A2 -> Booking A1 (booked by traveler@travelease.com)
---   Hotel B (provider 102) -> Rooms B1/B2 -> Booking B1 (booked by traveler@travelease.com)
+-- One hotel per Hotel Provider tenant (101 / 102 / 103), deliberately disjoint
+-- destinations/names/room mixes/booking dates between the three tenants so the
+-- Hotel Partner dashboard/reports demo shows three visibly different tenants
+-- rather than mirrored data, and so cross-provider ownership checks have real
+-- Provider-B/C resources to be denied against:
+--   Hotel A (provider 101) -> Grand Palace Mumbai   (dest 1, Mumbai)
+--   Hotel B (provider 102) -> Coastal Stays Goa      (dest 2, Goa)
+--   Hotel C (provider 103) -> Hilltown Manali Retreat (dest 3, Manali)
+-- Each hotel has 3 room types (mix of AVAILABLE/MAINTENANCE units so Room
+-- Inventory shows a real available/total ratio) and 6 bookings spanning
+-- checked-out (past), checked-in/confirmed (spanning or starting "today",
+-- 2026-07-09, so Bookings Today and the Occupancy Calendar are non-empty) and
+-- one cancelled - booked_at is mostly early July 2026 so Revenue (MTD) is
+-- non-zero out of the box. hotel_reviews seeds a believable rating snapshot
+-- per hotel (never seeded before this).
 -- ============================================================
 INSERT INTO hotels (hotel_id, provider_id, destination_id, hotel_name, address, rating, price_per_night, amenities, status, policies, created_at, updated_at) VALUES
-('e2000000-0000-0000-0000-000000000001', 101, 1, 'Grand Palace Mumbai', '1 Marine Drive, Mumbai', 4.50, 6000.00, 'WiFi, Pool, Breakfast', 'ACTIVE', 'Check-in 2 PM, Check-out 11 AM', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('e2000000-0000-0000-0000-000000000002', 102, 2, 'Coastal Stays Goa', '22 Beach Road, Goa', 4.20, 4500.00, 'WiFi, Beach Access', 'ACTIVE', 'Check-in 12 PM, Check-out 10 AM', '2026-01-01 09:00:00', '2026-01-01 09:00:00');
+('e2000000-0000-0000-0000-000000000001', 101, 1, 'Grand Palace Mumbai', '1 Marine Drive, Mumbai', 4.20, 6000.00, 'WiFi, Pool, Breakfast', 'ACTIVE', 'Check-in 2 PM, Check-out 11 AM', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e2000000-0000-0000-0000-000000000002', 102, 2, 'Coastal Stays Goa', '22 Beach Road, Goa', 4.75, 4500.00, 'WiFi, Beach Access', 'ACTIVE', 'Check-in 12 PM, Check-out 10 AM', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e2000000-0000-0000-0000-000000000003', 103, 3, 'Hilltown Manali Retreat', '8 Mall Road, Manali', 4.50, 3200.00, 'WiFi, Bonfire, Mountain View', 'ACTIVE', 'Check-in 1 PM, Check-out 11 AM', '2026-01-01 09:00:00', '2026-01-01 09:00:00');
 
 INSERT INTO rooms (room_id, hotel_id, room_type, capacity, bed_type, price_per_night, availability_status, created_at, updated_at) VALUES
+-- Grand Palace Mumbai (10 rooms: 4 STANDARD, 3 DELUXE, 3 SUITE)
 ('e3000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'STANDARD', 2, 'QUEEN', 6000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000005', 'e2000000-0000-0000-0000-000000000001', 'STANDARD', 2, 'QUEEN', 6000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000006', 'e2000000-0000-0000-0000-000000000001', 'STANDARD', 2, 'QUEEN', 6000.00, 'MAINTENANCE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000007', 'e2000000-0000-0000-0000-000000000001', 'STANDARD', 2, 'QUEEN', 6000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('e3000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'DELUXE', 2, 'KING', 8500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000008', 'e2000000-0000-0000-0000-000000000001', 'DELUXE', 2, 'KING', 8500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000009', 'e2000000-0000-0000-0000-000000000001', 'DELUXE', 2, 'KING', 8500.00, 'MAINTENANCE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000010', 'e2000000-0000-0000-0000-000000000001', 'SUITE', 4, 'KING', 12000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000011', 'e2000000-0000-0000-0000-000000000001', 'SUITE', 4, 'KING', 12000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000012', 'e2000000-0000-0000-0000-000000000001', 'SUITE', 4, 'KING', 12000.00, 'MAINTENANCE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+-- Coastal Stays Goa (10 rooms: 4 STANDARD, 3 DELUXE, 3 VILLA)
 ('e3000000-0000-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000002', 'STANDARD', 2, 'QUEEN', 4500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('e3000000-0000-0000-0000-000000000004', 'e2000000-0000-0000-0000-000000000002', 'DELUXE', 3, 'KING', 6200.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00');
+('e3000000-0000-0000-0000-000000000013', 'e2000000-0000-0000-0000-000000000002', 'STANDARD', 2, 'QUEEN', 4500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000014', 'e2000000-0000-0000-0000-000000000002', 'STANDARD', 2, 'QUEEN', 4500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000015', 'e2000000-0000-0000-0000-000000000002', 'STANDARD', 2, 'QUEEN', 4500.00, 'MAINTENANCE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000004', 'e2000000-0000-0000-0000-000000000002', 'DELUXE', 3, 'KING', 6200.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000016', 'e2000000-0000-0000-0000-000000000002', 'DELUXE', 3, 'KING', 6200.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000017', 'e2000000-0000-0000-0000-000000000002', 'DELUXE', 3, 'KING', 6200.00, 'MAINTENANCE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000018', 'e2000000-0000-0000-0000-000000000002', 'VILLA', 5, 'KING', 15000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000019', 'e2000000-0000-0000-0000-000000000002', 'VILLA', 5, 'KING', 15000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000020', 'e2000000-0000-0000-0000-000000000002', 'VILLA', 5, 'KING', 15000.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+-- Hilltown Manali Retreat (9 rooms: 3 STANDARD, 3 DELUXE, 3 COTTAGE)
+('e3000000-0000-0000-0000-000000000021', 'e2000000-0000-0000-0000-000000000003', 'STANDARD', 2, 'QUEEN', 3200.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000022', 'e2000000-0000-0000-0000-000000000003', 'STANDARD', 2, 'QUEEN', 3200.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000023', 'e2000000-0000-0000-0000-000000000003', 'STANDARD', 2, 'QUEEN', 3200.00, 'MAINTENANCE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000024', 'e2000000-0000-0000-0000-000000000003', 'DELUXE', 3, 'KING', 4800.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000025', 'e2000000-0000-0000-0000-000000000003', 'DELUXE', 3, 'KING', 4800.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000026', 'e2000000-0000-0000-0000-000000000003', 'DELUXE', 3, 'KING', 4800.00, 'MAINTENANCE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000027', 'e2000000-0000-0000-0000-000000000003', 'COTTAGE', 5, 'KING', 7500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000028', 'e2000000-0000-0000-0000-000000000003', 'COTTAGE', 5, 'KING', 7500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
+('e3000000-0000-0000-0000-000000000029', 'e2000000-0000-0000-0000-000000000003', 'COTTAGE', 5, 'KING', 7500.00, 'AVAILABLE', '2026-01-01 09:00:00', '2026-01-01 09:00:00');
 
 INSERT INTO hotel_bookings (hotel_booking_id, trip_id, hotel_id, booked_by_user_id, check_in_date, check_out_date, room_type, room_number, total_amount, booking_status, created_at, updated_at) VALUES
-('e4000000-0000-0000-0000-000000000001', NULL, 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', '2026-02-10', '2026-02-12', 'STANDARD', '101', 12000.00, 'CONFIRMED', '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('e4000000-0000-0000-0000-000000000002', NULL, 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', '2026-02-15', '2026-02-17', 'STANDARD', '201', 9000.00, 'CONFIRMED', '2026-01-01 09:00:00', '2026-01-01 09:00:00');
+-- Grand Palace Mumbai
+('e4000000-0000-0000-0000-000000000001', NULL, 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', '2026-07-01', '2026-07-04', 'STANDARD', '101', 18000.00, 'CHECKED_OUT', '2026-06-25 10:00:00', '2026-06-25 10:00:00'),
+('e4000000-0000-0000-0000-000000000002', NULL, 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', '2026-07-08', '2026-07-11', 'DELUXE', '201', 25500.00, 'CHECKED_IN', '2026-07-05 09:00:00', '2026-07-05 09:00:00'),
+('e4000000-0000-0000-0000-000000000003', NULL, 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', '2026-07-09', '2026-07-12', 'SUITE', '301', 36000.00, 'CONFIRMED', '2026-07-07 11:30:00', '2026-07-07 11:30:00'),
+('e4000000-0000-0000-0000-000000000004', NULL, 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', '2026-07-15', '2026-07-17', 'STANDARD', '102', 12000.00, 'CONFIRMED', '2026-07-06 14:00:00', '2026-07-06 14:00:00'),
+('e4000000-0000-0000-0000-000000000005', NULL, 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', '2026-07-20', '2026-07-22', 'DELUXE', '202', 17000.00, 'CONFIRMED', '2026-07-08 16:00:00', '2026-07-08 16:00:00'),
+('e4000000-0000-0000-0000-000000000006', NULL, 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', '2026-07-12', '2026-07-14', 'SUITE', '302', 24000.00, 'CANCELLED', '2026-07-03 09:20:00', '2026-07-03 09:20:00'),
+-- Coastal Stays Goa
+('e4000000-0000-0000-0000-000000000007', NULL, 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', '2026-07-02', '2026-07-05', 'STANDARD', '101', 13500.00, 'CHECKED_OUT', '2026-06-28 08:30:00', '2026-06-28 08:30:00'),
+('e4000000-0000-0000-0000-000000000008', NULL, 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', '2026-07-09', '2026-07-13', 'VILLA', '301', 60000.00, 'CONFIRMED', '2026-07-07 12:00:00', '2026-07-07 12:00:00'),
+('e4000000-0000-0000-0000-000000000009', NULL, 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', '2026-07-08', '2026-07-10', 'DELUXE', '201', 12400.00, 'CHECKED_IN', '2026-07-04 10:00:00', '2026-07-04 10:00:00'),
+('e4000000-0000-0000-0000-000000000010', NULL, 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', '2026-07-18', '2026-07-20', 'STANDARD', '102', 9000.00, 'CONFIRMED', '2026-07-08 13:00:00', '2026-07-08 13:00:00'),
+('e4000000-0000-0000-0000-000000000011', NULL, 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', '2026-07-25', '2026-07-28', 'VILLA', '302', 45000.00, 'CONFIRMED', '2026-07-06 15:30:00', '2026-07-06 15:30:00'),
+('e4000000-0000-0000-0000-000000000012', NULL, 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', '2026-07-14', '2026-07-16', 'STANDARD', '103', 9000.00, 'CANCELLED', '2026-07-02 09:00:00', '2026-07-02 09:00:00'),
+-- Hilltown Manali Retreat
+('e4000000-0000-0000-0000-000000000013', NULL, 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', '2026-07-03', '2026-07-06', 'COTTAGE', '301', 22500.00, 'CHECKED_OUT', '2026-06-27 09:00:00', '2026-06-27 09:00:00'),
+('e4000000-0000-0000-0000-000000000014', NULL, 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', '2026-07-09', '2026-07-11', 'STANDARD', '101', 6400.00, 'CONFIRMED', '2026-07-07 10:15:00', '2026-07-07 10:15:00'),
+('e4000000-0000-0000-0000-000000000015', NULL, 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', '2026-07-07', '2026-07-10', 'DELUXE', '201', 14400.00, 'CHECKED_IN', '2026-07-03 11:00:00', '2026-07-03 11:00:00'),
+('e4000000-0000-0000-0000-000000000016', NULL, 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', '2026-07-17', '2026-07-19', 'COTTAGE', '302', 15000.00, 'CONFIRMED', '2026-07-08 08:45:00', '2026-07-08 08:45:00'),
+('e4000000-0000-0000-0000-000000000017', NULL, 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', '2026-07-22', '2026-07-24', 'STANDARD', '102', 6400.00, 'CONFIRMED', '2026-07-05 17:00:00', '2026-07-05 17:00:00'),
+('e4000000-0000-0000-0000-000000000018', NULL, 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', '2026-07-13', '2026-07-15', 'DELUXE', '202', 9600.00, 'CANCELLED', '2026-07-01 09:30:00', '2026-07-01 09:30:00');
+
+INSERT INTO hotel_reviews (review_id, hotel_id, user_id, rating, comment, created_at, updated_at) VALUES
+-- Grand Palace Mumbai
+('e5000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 5.00, 'Stunning views of Marine Drive and impeccable service.', '2026-06-26 09:00:00', '2026-06-26 09:00:00'),
+('e5000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 5.00, 'Breakfast spread was fantastic, will book again.', '2026-06-29 10:00:00', '2026-06-29 10:00:00'),
+('e5000000-0000-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 4.00, 'Great location, rooms a little smaller than expected.', '2026-07-02 11:00:00', '2026-07-02 11:00:00'),
+('e5000000-0000-0000-0000-000000000004', 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 4.00, 'Friendly staff, pool area was very relaxing.', '2026-07-04 12:00:00', '2026-07-04 12:00:00'),
+('e5000000-0000-0000-0000-000000000005', 'e2000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 3.00, 'Decent stay but the wifi was patchy on the top floor.', '2026-07-06 13:00:00', '2026-07-06 13:00:00'),
+-- Coastal Stays Goa
+('e5000000-0000-0000-0000-000000000006', 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', 5.00, 'Steps from the beach, easily the best stay in Goa.', '2026-06-30 09:00:00', '2026-06-30 09:00:00'),
+('e5000000-0000-0000-0000-000000000007', 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', 5.00, 'Villa was spacious and the staff arranged a great sunset cruise.', '2026-07-03 10:00:00', '2026-07-03 10:00:00'),
+('e5000000-0000-0000-0000-000000000008', 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', 4.00, 'Lovely property, breakfast could use more variety.', '2026-07-05 11:00:00', '2026-07-05 11:00:00'),
+('e5000000-0000-0000-0000-000000000009', 'e2000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', 5.00, 'Perfect for a group getaway, would come back every year.', '2026-07-07 12:00:00', '2026-07-07 12:00:00'),
+-- Hilltown Manali Retreat
+('e5000000-0000-0000-0000-000000000010', 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', 4.00, 'Cosy cottages with a stunning mountain view.', '2026-06-28 09:00:00', '2026-06-28 09:00:00'),
+('e5000000-0000-0000-0000-000000000011', 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', 5.00, 'Bonfire evenings were the highlight of our trip.', '2026-07-01 10:00:00', '2026-07-01 10:00:00'),
+('e5000000-0000-0000-0000-000000000012', 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', 5.00, 'Warm hospitality, felt like a home away from home.', '2026-07-04 11:00:00', '2026-07-04 11:00:00'),
+('e5000000-0000-0000-0000-000000000013', 'e2000000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', 4.00, 'Great value for money, road up was a bit bumpy though.', '2026-07-06 12:00:00', '2026-07-06 12:00:00');
 
 -- ============================================================
 -- SEED DATA COMPLETE
 -- ============================================================
+
+-- ====== ADDED BY AGENT: Mumbai to Goa Buses ======
+INSERT INTO routes (source, destination, distance_km, duration_hours, status, created_at) VALUES ('Mumbai', 'Goa', 600.0, 12.0, 'ACTIVE', '2026-01-01 10:00:00');
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-11', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-13', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-15', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-17', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-19', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-21', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-23', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+
+-- ====== ADDED BY AGENT: Dummy Destinations and Hotels ======
+
+INSERT INTO destinations (destination_name, state, country, description, is_active) VALUES 
+('Goa', 'Goa', 'India', 'Beach destination', 1),
+('Mumbai', 'Maharashtra', 'India', 'City of dreams', 1);
+
+INSERT INTO hotels (destination_id, hotel_name, address, star_rating, status, created_at, updated_at) VALUES 
+(1, 'Taj Exotica', 'Benaulim, Goa', 5, 'ACTIVE', '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(1, 'Goa Marriott', 'Panjim, Goa', 5, 'ACTIVE', '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(2, 'Taj Mahal Palace', 'Colaba, Mumbai', 5, 'ACTIVE', '2026-01-01 10:00:00', '2026-01-01 10:00:00');
+
+INSERT INTO hotel_rooms (hotel_id, room_type, price_per_night, total_rooms, available_rooms, status) VALUES 
+(1, 'Standard', 8000.00, 20, 20, 'ACTIVE'),
+(1, 'Deluxe', 12000.00, 10, 10, 'ACTIVE'),
+(2, 'Standard', 7000.00, 15, 15, 'ACTIVE'),
+(3, 'Standard', 15000.00, 30, 30, 'ACTIVE');
+
+-- ====== ADDED BY AGENT: Trips and Expenses Dummy Data ======
+-- Add a dummy trip for user
+INSERT INTO trips (trip_id, trip_name, organizer_id, source_location, destination_id, budget_amount, category_id, start_date, end_date, status, created_at, updated_at) VALUES
+('TRP-001', 'Goa Trip', '44444444-4444-4444-4444-444444444444', 'Mumbai', 1, 50000.00, 1, '2026-07-20', '2026-07-25', 'PLANNING', '2026-01-01 10:00:00', '2026-01-01 10:00:00');
+
+INSERT INTO trip_members (trip_id, user_id, member_status, joined_date, budget_amount) VALUES
+('TRP-001', '44444444-4444-4444-4444-444444444444', 'ACCEPTED', '2026-01-01 10:00:00', 50000.00);
+
+-- Hotel Booking
+INSERT INTO trip_hotel_bookings (trip_id, hotel_id, check_in_date, check_out_date, room_type, room_number, total_amount, booking_status) VALUES
+('TRP-001', 1, '2026-07-20', '2026-07-25', 'Standard', '101', 40000.00, 'CONFIRMED');
+
+-- Expense
+INSERT INTO expenses (trip_id, payer_id, amount, expense_date, description, category_id, receipt_url, created_at, updated_at) VALUES
+('TRP-001', '44444444-4444-4444-4444-444444444444', 5000.00, '2026-07-21', 'Food and Drinks', 1, NULL, '2026-07-21 10:00:00', '2026-07-21 10:00:00');

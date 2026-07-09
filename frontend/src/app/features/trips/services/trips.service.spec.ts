@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import {
+  BudgetSummary,
   CreateTripPayload,
   PendingInvitation,
   Trip,
@@ -215,5 +216,41 @@ describe('TripsService', () => {
     req.flush({ success: true, data: null, message: 'ok', error: null });
 
     expect(completed).toBe(true);
+  });
+
+  it('fetches and unwraps a single trip by id', async () => {
+    const { service, httpMock } = await setup();
+
+    let result: Trip | undefined;
+    service.getTripById('aaaaaaaa-0000-0000-0000-000000000001').subscribe((trip) => (result = trip));
+
+    const req = httpMock.expectOne('http://localhost:8080/api/trips/aaaaaaaa-0000-0000-0000-000000000001');
+    expect(req.request.method).toBe('GET');
+    req.flush({ success: true, data: SAMPLE_TRIP, message: 'ok', error: null });
+
+    expect(result).toEqual(SAMPLE_TRIP);
+  });
+
+  it('fetches and unwraps the trip budget summary', async () => {
+    const { service, httpMock } = await setup();
+    const summary: BudgetSummary = {
+      tripId: 'aaaaaaaa-0000-0000-0000-000000000001',
+      totalBudget: 15000,
+      totalSpent: 5000,
+      remainingBudget: 10000,
+      utilizationPercentage: 33.3,
+      overspent: false,
+    };
+
+    let result: BudgetSummary | undefined;
+    service.getBudgetSummary('aaaaaaaa-0000-0000-0000-000000000001').subscribe((s) => (result = s));
+
+    const req = httpMock.expectOne(
+      'http://localhost:8080/api/trips/aaaaaaaa-0000-0000-0000-000000000001/budget/summary',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({ success: true, data: summary, message: 'ok', error: null });
+
+    expect(result).toEqual(summary);
   });
 });

@@ -52,6 +52,8 @@ class AccommodationServiceImplBookingOwnershipTest {
     private TripMemberRepository tripMemberRepository;
     @Mock
     private SecurityUtil securityUtil;
+    @Mock
+    private com.travelease.backend.itinerary.service.NotificationService notificationService;
 
     private AccommodationServiceImpl accommodationService;
 
@@ -59,7 +61,7 @@ class AccommodationServiceImplBookingOwnershipTest {
     void setUp() {
         accommodationService = new AccommodationServiceImpl(
                 hotelRepository, roomRepository, bookingRepository, reviewRepository, userRepository, tripRepository,
-                new TripAuthorizationService(tripMemberRepository), securityUtil);
+                tripMemberRepository, new TripAuthorizationService(tripMemberRepository), notificationService, securityUtil);
     }
 
     private User user(String email) {

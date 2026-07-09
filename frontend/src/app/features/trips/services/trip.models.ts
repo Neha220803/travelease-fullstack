@@ -55,3 +55,12 @@ export interface PendingInvitation {
   endDate: string;
   memberStatus: TripMemberStatus;
 }
+
+export interface BudgetSummary {
+  tripId: string;
+  totalBudget: number;
+  totalSpent: number;
+  remainingBudget: number;
+  utilizationPercentage: number;
+  overspent: boolean;
+}

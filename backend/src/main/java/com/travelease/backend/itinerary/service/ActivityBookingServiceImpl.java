@@ -18,8 +18,11 @@ import com.travelease.backend.itinerary.repository.ActivitySlotRepository;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
+import com.travelease.backend.trip.entity.TripMemberStatus;
 import com.travelease.backend.trip.repository.TripRepository;
+import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
+import com.travelease.backend.itinerary.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -52,7 +55,9 @@ public class ActivityBookingServiceImpl implements ActivityBookingService {
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
     private final TripRepository tripRepository;
+    private final TripMemberRepository tripMemberRepository;
     private final TripAuthorizationService tripAuthorizationService;
+    private final NotificationService notificationService;
     private final SecurityUtil securityUtil;
 
     @Override
@@ -104,7 +109,19 @@ public class ActivityBookingServiceImpl implements ActivityBookingService {
         // Hibernate when the INSERT is actually generated, which a deferred
         // flush would otherwise push past this method's return, leaving
         // bookedAt null in the response DTO built below.
-        return toResponse(activityBookingRepository.saveAndFlush(booking));
+        ActivityBooking savedBooking = activityBookingRepository.saveAndFlush(booking);
+
+        // Notify Activity Provider
+        userRepository.findByProviderId(slot.getActivity().getProviderId()).forEach(providerUser -> {
+            notificationService.createNotification(
+                    providerUser.getId().toString(),
+                    "BOOKING",
+                    "Activity Booked",
+                    "New booking created for activity " + slot.getActivity().getActivityName()
+            );
+        });
+
+        return toResponse(savedBooking);
     }
 
     @Override
@@ -223,7 +240,18 @@ public class ActivityBookingServiceImpl implements ActivityBookingService {
         }
 
         booking.setTripId(tripId);
-        return toResponse(activityBookingRepository.save(booking));
+        ActivityBooking saved = activityBookingRepository.save(booking);
+
+        // Notify accepted trip members
+        tripMemberRepository.findByTripIdAndMemberStatus(tripId, TripMemberStatus.ACCEPTED).stream()
+                .forEach(m -> notificationService.createNotification(
+                        m.getUser().getId().toString(),
+                        "TRIP",
+                        "Activity Attached",
+                        "Activity " + booking.getActivitySlot().getActivity().getActivityName() + " has been added to trip " + trip.getTripName()
+                ));
+
+        return toResponse(saved);
     }
 
     @Override

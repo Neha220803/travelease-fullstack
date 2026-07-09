@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgIcon } from '@ng-icons/core';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
@@ -6,27 +7,36 @@ import { StatusBadge } from '@app/shared/ui/status-badge/status-badge';
 import { EChart } from '@app/shared/ui/echart/echart';
 import { CHART_COLORS } from '@app/shared/ui/echart/echart-theme';
 import { buildRankingBarOption } from '@app/shared/ui/echart/ranking-bar-chart';
-import { hotelBookings, rooms } from '@app/core/mock-data';
+import { WorkspaceSearchService } from '@app/shared/services/workspace-search.service';
+import {
+  EMPTY_PROVIDER_OVERVIEW,
+  HotelBookingResponse,
+  HotelProviderService,
+  ProviderOverview,
+} from '@app/features/hotel/services/hotel-provider.service';
+import {
+  HotelBookingView,
+  RatingRow,
+  RoomInventoryView,
+  availableRoomCount,
+  averageRating,
+  bookingsToday,
+  buildRatingRows,
+  filterProviderOverview,
+  formatCompactCurrency,
+  groupRooms,
+  isActiveBooking,
+  mapBookingRows,
+  monthlyRevenue,
+  providerSubtitle,
+} from '@app/features/hotel/services/hotel-provider-view-models';
 import type { EChartsCoreOption } from 'echarts/core';
+import { catchError, combineLatest, of } from 'rxjs';
 
-const RATING_PERCENTAGES = [72, 18, 6, 2, 2];
-
-interface RoomInventoryView {
-  id: string;
-  type: string;
-  price: number;
-  available: number;
-  total: number;
+export interface CalendarDayView {
+  day: number;
+  date: string;
   pct: number;
-}
-
-interface RatingRow {
-  stars: number;
-  pct: number;
-}
-
-export function calendarOccupancy(i: number): number {
-  return 30 + Math.abs(Math.sin(i * 0.9) * 60) + (i % 5) * 4;
 }
 
 export function currentMonthDates(referenceDate = new Date()): string[] {
@@ -37,38 +47,34 @@ export function currentMonthDates(referenceDate = new Date()): string[] {
   return Array.from({ length: daysInMonth }, (_, i) => `${year}-${pad(month + 1)}-${pad(i + 1)}`);
 }
 
-export function buildOccupancyCalendarOption(
+/** Count of blank lead-in cells so day 1 lands under its real Monday-first weekday column. */
+export function leadingBlankCount(referenceDate = new Date()): number {
+  const firstOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+  return (firstOfMonth.getDay() + 6) % 7;
+}
+
+export function dailyOccupiedCount(bookings: HotelBookingResponse[], date: string): number {
+  return bookings.filter(
+    (b) => isActiveBooking(b) && b.checkInDate <= date && date < b.checkOutDate,
+  ).length;
+}
+
+export function buildCalendarDays(
   dates: string[],
-  color: string,
-  mutedColor: string,
-): EChartsCoreOption {
-  return {
-    animationDuration: 1800,
-    tooltip: {
-      formatter: (params: any) => `${params.value[0]}<br/>${params.value[1].toFixed(0)}% occupancy`,
-    },
-    visualMap: {
-      show: false,
-      min: 0,
-      max: 100,
-      inRange: { color: [mutedColor, color] },
-    },
-    calendar: {
-      range: [dates[0], dates[dates.length - 1]],
-      cellSize: ['auto', 28],
-      itemStyle: { borderWidth: 2, borderColor: '#fff' },
-      yearLabel: { show: false },
-      monthLabel: { show: false },
-      dayLabel: { firstDay: 1 },
-    },
-    series: [
-      {
-        type: 'heatmap',
-        coordinateSystem: 'calendar',
-        data: dates.map((date, i) => [date, calendarOccupancy(i)]),
-      },
-    ],
-  };
+  bookings: HotelBookingResponse[],
+  totalRooms: number,
+): CalendarDayView[] {
+  return dates.map((date, i) => {
+    const occupied = dailyOccupiedCount(bookings, date);
+    const pct = totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0;
+    return { day: i + 1, date, pct };
+  });
+}
+
+/** Theme-aware heat tint: interpolates from --muted (0%) to --primary (100%) via CSS color-mix. */
+export function occupancyBackground(pct: number): string {
+  const clamped = Math.max(0, Math.min(100, pct));
+  return `color-mix(in oklch, var(--primary) ${clamped}%, var(--muted))`;
 }
 
 @Component({
@@ -77,45 +83,72 @@ export function buildOccupancyCalendarOption(
   templateUrl: './hotel-dashboard.html',
 })
 export class HotelDashboard {
-  public readonly totalRooms = rooms.reduce((s, r) => s + r.total, 0);
-  public readonly availableRooms = rooms.reduce((s, r) => s + r.available, 0);
-  public readonly bookingsToday = hotelBookings.length;
-  public readonly revenueMtd = `₹${(hotelBookings.reduce((s, b) => s + b.total, 0) / 1000).toFixed(0)}k`;
+  private readonly hotelProvider = inject(HotelProviderService);
+  private readonly workspaceSearch = inject(WorkspaceSearchService);
+
+  public readonly totalRooms = signal(0);
+  public readonly availableRooms = signal(0);
+  public readonly bookingsToday = signal(0);
+  public readonly revenueMtd = signal(formatCompactCurrency(0));
+  public readonly dashboardSubtitle = signal('Live hotel performance and inventory.');
 
   private readonly calendarDates = currentMonthDates();
   public readonly calendarMonthLabel = new Date().toLocaleString('en-US', { month: 'long' });
-  public readonly calendarOptions: EChartsCoreOption = buildOccupancyCalendarOption(
-    this.calendarDates,
-    CHART_COLORS.primary,
-    CHART_COLORS.muted,
-  );
+  public readonly weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  public readonly leadingBlanks: number[] = Array.from({ length: leadingBlankCount() }, (_, i) => i);
+  public readonly calendarDays = signal<CalendarDayView[]>(buildCalendarDays(this.calendarDates, [], 0));
+  public readonly occupancyBackground = occupancyBackground;
 
-  public readonly recentBookings = hotelBookings.slice(0, 4);
+  public readonly recentBookings = signal<HotelBookingView[]>([]);
+  public readonly roomInventory = signal<RoomInventoryView[]>([]);
+  public readonly roomInventoryOptions = signal<EChartsCoreOption>(buildRoomInventoryOptions([]));
+  public readonly ratingAverage = signal('0.0');
+  public readonly ratingCount = signal(0);
+  public readonly ratingRows = signal<RatingRow[]>(buildRatingRows([]));
+  public readonly ratingOptions = signal<EChartsCoreOption>(buildRatingOptions(buildRatingRows([])));
 
-  public readonly roomInventory: RoomInventoryView[] = rooms.map((r) => ({
-    id: r.id,
-    type: r.type,
-    price: r.price,
-    available: r.available,
-    total: r.total,
-    pct: ((r.total - r.available) / r.total) * 100,
-  }));
+  constructor() {
+    combineLatest([
+      this.hotelProvider.getProviderOverview().pipe(catchError(() => of(EMPTY_PROVIDER_OVERVIEW))),
+      this.workspaceSearch.hotelQuery$,
+    ])
+      .pipe(takeUntilDestroyed())
+      .subscribe(([overview, query]) => this.applyOverview(filterProviderOverview(overview, query)));
+  }
 
-  public readonly roomInventoryOptions: EChartsCoreOption = buildRankingBarOption(
-    this.roomInventory.map((r) => ({ label: r.type, value: Math.round(r.pct) })),
+  private applyOverview(overview: ProviderOverview): void {
+    const totalRooms = overview.rooms.length;
+    this.totalRooms.set(totalRooms);
+    this.availableRooms.set(availableRoomCount(overview.rooms));
+    this.bookingsToday.set(bookingsToday(overview.bookings));
+    this.revenueMtd.set(formatCompactCurrency(monthlyRevenue(overview.bookings)));
+    this.dashboardSubtitle.set(providerSubtitle(overview.hotels));
+
+    this.recentBookings.set(mapBookingRows(overview.bookings).slice(0, 4));
+    const roomInventory = groupRooms(overview.rooms);
+    this.roomInventory.set(roomInventory);
+    this.roomInventoryOptions.set(buildRoomInventoryOptions(roomInventory));
+    this.calendarDays.set(buildCalendarDays(this.calendarDates, overview.bookings, totalRooms));
+
+    this.ratingAverage.set(averageRating(overview).toFixed(1));
+    this.ratingCount.set(overview.reviews.length);
+    const ratingRows = buildRatingRows(overview.reviews);
+    this.ratingRows.set(ratingRows);
+    this.ratingOptions.set(buildRatingOptions(ratingRows));
+  }
+}
+
+function buildRoomInventoryOptions(roomInventory: RoomInventoryView[]): EChartsCoreOption {
+  return buildRankingBarOption(
+    roomInventory.map((r) => ({ label: r.type, value: Math.round(r.pct) })),
     CHART_COLORS.primary,
     '%',
   );
+}
 
-  public readonly ratingAverage = 4.7;
-  public readonly ratingCount = 182;
-  public readonly ratingRows: RatingRow[] = [5, 4, 3, 2, 1].map((s) => ({
-    stars: s,
-    pct: RATING_PERCENTAGES[5 - s],
-  }));
-
-  public readonly ratingOptions: EChartsCoreOption = buildRankingBarOption(
-    this.ratingRows.map((r) => ({ label: `${r.stars}★`, value: r.pct })),
+function buildRatingOptions(ratingRows: RatingRow[]): EChartsCoreOption {
+  return buildRankingBarOption(
+    ratingRows.map((r) => ({ label: `${r.stars}\u2605`, value: r.pct })),
     CHART_COLORS.warning,
     '%',
   );

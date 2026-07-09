@@ -21,6 +21,15 @@ interface LoginResponseDto {
   };
 }
 
+interface RegisterPayload {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  securityQuestion: string;
+  securityAnswer: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -52,6 +61,26 @@ export class AuthService {
 
     this.persist(response.data.accessToken, user);
     return user;
+  }
+
+  async register(payload: RegisterPayload): Promise<void> {
+    await firstValueFrom(
+      this.http.post<ApiResponse<unknown>>(`${API_BASE_URL}/api/auth/register`, payload),
+    );
+  }
+
+  async registerPartner(payload: {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    role: string;
+    securityQuestion: string;
+    securityAnswer: string;
+  }): Promise<void> {
+    await firstValueFrom(
+      this.http.post<ApiResponse<unknown>>(`${API_BASE_URL}/api/auth/register/partner`, payload),
+    );
   }
 
   logout(): void {

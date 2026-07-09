@@ -31,8 +31,11 @@ import com.travelease.backend.busbooking.security.SecurityUtil;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
+import com.travelease.backend.trip.entity.TripMemberStatus;
 import com.travelease.backend.trip.repository.TripRepository;
+import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
+import com.travelease.backend.itinerary.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -62,7 +65,9 @@ public class AccommodationServiceImpl implements AccommodationService {
     private final HotelReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final TripRepository tripRepository;
+    private final TripMemberRepository tripMemberRepository;
     private final TripAuthorizationService tripAuthorizationService;
+    private final NotificationService notificationService;
     private final SecurityUtil securityUtil;
 
     @Override
@@ -246,7 +251,32 @@ public class AccommodationServiceImpl implements AccommodationService {
         booking.setRoomNumber(request.roomNumber());
         booking.setTotalAmount(quote.totalAmount());
         booking.setBookingStatus(CONFIRMED);
-        return toBookingResponse(bookingRepository.save(booking));
+        HotelBooking savedBooking = bookingRepository.save(booking);
+
+        // Notify Hotel Provider
+        userRepository.findByProviderId(savedBooking.getHotel().getProviderId()).forEach(providerUser -> {
+            notificationService.createNotification(
+                    providerUser.getId().toString(),
+                    "BOOKING",
+                    "Hotel Booked",
+                    "New booking created for " + savedBooking.getHotel().getHotelName()
+            );
+        });
+
+        // Notify accepted trip members
+        tripRepository.findById(request.tripId()).ifPresent(trip -> {
+            tripMemberRepository.findByTripIdAndMemberStatus(request.tripId(), TripMemberStatus.ACCEPTED).stream()
+                    .forEach(m -> {
+                        notificationService.createNotification(
+                                m.getUser().getId().toString(),
+                                "BOOKING",
+                                "Hotel Booked",
+                                "Hotel " + savedBooking.getHotel().getHotelName() + " has been booked for trip " + trip.getTripName()
+                        );
+                    });
+        });
+
+        return toBookingResponse(savedBooking);
     }
 
     @Override
@@ -286,6 +316,16 @@ public class AccommodationServiceImpl implements AccommodationService {
     @Transactional(readOnly = true)
     public List<HotelBookingResponse> getMyBookings(String currentUserEmail) {
         return bookingRepository.findByBookedByEmail(currentUserEmail).stream().map(this::toBookingResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HotelBookingResponse> getProviderBookings() {
+        Long effectiveProviderId = securityUtil.resolveEffectiveHotelProviderId(null);
+        List<HotelBooking> bookings = effectiveProviderId != null
+                ? bookingRepository.findByHotel_ProviderId(effectiveProviderId)
+                : bookingRepository.findAll();
+        return bookings.stream().map(this::toBookingResponse).toList();
     }
 
     @Override
@@ -421,6 +461,8 @@ public class AccommodationServiceImpl implements AccommodationService {
         booking.setBookingStatus(CHECKED_OUT);
         return toBookingResponse(bookingRepository.save(booking));
     }
+
+
 
     private List<String> validate(HotelBookingRequest request) {
         List<String> errors = new ArrayList<>();
@@ -570,6 +612,7 @@ public class AccommodationServiceImpl implements AccommodationService {
                 booking.getHotel().getId(),
                 booking.getHotel().getHotelName(),
                 booking.getBookedBy() == null ? null : booking.getBookedBy().getId(),
+                booking.getBookedBy() == null ? null : booking.getBookedBy().getName(),
                 booking.getCheckInDate(),
                 booking.getCheckOutDate(),
                 booking.getRoomType(),
@@ -586,7 +629,8 @@ public class AccommodationServiceImpl implements AccommodationService {
                 review.getUser().getId(),
                 review.getUser().getName(),
                 review.getRating(),
-                review.getComment()
+                review.getComment(),
+                review.getCreatedAt()
         );
     }
 }

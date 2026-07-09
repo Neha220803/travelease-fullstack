@@ -20,7 +20,7 @@
               <h3 class="font-semibold">{{ t.tripName }}</h3>
               <app-status-badge [status]="t.status" />
             </div>
-            <app-destination-pill [from]="t.sourceLocation" [to]="'Destination #' + t.destinationId" />
+            <app-destination-pill [from]="t.sourceLocation" [to]="destinationLabel(t.destinationId)" />
             <div class="flex items-center gap-3 text-xs text-muted-foreground">
               <span>
                 <ng-icon name="lucideCalendar" class="inline h-3 w-3 mr-1" />{{ t.startDate }} – {{ t.endDate }}

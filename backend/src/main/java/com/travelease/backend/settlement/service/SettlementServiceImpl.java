@@ -1,6 +1,7 @@
 package com.travelease.backend.settlement.service;
 
 import com.travelease.backend.auth.entity.User;
+import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.expense.entity.ExpenseParticipant;
 import com.travelease.backend.expense.repository.ExpenseParticipantRepository;
 import com.travelease.backend.settlement.dto.SettlementResponse;
@@ -41,6 +42,7 @@ public class SettlementServiceImpl implements SettlementService {
     private final ExpenseParticipantRepository expenseParticipantRepository;
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
+    private final UserRepository userRepository;
     private final SettlementMapper settlementMapper;
 
     @Override
@@ -64,11 +66,22 @@ public class SettlementServiceImpl implements SettlementService {
                 .sorted(Comparator.comparing(Settlement::getId))
                 .map(settlementMapper::toResponse)
                 .toList();
+
+        UUID currentUserId = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"))
+                .getId();
+
         BigDecimal totalPayable = responses.stream()
+                .filter(s -> s.payerId().equals(currentUserId))
                 .map(SettlementResponse::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new SettlementSummaryResponse(tripId, totalPayable, totalPayable, responses);
+        BigDecimal totalReceivable = responses.stream()
+                .filter(s -> s.receiverId().equals(currentUserId))
+                .map(SettlementResponse::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new SettlementSummaryResponse(tripId, totalPayable, totalReceivable, responses);
     }
 
     @Override

@@ -9,6 +9,8 @@ import com.travelease.backend.expense.entity.Expense;
 import com.travelease.backend.expense.entity.ExpenseParticipant;
 import com.travelease.backend.expense.mapper.ExpenseMapper;
 import com.travelease.backend.expense.repository.ExpenseRepository;
+import com.travelease.backend.itinerary.service.NotificationService;
+import com.travelease.backend.shared.dto.PagedResponse;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
@@ -19,6 +21,7 @@ import com.travelease.backend.trip.repository.TripRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +49,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final UserRepository userRepository;
     private final ExpenseMapper expenseMapper;
     private final TripAuthorizationService tripAuthorizationService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -104,6 +108,21 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         Expense saved = expenseRepository.save(expense);
         log.info("Shared expense {} created for trip {}", saved.getId(), tripId);
+
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        for (ExpenseParticipant participant : saved.getParticipants()) {
+            if (!participant.getUser().getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        participant.getUser().getId().toString(),
+                        "EXPENSE",
+                        "New Expense added",
+                        "You have been included in the expense: " + saved.getDescription()
+                );
+            }
+        }
+
         return expenseMapper.toResponse(saved);
     }
 
@@ -125,6 +144,17 @@ public class ExpenseServiceImpl implements ExpenseService {
         Expense expense = expenseRepository.findByIdAndTripId(expenseId, tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense with id " + expenseId + " not found"));
         return expenseMapper.toResponse(expense);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse<ExpenseResponse> getTripExpensesPaged(UUID tripId, String currentUserEmail, Pageable pageable) {
+        findTrip(tripId);
+        ensureCurrentUserIsMember(tripId, currentUserEmail);
+        return PagedResponse.from(
+                expenseRepository.findByTripIdOrderByCreatedAtDesc(tripId, pageable)
+                        .map(expenseMapper::toResponse)
+        );
     }
 
     private Trip findTrip(UUID tripId) {

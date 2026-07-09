@@ -1,28 +1,364 @@
 <app-page-header title="Manage Activities" subtitle="Listings, pricing and availability.">
-  <button hlmBtn action>
-    <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Activity
-  </button>
+  <hlm-dialog action>
+    <button hlmDialogTrigger hlmBtn>
+      <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Activity
+    </button>
+    <ng-template hlmDialogPortal>
+      <hlm-dialog-content>
+        <div hlmDialogHeader>
+          <h3 hlmDialogTitle>Add Activity</h3>
+        </div>
+        <form
+          class="grid grid-cols-2 gap-3"
+          (submit)="
+            onCreateActivity(
+              $event,
+              nameInput.value,
+              newDestinationId(),
+              durationInput.value,
+              startInput.value,
+              endInput.value,
+              descInput.value
+            )
+          "
+        >
+          <div class="space-y-2 col-span-2">
+            <label hlmLabel for="activity-name">Activity Name</label>
+            <input hlmInput id="activity-name" placeholder="Scuba Diving" #nameInput />
+          </div>
+          <div class="space-y-2">
+            <label hlmLabel>Destination</label>
+            @if (destinationsLoading()) {
+              <p class="text-xs text-muted-foreground py-2">Loading destinations…</p>
+            } @else if (destinationsError()) {
+              <p class="text-xs text-destructive py-2">Could not load destinations.</p>
+            } @else {
+              <hlm-select
+                [value]="newDestinationId()"
+                [itemToString]="destinationIdToLabel"
+                (valueChange)="onNewDestinationChange($event)"
+              >
+                <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+                <ng-template hlmSelectPortal>
+                  <hlm-select-content>
+                    @for (d of destinations(); track d.destinationId) {
+                      <hlm-select-item [value]="d.destinationId.toString()">{{ destinationLabel(d) }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </ng-template>
+              </hlm-select>
+            }
+          </div>
+          <div class="space-y-2">
+            <label hlmLabel for="activity-duration">Duration (hours)</label>
+            <input hlmInput id="activity-duration" type="number" min="0.1" step="0.1" #durationInput />
+          </div>
+          <div class="space-y-2">
+            <label hlmLabel for="activity-start">Start Time</label>
+            <input hlmInput id="activity-start" type="time" #startInput />
+          </div>
+          <div class="space-y-2">
+            <label hlmLabel for="activity-end">End Time</label>
+            <input hlmInput id="activity-end" type="time" #endInput />
+          </div>
+          <div class="space-y-2 col-span-2">
+            <label hlmLabel for="activity-description">Description</label>
+            <textarea hlmTextarea id="activity-description" class="w-full min-h-20" #descInput></textarea>
+          </div>
+          @if (createError()) {
+            <p class="text-xs text-destructive col-span-2">{{ createError() }}</p>
+          }
+          <div hlmDialogFooter class="col-span-2">
+            <button hlmBtn type="submit" [disabled]="creating() || destinationsLoading() || destinationsError()">
+              {{ creating() ? 'Saving…' : 'Save Activity' }}
+            </button>
+          </div>
+        </form>
+      </hlm-dialog-content>
+    </ng-template>
+  </hlm-dialog>
 </app-page-header>
 
-<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-  @for (a of activities; track a.id) {
-    <div hlmCard class="overflow-hidden">
-      <img [src]="a.image" alt="" class="h-36 w-full object-cover" />
-      <div hlmCardContent class="pt-4 space-y-2">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="font-semibold">{{ a.name }}</h3>
-            <p class="text-xs text-muted-foreground">{{ a.destination }} · {{ a.duration }}</p>
-          </div>
-          <span class="text-xs inline-flex items-center gap-1">
-            <ng-icon name="lucideStar" class="h-3 w-3 fill-warning text-warning" />{{ a.rating }}
-          </span>
-        </div>
-        <div class="flex justify-between items-center pt-2 border-t">
-          <p class="font-semibold">₹{{ a.price.toLocaleString() }}</p>
-          <button hlmBtn size="sm" variant="outline">Edit</button>
+@if (loading()) {
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+    @for (i of [1, 2, 3]; track i) {
+      <div hlmCard>
+        <div hlmCardContent class="pt-4 space-y-2">
+          <div class="h-4 w-32 rounded bg-muted animate-pulse"></div>
+          <div class="h-3 w-24 rounded bg-muted animate-pulse"></div>
+          <div class="h-16 w-full rounded bg-muted animate-pulse"></div>
         </div>
       </div>
+    }
+  </div>
+} @else if (error()) {
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-sm text-destructive">{{ error() }}</p>
     </div>
-  }
-</div>
+  </div>
+} @else if (activities().length === 0) {
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-sm text-muted-foreground">
+        No activities listed yet. Use “Add Activity” above to create your first listing.
+      </p>
+    </div>
+  </div>
+} @else {
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+    @for (a of activities(); track a.activityId) {
+      <div hlmCard class="overflow-hidden transition-shadow hover:shadow-md">
+        <div hlmCardContent class="pt-4 space-y-3">
+          <div class="flex justify-between items-start gap-2">
+            <div class="min-w-0">
+              <h3 class="font-semibold truncate">{{ a.activityName }}</h3>
+              <p class="text-xs text-muted-foreground">
+                {{ destinationName(a.destinationId) }} · {{ a.durationHours }} hr
+              </p>
+            </div>
+            <span class="text-xs text-muted-foreground whitespace-nowrap">{{ a.startTime }}–{{ a.endTime }}</span>
+          </div>
+          @if (a.description) {
+            <p class="text-xs text-muted-foreground line-clamp-2">{{ a.description }}</p>
+          }
+          <div class="flex justify-between items-center pt-2 border-t text-xs text-muted-foreground">
+            <span>{{ slotsFor(a.activityId).length }} slot(s)</span>
+            <span class="tabular-nums">{{ remainingCapacityFor(a.activityId) }} open</span>
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <hlm-dialog class="flex-1">
+              <button hlmDialogTrigger hlmBtn size="sm" variant="outline" class="w-full">Edit</button>
+              <ng-template hlmDialogPortal>
+                <hlm-dialog-content>
+                  <div hlmDialogHeader>
+                    <h3 hlmDialogTitle>Edit {{ a.activityName }}</h3>
+                  </div>
+                  <form
+                    class="grid grid-cols-2 gap-3"
+                    (submit)="
+                      onUpdateActivity(
+                        $event,
+                        a,
+                        editNameInput.value,
+                        editDestinationIdFor(a),
+                        editDurationInput.value,
+                        editStartInput.value,
+                        editEndInput.value,
+                        editDescInput.value
+                      )
+                    "
+                  >
+                    <div class="space-y-2 col-span-2">
+                      <label hlmLabel [for]="'edit-name-' + a.activityId">Activity Name</label>
+                      <input hlmInput [id]="'edit-name-' + a.activityId" [value]="a.activityName" #editNameInput />
+                    </div>
+                    <div class="space-y-2">
+                      <label hlmLabel>Destination</label>
+                      @if (destinationsLoading()) {
+                        <p class="text-xs text-muted-foreground py-2">Loading…</p>
+                      } @else if (destinationsError()) {
+                        <p class="text-xs text-destructive py-2">Could not load destinations.</p>
+                      } @else {
+                        <hlm-select
+                          [value]="editDestinationIdFor(a)"
+                          [itemToString]="destinationIdToLabel"
+                          (valueChange)="onEditDestinationChange(a.activityId, $event)"
+                        >
+                          <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+                          <ng-template hlmSelectPortal>
+                            <hlm-select-content>
+                              @for (d of destinations(); track d.destinationId) {
+                                <hlm-select-item [value]="d.destinationId.toString()">{{ destinationLabel(d) }}</hlm-select-item>
+                              }
+                            </hlm-select-content>
+                          </ng-template>
+                        </hlm-select>
+                      }
+                    </div>
+                    <div class="space-y-2">
+                      <label hlmLabel [for]="'edit-duration-' + a.activityId">Duration (hours)</label>
+                      <input
+                        hlmInput
+                        [id]="'edit-duration-' + a.activityId"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        [value]="a.durationHours"
+                        #editDurationInput
+                      />
+                    </div>
+                    <div class="space-y-2">
+                      <label hlmLabel [for]="'edit-start-' + a.activityId">Start Time</label>
+                      <input
+                        hlmInput
+                        [id]="'edit-start-' + a.activityId"
+                        type="time"
+                        [value]="a.startTime"
+                        #editStartInput
+                      />
+                    </div>
+                    <div class="space-y-2">
+                      <label hlmLabel [for]="'edit-end-' + a.activityId">End Time</label>
+                      <input
+                        hlmInput
+                        [id]="'edit-end-' + a.activityId"
+                        type="time"
+                        [value]="a.endTime"
+                        #editEndInput
+                      />
+                    </div>
+                    <div class="space-y-2 col-span-2">
+                      <label hlmLabel [for]="'edit-desc-' + a.activityId">Description</label>
+                      <textarea
+                        hlmTextarea
+                        [id]="'edit-desc-' + a.activityId"
+                        class="w-full min-h-20"
+                        #editDescInput
+                      >{{ a.description }}</textarea>
+                    </div>
+                    @if (activityErrors()[a.activityId]) {
+                      <p class="text-xs text-destructive col-span-2">{{ activityErrors()[a.activityId] }}</p>
+                    }
+                    <div hlmDialogFooter class="col-span-2">
+                      <button
+                        hlmBtn
+                        type="submit"
+                        [disabled]="savingActivityId() === a.activityId || destinationsLoading() || destinationsError()"
+                      >
+                        {{ savingActivityId() === a.activityId ? 'Saving…' : 'Save Changes' }}
+                      </button>
+                    </div>
+                  </form>
+                </hlm-dialog-content>
+              </ng-template>
+            </hlm-dialog>
+
+            <hlm-dialog class="flex-1">
+              <button hlmDialogTrigger hlmBtn size="sm" class="w-full">Slots</button>
+              <ng-template hlmDialogPortal>
+                <hlm-dialog-content>
+                  <div hlmDialogHeader>
+                    <h3 hlmDialogTitle>Slots — {{ a.activityName }}</h3>
+                  </div>
+                  <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    @if (slotsFor(a.activityId).length === 0) {
+                      <p class="text-sm text-muted-foreground">No slots yet. Add one below.</p>
+                    }
+                    @for (s of slotsFor(a.activityId); track s.activitySlotId) {
+                      <div class="rounded-md border p-3">
+                        @if (editingSlotId() === s.activitySlotId) {
+                          <form
+                            class="grid grid-cols-2 gap-2"
+                            (submit)="
+                              onUpdateSlot(
+                                $event,
+                                a.activityId,
+                                s,
+                                slotEditDate.value,
+                                slotEditStart.value,
+                                slotEditEnd.value,
+                                slotEditPrice.value,
+                                slotEditCapacity.value
+                              )
+                            "
+                          >
+                            <input hlmInput type="date" [value]="s.activityDate" #slotEditDate />
+                            <input hlmInput type="number" min="1" [value]="s.capacity" #slotEditCapacity placeholder="Capacity" />
+                            <input hlmInput type="time" [value]="s.startTime" #slotEditStart />
+                            <input hlmInput type="time" [value]="s.endTime" #slotEditEnd />
+                            <input
+                              hlmInput
+                              type="number"
+                              min="1"
+                              step="0.01"
+                              [value]="s.price"
+                              #slotEditPrice
+                              placeholder="Price"
+                              class="col-span-2"
+                            />
+                            <div class="col-span-2 flex gap-2 justify-end">
+                              <button
+                                type="button"
+                                hlmBtn
+                                variant="ghost"
+                                size="sm"
+                                (click)="cancelEditingSlot()"
+                              >
+                                Cancel
+                              </button>
+                              <button hlmBtn size="sm" type="submit" [disabled]="savingSlotId() === s.activitySlotId">
+                                {{ savingSlotId() === s.activitySlotId ? 'Saving…' : 'Save' }}
+                              </button>
+                            </div>
+                          </form>
+                        } @else {
+                          <div class="flex items-center justify-between text-sm">
+                            <div>
+                              <p class="font-medium">{{ s.activityDate }} · {{ s.startTime }}–{{ s.endTime }}</p>
+                              <p class="text-xs text-muted-foreground">
+                                ₹{{ s.price.toLocaleString() }} · {{ s.remainingCapacity }} / {{ s.capacity }} open
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              hlmBtn
+                              variant="outline"
+                              size="sm"
+                              (click)="startEditingSlot(s.activitySlotId)"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <form
+                    class="grid grid-cols-2 gap-2 pt-3 border-t mt-3"
+                    (submit)="
+                      onAddSlot(
+                        $event,
+                        a.activityId,
+                        newSlotDate.value,
+                        newSlotStart.value,
+                        newSlotEnd.value,
+                        newSlotPrice.value,
+                        newSlotCapacity.value
+                      )
+                    "
+                  >
+                    <label class="text-xs font-medium col-span-2 -mb-1">Add a new slot</label>
+                    <input hlmInput type="date" #newSlotDate placeholder="Date" />
+                    <input hlmInput type="number" min="1" #newSlotCapacity placeholder="Capacity" />
+                    <input hlmInput type="time" #newSlotStart placeholder="Start" />
+                    <input hlmInput type="time" #newSlotEnd placeholder="End" />
+                    <input
+                      hlmInput
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      #newSlotPrice
+                      placeholder="Price (₹)"
+                      class="col-span-2"
+                    />
+                    @if (slotErrors()[a.activityId]) {
+                      <p class="text-xs text-destructive col-span-2">{{ slotErrors()[a.activityId] }}</p>
+                    }
+                    <div hlmDialogFooter class="col-span-2">
+                      <button hlmBtn type="submit" size="sm" [disabled]="savingSlotId() === 'new'">
+                        {{ savingSlotId() === 'new' ? 'Adding…' : 'Add Slot' }}
+                      </button>
+                    </div>
+                  </form>
+                </hlm-dialog-content>
+              </ng-template>
+            </hlm-dialog>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}

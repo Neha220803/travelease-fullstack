@@ -23,6 +23,8 @@ class UserRepositoryTest {
         user.setEmail(email);
         user.setPhone("9999999999");
         user.setPasswordHash("hashed-password");
+        user.setSecurityQuestion("Question?");
+        user.setSecurityAnswerHash("hashed-answer");
         user.setRole(Role.ROLE_TRAVELER);
         return user;
     }

@@ -1,20 +1,62 @@
-<app-page-header title="Performance Reports" subtitle="Revenue by activity and slot utilization." />
+<app-page-header title="Performance Reports" subtitle="Revenue by activity and attendance." />
 
-<div hlmCard>
-  <div hlmCardHeader>
-    <h3 hlmCardTitle>Revenue per Activity</h3>
-  </div>
-  <div hlmCardContent class="space-y-3">
-    @for (r of revenueByActivity; track r.id) {
-      <div>
-        <div class="flex justify-between text-sm mb-1">
-          <span class="font-medium">{{ r.name }}</span>
-          <span class="tabular-nums text-muted-foreground">₹{{ r.revenue.toLocaleString() }}</span>
-        </div>
-        <div class="h-2 rounded-full bg-muted overflow-hidden">
-          <div class="h-full bg-accent" [style.width.%]="r.pct"></div>
+@if (loading()) {
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div hlmCard>
+        <div hlmCardContent class="pt-5">
+          <div class="h-3 w-20 rounded bg-muted animate-pulse mb-2"></div>
+          <div class="h-6 w-16 rounded bg-muted animate-pulse"></div>
         </div>
       </div>
     }
   </div>
-</div>
+} @else if (error()) {
+  <div hlmCard>
+    <div hlmCardContent class="pt-5">
+      <p class="text-sm text-destructive">{{ error() }}</p>
+    </div>
+  </div>
+} @else {
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div hlmCard>
+      <div hlmCardContent class="pt-5">
+        <p class="text-xs text-muted-foreground">Total Revenue</p>
+        <p class="text-2xl font-semibold mt-1 tabular-nums">₹{{ totalRevenue().toLocaleString() }}</p>
+      </div>
+    </div>
+    <div hlmCard>
+      <div hlmCardContent class="pt-5">
+        <p class="text-xs text-muted-foreground">Total Bookings</p>
+        <p class="text-2xl font-semibold mt-1 tabular-nums">{{ totalBookings() }}</p>
+      </div>
+    </div>
+    <div hlmCard>
+      <div hlmCardContent class="pt-5">
+        <p class="text-xs text-muted-foreground">Avg Booking Value</p>
+        <p class="text-2xl font-semibold mt-1 tabular-nums">₹{{ avgBookingValue().toLocaleString() }}</p>
+      </div>
+    </div>
+    <div hlmCard>
+      <div hlmCardContent class="pt-5">
+        <p class="text-xs text-muted-foreground">Attendance Rate</p>
+        <p class="text-2xl font-semibold mt-1 tabular-nums">
+          {{ attendanceRate() === null ? '—' : attendanceRate() + '%' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div hlmCard>
+    <div hlmCardHeader>
+      <h3 hlmCardTitle>Revenue per Activity</h3>
+    </div>
+    <div hlmCardContent>
+      @if (revenueChartOptions(); as options) {
+        <app-echart [options]="options" height="224px" />
+      } @else {
+        <p class="text-sm text-muted-foreground">No revenue data yet.</p>
+      }
+    </div>
+  </div>
+}

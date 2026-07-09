@@ -7,21 +7,26 @@ import {
   lucideStar,
   lucideWallet,
 } from '@ng-icons/lucide';
-import { hotelBookings, rooms } from '@app/core/mock-data';
 import {
   HotelDashboard,
-  buildOccupancyCalendarOption,
-  calendarOccupancy,
+  buildCalendarDays,
   currentMonthDates,
+  dailyOccupiedCount,
+  leadingBlankCount,
+  occupancyBackground,
 } from '@app/features/hotel/components/hotel-dashboard/hotel-dashboard';
-
-describe('calendarOccupancy', () => {
-  it('matches the sine-based formula from the React source for a few indices', () => {
-    for (const i of [0, 5, 13, 27]) {
-      expect(calendarOccupancy(i)).toBeCloseTo(30 + Math.abs(Math.sin(i * 0.9) * 60) + (i % 5) * 4);
-    }
-  });
-});
+import { HotelBookingResponse, HotelProviderService } from '@app/features/hotel/services/hotel-provider.service';
+import {
+  availableRoomCount,
+  bookingsToday as expectedBookingsToday,
+  formatCompactCurrency,
+  groupRooms,
+  monthlyRevenue,
+} from '@app/features/hotel/services/hotel-provider-view-models';
+import {
+  TEST_PROVIDER_OVERVIEW,
+  createHotelProviderStub,
+} from '@app/features/hotel/testing/hotel-provider-test-data';
 
 describe('currentMonthDates', () => {
   it('returns one ISO date string per day in a 28-day month', () => {
@@ -39,16 +44,96 @@ describe('currentMonthDates', () => {
   });
 });
 
-describe('buildOccupancyCalendarOption', () => {
-  it('sets the calendar range to the first and last date, and one heatmap point per date', () => {
-    const dates = currentMonthDates(new Date(2026, 6, 1));
-    const option = buildOccupancyCalendarOption(dates, 'oklch(0.5 0.1 200)', 'oklch(0.9 0.01 200)');
-    const calendar = option['calendar'] as any;
-    const series = (option['series'] as any[])[0];
+describe('leadingBlankCount', () => {
+  it('returns 0 when the month starts on a Monday', () => {
+    // 2026-06-01 is a Monday
+    expect(leadingBlankCount(new Date(2026, 5, 1))).toBe(0);
+  });
 
-    expect(calendar.range).toEqual(['2026-07-01', '2026-07-31']);
-    expect(series.data).toHaveLength(31);
-    expect(series.data[0]).toEqual(['2026-07-01', calendarOccupancy(0)]);
+  it('returns 2 when the month starts on a Wednesday', () => {
+    // 2026-07-01 is a Wednesday
+    expect(leadingBlankCount(new Date(2026, 6, 1))).toBe(2);
+  });
+
+  it('returns 6 when the month starts on a Sunday', () => {
+    // 2026-11-01 is a Sunday
+    expect(leadingBlankCount(new Date(2026, 10, 1))).toBe(6);
+  });
+});
+
+function booking(overrides: Partial<HotelBookingResponse>): HotelBookingResponse {
+  return {
+    hotelBookingId: 'b1',
+    tripId: null,
+    hotelId: 'hotel-1',
+    hotelName: 'Sea Breeze Resort',
+    bookedByUserId: 'user-1',
+    bookedByUserName: 'Guest',
+    checkInDate: '2026-07-05',
+    checkOutDate: '2026-07-08',
+    roomType: 'Deluxe',
+    roomNumber: '101',
+    totalAmount: 10000,
+    bookingStatus: 'CONFIRMED',
+    ...overrides,
+  };
+}
+
+describe('dailyOccupiedCount', () => {
+  const bookings = [
+    booking({ checkInDate: '2026-07-05', checkOutDate: '2026-07-08' }),
+    booking({ hotelBookingId: 'b2', checkInDate: '2026-07-01', checkOutDate: '2026-07-10' }),
+    booking({ hotelBookingId: 'b3', checkInDate: '2026-07-05', checkOutDate: '2026-07-06', bookingStatus: 'CANCELLED' }),
+  ];
+
+  it('counts active bookings whose stay spans the given date', () => {
+    expect(dailyOccupiedCount(bookings, '2026-07-05')).toBe(2);
+  });
+
+  it('excludes the checkout date itself (checkout day is not an occupied night)', () => {
+    expect(dailyOccupiedCount(bookings, '2026-07-08')).toBe(1);
+  });
+
+  it('excludes cancelled bookings', () => {
+    const onlyCancelled = [booking({ checkInDate: '2026-07-05', checkOutDate: '2026-07-08', bookingStatus: 'CANCELLED' })];
+    expect(dailyOccupiedCount(onlyCancelled, '2026-07-05')).toBe(0);
+  });
+
+  it('returns 0 for a date outside every booking window', () => {
+    expect(dailyOccupiedCount(bookings, '2026-06-01')).toBe(0);
+  });
+});
+
+describe('buildCalendarDays', () => {
+  it('computes a rounded occupancy percentage per day of the month', () => {
+    const dates = ['2026-07-01', '2026-07-05', '2026-07-09'];
+    const bookings = [booking({ checkInDate: '2026-07-05', checkOutDate: '2026-07-08' })];
+    const days = buildCalendarDays(dates, bookings, 4);
+
+    expect(days).toEqual([
+      { day: 1, date: '2026-07-01', pct: 0 },
+      { day: 2, date: '2026-07-05', pct: 25 },
+      { day: 3, date: '2026-07-09', pct: 0 },
+    ]);
+  });
+
+  it('returns 0% for every day when there are no rooms yet', () => {
+    const days = buildCalendarDays(['2026-07-01'], [], 0);
+    expect(days[0].pct).toBe(0);
+  });
+});
+
+describe('occupancyBackground', () => {
+  it('mixes --primary in proportion to the percentage', () => {
+    expect(occupancyBackground(40)).toBe('color-mix(in oklch, var(--primary) 40%, var(--muted))');
+  });
+
+  it('clamps above 100 down to 100', () => {
+    expect(occupancyBackground(140)).toBe('color-mix(in oklch, var(--primary) 100%, var(--muted))');
+  });
+
+  it('clamps below 0 up to 0', () => {
+    expect(occupancyBackground(-10)).toBe('color-mix(in oklch, var(--primary) 0%, var(--muted))');
   });
 });
 
@@ -58,46 +143,46 @@ describe('HotelDashboard', () => {
       imports: [HotelDashboard],
       providers: [
         provideIcons({ lucideCalendarDays, lucideDoorOpen, lucideHotel, lucideStar, lucideWallet }),
+        { provide: HotelProviderService, useValue: createHotelProviderStub() },
       ],
     }).compileComponents();
   });
 
-  it('computes all 4 stat values from rooms and hotelBookings', () => {
+  it('computes all 4 stat values from provider rooms and bookings', () => {
     const fixture = TestBed.createComponent(HotelDashboard);
     const c = fixture.componentInstance;
-    const totalRooms = rooms.reduce((s, r) => s + r.total, 0);
-    const availableRooms = rooms.reduce((s, r) => s + r.available, 0);
-    const revenue = hotelBookings.reduce((s, b) => s + b.total, 0);
 
-    expect(c.totalRooms).toBe(totalRooms);
-    expect(c.availableRooms).toBe(availableRooms);
-    expect(c.bookingsToday).toBe(hotelBookings.length);
-    expect(c.revenueMtd).toBe(`₹${(revenue / 1000).toFixed(0)}k`);
+    expect(c.totalRooms()).toBe(TEST_PROVIDER_OVERVIEW.rooms.length);
+    expect(c.availableRooms()).toBe(availableRoomCount(TEST_PROVIDER_OVERVIEW.rooms));
+    expect(c.bookingsToday()).toBe(expectedBookingsToday(TEST_PROVIDER_OVERVIEW.bookings));
+    expect(c.revenueMtd()).toBe(formatCompactCurrency(monthlyRevenue(TEST_PROVIDER_OVERVIEW.bookings)));
   });
 
-  it('builds a calendar chart spanning the current month', () => {
+  it('builds one calendar day per day of the current month, using real occupancy', () => {
     const fixture = TestBed.createComponent(HotelDashboard);
+    fixture.detectChanges();
     const c = fixture.componentInstance;
     const expectedDates = currentMonthDates();
-    const calendar = c.calendarOptions['calendar'] as any;
-    expect(calendar.range).toEqual([expectedDates[0], expectedDates[expectedDates.length - 1]]);
+
+    expect(c.calendarDays()).toHaveLength(expectedDates.length);
+    expect(c.calendarDays()[0].date).toBe(expectedDates[0]);
+    expect(c.calendarDays().every((d) => d.pct >= 0 && d.pct <= 100)).toBe(true);
   });
 
-  it('renders every hotelBookings entry in Recent Bookings (slice(0,4) keeps all 4)', () => {
+  it('renders provider bookings in Recent Bookings', () => {
     const fixture = TestBed.createComponent(HotelDashboard);
     fixture.detectChanges();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const b of hotelBookings) {
-      expect(text).toContain(b.guest);
-    }
-    expect(fixture.componentInstance.recentBookings).toHaveLength(4);
+    expect(text).toContain('Sarathy R');
+    expect(text).toContain('Anjali V');
+    expect(fixture.componentInstance.recentBookings()).toHaveLength(2);
   });
 
-  it('renders every room type with the correct available/total numbers', () => {
+  it('renders grouped room types with the correct available/total numbers', () => {
     const fixture = TestBed.createComponent(HotelDashboard);
     fixture.detectChanges();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const r of rooms) {
+    for (const r of groupRooms(TEST_PROVIDER_OVERVIEW.rooms)) {
       expect(text).toContain(r.type);
       expect(text).toContain(`${r.available} / ${r.total}`);
     }
@@ -106,31 +191,33 @@ describe('HotelDashboard', () => {
   it('builds a room occupancy chart with the occupied percentage for every room type', () => {
     const fixture = TestBed.createComponent(HotelDashboard);
     const c = fixture.componentInstance;
-    const yAxis = c.roomInventoryOptions['yAxis'] as { data: string[] };
-    const series = (c.roomInventoryOptions['series'] as any[])[0];
+    const options = c.roomInventoryOptions();
+    const yAxis = options['yAxis'] as { data: string[] };
+    const series = (options['series'] as any[])[0];
 
-    for (const r of c.roomInventory) {
+    for (const r of c.roomInventory()) {
       const idx = yAxis.data.indexOf(r.type);
       expect(series.data[idx]).toBe(Math.round(r.pct));
     }
   });
 
-  it('renders the hardcoded rating average and review count', () => {
+  it('renders the provider rating average and review count', () => {
     const fixture = TestBed.createComponent(HotelDashboard);
     fixture.detectChanges();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('4.7');
-    expect(text).toContain('182 reviews');
+    expect(text).toContain('4.3');
+    expect(text).toContain('4 reviews');
   });
 
   it('builds a rating distribution chart with all 5 star percentages', () => {
     const fixture = TestBed.createComponent(HotelDashboard);
     const c = fixture.componentInstance;
-    const yAxis = c.ratingOptions['yAxis'] as { data: string[] };
-    const series = (c.ratingOptions['series'] as any[])[0];
+    const options = c.ratingOptions();
+    const yAxis = options['yAxis'] as { data: string[] };
+    const series = (options['series'] as any[])[0];
 
-    for (const row of c.ratingRows) {
-      const idx = yAxis.data.indexOf(`${row.stars}★`);
+    for (const row of c.ratingRows()) {
+      const idx = yAxis.data.indexOf(`${row.stars}\u2605`);
       expect(series.data[idx]).toBe(row.pct);
     }
   });

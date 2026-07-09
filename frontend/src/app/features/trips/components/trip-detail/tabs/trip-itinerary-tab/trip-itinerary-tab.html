@@ -2,30 +2,125 @@
   <div hlmCard class="lg:col-span-2">
     <div hlmCardHeader class="flex flex-row items-center justify-between">
       <h3 hlmCardTitle>Day-wise Itinerary</h3>
-      <button hlmBtn size="sm"><ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Activity</button>
+      <hlm-dialog>
+        <button hlmDialogTrigger hlmBtn size="sm">
+          <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Activity
+        </button>
+        <ng-template hlmDialogPortal>
+          <hlm-dialog-content>
+            <div hlmDialogHeader>
+              <h3 hlmDialogTitle>Add Activity to Itinerary</h3>
+            </div>
+            <div class="space-y-3">
+              <div class="space-y-2">
+                <label hlmLabel>Activity</label>
+                @if (availableActivities().length === 0) {
+                  <p class="text-xs text-muted-foreground">No activities available for this destination yet.</p>
+                } @else {
+                  <hlm-select
+                    [value]="selectedActivityId()"
+                    [itemToString]="activityIdToLabel"
+                    (valueChange)="onSelectedActivityChange($event)"
+                  >
+                    <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+                    <ng-template hlmSelectPortal>
+                      <hlm-select-content>
+                        @for (a of availableActivities(); track a.activityId) {
+                          <hlm-select-item [value]="a.activityId">{{ a.activityName }}</hlm-select-item>
+                        }
+                      </hlm-select-content>
+                    </ng-template>
+                  </hlm-select>
+                }
+              </div>
+              <div class="space-y-2">
+                <label hlmLabel>Date</label>
+                <hlm-date-picker
+                  [date]="addDate()"
+                  [min]="minDate()"
+                  [max]="maxDate()"
+                  (dateChange)="onAddDateChange($event)"
+                >
+                  <hlm-date-picker-trigger class="w-full h-8 text-xs">Pick a day</hlm-date-picker-trigger>
+                </hlm-date-picker>
+              </div>
+              @if (addError()) {
+                <p class="text-xs text-destructive">{{ addError() }}</p>
+              }
+            </div>
+            <div hlmDialogFooter>
+              <button hlmBtn [disabled]="!selectedActivityId()" (click)="onAddActivitySubmit()">
+                Add to Itinerary
+              </button>
+            </div>
+          </hlm-dialog-content>
+        </ng-template>
+      </hlm-dialog>
     </div>
     <div hlmCardContent class="space-y-6">
-      @for (day of itinerary; track day.day) {
+      @if (progress(); as p) {
+        <div>
+          <div class="flex justify-between text-xs text-muted-foreground mb-1.5">
+            <span>{{ p.completedActivities }} / {{ p.totalActivities }} activities completed</span>
+            <span class="tabular-nums">{{ p.completionPercentage.toFixed(0) }}%</span>
+          </div>
+          <div class="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              class="h-full bg-success transition-[width] duration-500 ease-out"
+              [style.width.%]="p.completionPercentage"
+            ></div>
+          </div>
+        </div>
+      }
+      @if (itemError()) {
+        <p class="text-xs text-destructive">{{ itemError() }}</p>
+      }
+      @if (days().length === 0) {
+        <p class="text-sm text-muted-foreground">No itinerary items yet. Add one from the sidebar.</p>
+      }
+      @for (day of days(); track day.day) {
         <div class="flex gap-4">
           <div class="text-center w-16 shrink-0">
             <div class="rounded-md bg-primary text-primary-foreground p-2">
               <p class="text-xs uppercase">Day</p>
               <p class="text-xl font-bold">{{ day.day }}</p>
             </div>
-            <p class="text-xs text-muted-foreground mt-1">{{ day.date }}</p>
+            <p class="text-xs text-muted-foreground mt-1">{{ formatDate(day.date) }}</p>
           </div>
           <div class="flex-1 space-y-2">
-            <p class="font-medium">{{ day.title }}</p>
-            @for (it of day.items; track it.time) {
+            <p class="font-medium">Day {{ day.day }}</p>
+            @for (it of day.items; track it.itineraryId) {
               <div class="flex items-start gap-3 p-3 rounded-md border bg-card">
-                <ng-icon name="lucideClock" class="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div class="flex-1">
-                  <p class="text-sm font-medium">{{ it.name }}</p>
-                  <p class="text-xs text-muted-foreground">
-                    <ng-icon name="lucideMapPin" class="inline h-3 w-3" /> {{ it.location }}
+                <button
+                  type="button"
+                  class="mt-0.5 shrink-0 disabled:opacity-50"
+                  [disabled]="togglingId() === it.itineraryId"
+                  (click)="toggleStatus(it)"
+                  [attr.aria-label]="it.status === 'Completed' ? 'Mark as pending' : 'Mark as completed'"
+                >
+                  <ng-icon
+                    [name]="it.status === 'Completed' ? 'lucideCheckCircle2' : 'lucideClock'"
+                    [class]="'h-4 w-4 ' + (it.status === 'Completed' ? 'text-success' : 'text-muted-foreground')"
+                  />
+                </button>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium" [class.line-through]="it.status === 'Completed'">
+                    {{ it.activityName }}
                   </p>
                 </div>
-                <span class="text-xs text-muted-foreground tabular-nums">{{ it.time }}</span>
+                <span class="text-xs text-muted-foreground tabular-nums">{{ it.status }}</span>
+                <button
+                  type="button"
+                  hlmBtn
+                  variant="ghost"
+                  size="sm"
+                  class="h-6 w-6 p-0 shrink-0"
+                  [disabled]="deletingId() === it.itineraryId"
+                  (click)="deleteItem(it)"
+                  aria-label="Remove from itinerary"
+                >
+                  <ng-icon name="lucideX" class="h-3.5 w-3.5" />
+                </button>
               </div>
             }
           </div>
@@ -38,20 +133,34 @@
       <h3 hlmCardTitle class="flex items-center gap-2">
         <ng-icon name="lucideSparkles" class="h-4 w-4 text-accent" />Available Activities
       </h3>
-      <p class="text-xs text-muted-foreground">Drag or click + to slot into a day.</p>
+      <p class="text-xs text-muted-foreground">Click + to slot into a day.</p>
+      <hlm-date-picker
+        class="mt-2"
+        [date]="addDate()"
+        [min]="minDate()"
+        [max]="maxDate()"
+        (dateChange)="onAddDateChange($event)"
+      >
+        <hlm-date-picker-trigger class="w-full h-8 text-xs">Pick a day</hlm-date-picker-trigger>
+      </hlm-date-picker>
     </div>
     <div hlmCardContent class="space-y-2">
-      @for (a of activities; track a.id) {
+      @if (availableActivities().length === 0) {
+        <p class="text-sm text-muted-foreground">No activities available for this destination yet.</p>
+      }
+      @for (a of availableActivities(); track a.activityId) {
         <div class="flex items-center gap-3 p-2.5 rounded-md border bg-card">
-          <img [src]="a.image" alt="" class="h-12 w-12 rounded object-cover" />
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium truncate">{{ a.name }}</p>
-            <p class="text-xs text-muted-foreground">{{ a.duration }} · ₹{{ a.price.toLocaleString() }}</p>
+            <p class="text-sm font-medium truncate">{{ a.activityName }}</p>
+            <p class="text-xs text-muted-foreground">{{ a.durationHours }} hr</p>
           </div>
-          <button hlmBtn size="sm" variant="ghost" class="h-7 w-7 p-0">
+          <button hlmBtn size="sm" variant="ghost" class="h-7 w-7 p-0" (click)="onAddActivity(a)">
             <ng-icon name="lucidePlus" class="h-4 w-4" />
           </button>
         </div>
+      }
+      @if (addError()) {
+        <p class="text-xs text-destructive">{{ addError() }}</p>
       }
     </div>
   </div>

@@ -6,6 +6,8 @@ import { Subject, of, throwError } from 'rxjs';
 import { TripList } from '@app/features/trips/components/trip-list/trip-list';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { Trip } from '@app/features/trips/services/trip.models';
+import { DestinationsService } from '@app/core/destinations/destinations.service';
+import { Destination } from '@app/core/destinations/destination.models';
 
 const SAMPLE_TRIPS: Trip[] = [
   {
@@ -25,16 +27,26 @@ const SAMPLE_TRIPS: Trip[] = [
   },
 ];
 
-async function setup(tripsService: Partial<TripsService>) {
+const SAMPLE_DESTINATIONS: Destination[] = [
+  { destinationId: 3, destinationName: 'Manali', state: 'Himachal Pradesh', country: 'India', description: '' },
+];
+
+async function setup(
+  tripsService: Partial<TripsService>,
+  destinationsService: Partial<DestinationsService> = { listDestinations: () => of(SAMPLE_DESTINATIONS) },
+) {
   await TestBed.configureTestingModule({
     imports: [TripList],
     providers: [
       provideRouter([]),
       provideIcons({ lucidePlus, lucideCalendar, lucideWallet, lucideMapPin }),
       { provide: TripsService, useValue: tripsService },
+      { provide: DestinationsService, useValue: destinationsService },
     ],
   }).compileComponents();
   const fixture = TestBed.createComponent(TripList);
+  fixture.detectChanges();
+  await fixture.whenStable();
   fixture.detectChanges();
   return fixture;
 }
@@ -47,15 +59,24 @@ describe('TripList', () => {
     expect(el.textContent).toContain('Loading your trips');
   });
 
-  it('renders trip cards with real fields once loaded', async () => {
+  it('renders trip cards with the real destination name once destinations load', async () => {
     const fixture = await setup({ listMyTrips: () => of(SAMPLE_TRIPS) });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Goa Beach Escape');
     expect(el.textContent).toContain('Bengaluru');
-    expect(el.textContent).toContain('Destination #3');
+    expect(el.textContent).toContain('Manali');
     expect(el.textContent).toContain('18,000');
     const link = el.querySelector(`a[href="/trips/${SAMPLE_TRIPS[0].tripId}"]`);
     expect(link).not.toBeNull();
+  });
+
+  it('falls back to "Destination #<id>" when destinations fail to load', async () => {
+    const fixture = await setup(
+      { listMyTrips: () => of(SAMPLE_TRIPS) },
+      { listDestinations: () => throwError(() => new Error('boom')) },
+    );
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Destination #3');
   });
 
   it('shows an empty-state message when there are no trips', async () => {
@@ -65,9 +86,7 @@ describe('TripList', () => {
   });
 
   it('shows an error message when the request fails', async () => {
-    const fixture = await setup({
-      listMyTrips: () => throwError(() => new Error('network error')),
-    });
+    const fixture = await setup({ listMyTrips: () => throwError(() => new Error('network error')) });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Something went wrong');
   });

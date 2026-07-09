@@ -111,6 +111,27 @@ describe('AuthService', () => {
     expect(localStorage.getItem('te_access_token')).toBeNull();
   });
 
+  it('submits a partner registration to the partner endpoint', async () => {
+    const { service, httpMock } = await setup();
+
+    const registerPromise = service.registerPartner({
+      name: 'Priya Partner',
+      email: 'priya@example.com',
+      phone: '9999999999',
+      password: 'Passw0rd1',
+      role: 'HOTEL_PROVIDER',
+      securityQuestion: 'What is your birth hospital?',
+      securityAnswer: 'City General',
+    });
+
+    const req = httpMock.expectOne('http://localhost:8080/api/auth/register/partner');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body.role).toBe('HOTEL_PROVIDER');
+    req.flush({ success: true, data: { id: '1' }, message: 'Partner application submitted', error: null });
+
+    await expect(registerPromise).resolves.toBeUndefined();
+  });
+
   it('logout clears the session', async () => {
     const { service, httpMock } = await setup();
     const loginPromise = service.login('admin@travelease.test', 'password123');

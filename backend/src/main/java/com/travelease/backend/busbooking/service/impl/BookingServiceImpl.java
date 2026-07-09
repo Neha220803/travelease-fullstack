@@ -14,8 +14,12 @@ import com.travelease.backend.busbooking.service.CouponService;
 import com.travelease.backend.busbooking.service.RefundService;
 import com.travelease.backend.busbooking.service.SeatAllocationService;
 import com.travelease.backend.trip.entity.Trip;
+import com.travelease.backend.trip.entity.TripMemberStatus;
 import com.travelease.backend.trip.repository.TripRepository;
+import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
+import com.travelease.backend.auth.repository.UserRepository;
+import com.travelease.backend.itinerary.service.NotificationService;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +52,10 @@ public class BookingServiceImpl implements BookingService {
     private final CouponService couponService;
     private final RefundService refundService;
     private final TripRepository tripRepository;
+    private final TripMemberRepository tripMemberRepository;
     private final TripAuthorizationService tripAuthorizationService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     private static final Set<BookingStatus> TRIP_ATTACHABLE_STATUSES =
             Set.of(BookingStatus.CONFIRMED, BookingStatus.COMPLETED);
@@ -215,6 +222,29 @@ public class BookingServiceImpl implements BookingService {
         // Release locks
         List<Long> seatIds = booking.getBookingSeats().stream().map(bs -> bs.getSeat().getId()).toList();
         seatAllocationService.releaseLocksForBooking(schedule.getId(), seatIds, booking.getUserId());
+
+        // Notify Transport Provider
+        userRepository.findByProviderId(schedule.getBus().getProviderId()).forEach(providerUser -> {
+            notificationService.createNotification(
+                    providerUser.getId().toString(),
+                    "BOOKING",
+                    "Bus Booked",
+                    "New booking created for " + schedule.getRoute().getSource() + " to " + schedule.getRoute().getDestination()
+            );
+        });
+
+        // Notify accepted trip members if attached to a trip
+        if (booking.getTravelerTripId() != null) {
+            tripRepository.findById(booking.getTravelerTripId()).ifPresent(trip -> {
+                tripMemberRepository.findByTripIdAndMemberStatus(booking.getTravelerTripId(), TripMemberStatus.ACCEPTED).stream()
+                        .forEach(m -> notificationService.createNotification(
+                                m.getUser().getId().toString(),
+                                "BOOKING",
+                                "Bus Booked",
+                                "Bus " + schedule.getRoute().getSource() + " to " + schedule.getRoute().getDestination() + " has been booked for trip " + trip.getTripName()
+                        ));
+            });
+        }
 
         return bookingMapper.toResponse(booking);
     }

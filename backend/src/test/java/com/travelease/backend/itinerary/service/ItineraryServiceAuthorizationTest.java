@@ -7,6 +7,7 @@ import com.travelease.backend.itinerary.dto.ItineraryRequest;
 import com.travelease.backend.itinerary.dto.ItineraryResponse;
 import com.travelease.backend.itinerary.entity.Itinerary;
 import com.travelease.backend.itinerary.mapper.ItineraryMapper;
+import com.travelease.backend.itinerary.repository.ActivityRepository;
 import com.travelease.backend.itinerary.repository.ItineraryRepository;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
@@ -45,6 +46,8 @@ class ItineraryServiceAuthorizationTest {
     private TripMemberRepository tripMemberRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private ActivityRepository activityRepository;
 
     private ItineraryService itineraryService;
 
@@ -52,7 +55,7 @@ class ItineraryServiceAuthorizationTest {
     void setUp() {
         itineraryService = new ItineraryService();
         ReflectionTestUtils.setField(itineraryService, "itineraryRepository", itineraryRepository);
-        ReflectionTestUtils.setField(itineraryService, "itineraryMapper", new ItineraryMapper());
+        ReflectionTestUtils.setField(itineraryService, "itineraryMapper", new ItineraryMapper(activityRepository));
         ReflectionTestUtils.setField(itineraryService, "tripRepository", tripRepository);
         ReflectionTestUtils.setField(itineraryService, "tripAuthorizationService",
                 new TripAuthorizationService(tripMemberRepository));

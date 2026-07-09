@@ -1,18 +1,10 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideIcons } from '@ng-icons/core';
-import {
-  lucideActivity,
-  lucideBus,
-  lucideCheck,
-  lucideFileText,
-  lucideHotel,
-  lucideX,
-} from '@ng-icons/lucide';
-import { pendingApprovals } from '@app/core/mock-data';
-import {
-  AdminApprovals,
-  iconForApprovalType,
-} from '@app/features/admin/components/admin-approvals/admin-approvals';
+import { lucideActivity, lucideBus, lucideCheck, lucideHotel, lucideX } from '@ng-icons/lucide';
+import { API_BASE_URL } from '@app/core/api/api-config';
+import { AdminApprovals, iconForApprovalType } from '@app/features/admin/components/admin-approvals/admin-approvals';
 
 describe('iconForApprovalType', () => {
   it('maps Hotel, Transport, and Activity to their icons', () => {
@@ -23,31 +15,73 @@ describe('iconForApprovalType', () => {
 });
 
 describe('AdminApprovals', () => {
-  beforeEach(async () => {
+  async function setup() {
     await TestBed.configureTestingModule({
       imports: [AdminApprovals],
       providers: [
-        provideIcons({ lucideActivity, lucideBus, lucideCheck, lucideFileText, lucideHotel, lucideX }),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideIcons({ lucideActivity, lucideBus, lucideCheck, lucideHotel, lucideX }),
       ],
     }).compileComponents();
-  });
 
-  it('computes all 4 stat counts from pendingApprovals', () => {
     const fixture = TestBed.createComponent(AdminApprovals);
-    const c = fixture.componentInstance;
-    expect(c.pendingCount).toBe(pendingApprovals.length);
-    expect(c.hotelCount).toBe(pendingApprovals.filter((p) => p.type === 'Hotel').length);
-    expect(c.transportCount).toBe(pendingApprovals.filter((p) => p.type === 'Transport').length);
-    expect(c.activityCount).toBe(pendingApprovals.filter((p) => p.type === 'Activity').length);
-  });
+    const http = TestBed.inject(HttpTestingController);
+    return { fixture, http };
+  }
 
-  it('renders every approval name and city', () => {
-    const fixture = TestBed.createComponent(AdminApprovals);
+  const pendingResponse = {
+    success: true,
+    message: 'Pending partners retrieved',
+    error: null,
+    data: [
+      { id: 'p1', name: 'Coral Reef Resort', email: 'coral@example.com', role: 'ROLE_HOTEL_PROVIDER', createdAt: '2026-06-08T09:00:00' },
+      { id: 'p2', name: 'MountainLine Buses', email: 'mountainline@example.com', role: 'ROLE_PROVIDER', createdAt: '2026-06-10T09:00:00' },
+    ],
+  };
+
+  it('loads pending partners and renders the stat counts and rows', async () => {
+    const { fixture, http } = await setup();
     fixture.detectChanges();
+
+    http.expectOne(`${API_BASE_URL}/api/admin/partners/pending`).flush(pendingResponse);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    const c = fixture.componentInstance;
+    expect(c.pendingCount()).toBe(2);
+    expect(c.hotelCount()).toBe(1);
+    expect(c.transportCount()).toBe(1);
+    expect(c.activityCount()).toBe(0);
+
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const p of pendingApprovals) {
-      expect(text).toContain(p.name);
-      expect(text).toContain(p.city);
-    }
+    expect(text).toContain('Coral Reef Resort');
+    expect(text).toContain('MountainLine Buses');
+
+    http.verify();
+  });
+
+  it('approves a partner and removes it from the pending list', async () => {
+    const { fixture, http } = await setup();
+    fixture.detectChanges();
+    http.expectOne(`${API_BASE_URL}/api/admin/partners/pending`).flush(pendingResponse);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    const approveButtons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ).filter((b) => b.textContent?.includes('Approve'));
+    approveButtons[0].dispatchEvent(new Event('click'));
+
+    const approveReq = http.expectOne(`${API_BASE_URL}/api/admin/partners/p1/approve`);
+    expect(approveReq.request.method).toBe('PUT');
+    approveReq.flush({ success: true, data: null, message: 'Partner approved', error: null });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.approvals()).toHaveLength(1);
+    expect(fixture.componentInstance.approvals()[0].id).toBe('p2');
+
+    http.verify();
   });
 });

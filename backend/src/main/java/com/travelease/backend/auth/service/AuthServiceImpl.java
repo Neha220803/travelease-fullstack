@@ -3,9 +3,11 @@ package com.travelease.backend.auth.service;
 import com.travelease.backend.auth.dto.LoginRequest;
 import com.travelease.backend.auth.dto.LoginResponse;
 import com.travelease.backend.auth.dto.UserResponse;
+import com.travelease.backend.auth.entity.ApprovalStatus;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.security.JwtService;
+import com.travelease.backend.shared.exception.AccountNotApprovedException;
 import com.travelease.backend.shared.exception.InvalidCredentialsException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,13 @@ public class AuthServiceImpl implements AuthService {
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        if (user.getStatus() == ApprovalStatus.PENDING) {
+            throw new AccountNotApprovedException("Your partner account is awaiting admin approval");
+        }
+        if (user.getStatus() == ApprovalStatus.REJECTED) {
+            throw new AccountNotApprovedException("Your partner application was rejected");
         }
 
         String token = jwtService.generateToken(user.getEmail());

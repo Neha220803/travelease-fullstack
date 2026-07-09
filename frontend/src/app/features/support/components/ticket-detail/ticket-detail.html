@@ -1,0 +1,34 @@
+<a hlmBtn variant="ghost" size="sm" class="mb-3" routerLink="/support/tickets">
+  <ng-icon name="lucideArrowLeft" class="h-4 w-4 mr-1" />Back to my tickets
+</a>
+
+@if (loading()) {
+  <p class="text-sm text-muted-foreground py-6">Loading ticket…</p>
+} @else if (notFound()) {
+  <p class="text-sm text-destructive py-6">Ticket not found.</p>
+} @else if (detail(); as d) {
+  <app-page-header [title]="d.ticket.subject" [subtitle]="d.ticket.category + ' · Raised ' + (d.ticket.createdAt | date: 'medium')" />
+  <div class="flex items-center gap-2 mt-2">
+    <app-status-badge [status]="d.ticket.status" />
+  </div>
+
+  <div hlmCard class="mt-4">
+    <div hlmCardContent class="pt-6">
+      <p class="text-sm whitespace-pre-line">{{ d.ticket.description }}</p>
+    </div>
+  </div>
+
+  <h2 class="text-sm font-semibold mt-6 mb-2">Replies</h2>
+  @if (d.replies.length === 0) {
+    <p class="text-sm text-muted-foreground">No replies yet.</p>
+  } @else {
+    <div class="space-y-3">
+      @for (reply of d.replies; track reply.replyId) {
+        <div hlmCard class="p-4">
+          <p class="text-sm">{{ reply.message }}</p>
+          <p class="text-xs text-muted-foreground mt-2">{{ reply.createdAt | date: 'medium' }}</p>
+        </div>
+      }
+    </div>
+  }
+}

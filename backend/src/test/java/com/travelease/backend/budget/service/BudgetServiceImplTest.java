@@ -82,7 +82,7 @@ class BudgetServiceImplTest {
         User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
         User bob = user("bob@travelease.test", Role.ROLE_TRAVELER);
         Trip trip = trip(alice);
-        when(tripRepository.existsById(trip.getId())).thenReturn(true);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         // An INVITED row exists for bob, but the ACCEPTED-filtered lookup correctly
         // finds nothing for it.
         when(tripMemberRepository.findByTripIdAndUserEmailAndMemberStatus(
@@ -97,7 +97,7 @@ class BudgetServiceImplTest {
         User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
         User cara = user("cara@travelease.test", Role.ROLE_TRAVELER);
         Trip trip = trip(alice);
-        when(tripRepository.existsById(trip.getId())).thenReturn(true);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.findByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), cara.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(Optional.empty());
 
@@ -111,7 +111,7 @@ class BudgetServiceImplTest {
         User bob = user("bob@travelease.test", Role.ROLE_TRAVELER);
         Trip trip = trip(alice);
         TripMember bobMembership = membership(trip, bob, TripMemberStatus.ACCEPTED);
-        when(tripRepository.existsById(trip.getId())).thenReturn(true);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.findByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), bob.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(Optional.of(bobMembership));
 
@@ -127,7 +127,7 @@ class BudgetServiceImplTest {
         User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
         Trip trip = trip(alice);
         TripMember organizerMembership = membership(trip, alice, TripMemberStatus.ACCEPTED);
-        when(tripRepository.existsById(trip.getId())).thenReturn(true);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.findByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(Optional.of(organizerMembership));
 
@@ -141,7 +141,7 @@ class BudgetServiceImplTest {
         User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
         User eve = user("eve@travelease.test", Role.ROLE_TRAVELER);
         Trip trip = trip(alice);
-        when(tripRepository.existsById(trip.getId())).thenReturn(true);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.findByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), eve.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(Optional.empty());
 
@@ -152,7 +152,7 @@ class BudgetServiceImplTest {
     @Test
     void nonexistentTripReturnsNotFound() {
         UUID tripId = UUID.randomUUID();
-        when(tripRepository.existsById(tripId)).thenReturn(false);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> budgetService.getMyBudget(tripId, "anyone@travelease.test"))
                 .isInstanceOf(ResourceNotFoundException.class);
