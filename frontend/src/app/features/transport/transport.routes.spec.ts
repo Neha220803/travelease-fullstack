@@ -2,8 +2,10 @@ import { AppShell } from '@app/shared/layout/app-shell/app-shell';
 import { authGuard } from '@app/core/auth/auth.guard';
 import { TransportDashboard } from '@app/features/transport/components/transport-dashboard/transport-dashboard';
 import { ManageVehicles } from '@app/features/transport/components/manage-vehicles/manage-vehicles';
-import { ManageRoutes } from '@app/features/transport/components/manage-routes/manage-routes';
-import { TransportBookings } from '@app/features/transport/components/transport-bookings/transport-bookings';
+import { StaffManagement } from '@app/features/transport/components/staff-management/staff-management';
+import { ManageSchedules } from '@app/features/transport/components/manage-schedules/manage-schedules';
+import { BusTrips } from '@app/features/transport/components/bus-trips/bus-trips';
+import { BookingAnalytics } from '@app/features/transport/components/booking-analytics/booking-analytics';
 import { TransportReports } from '@app/features/transport/components/transport-reports/transport-reports';
 import { TRANSPORT_ROUTES } from './transport.routes';
 
@@ -23,7 +25,9 @@ describe('TRANSPORT_ROUTES', () => {
     expect(children.map((r) => r.path)).toEqual([
       '',
       'vehicles',
-      'routes',
+      'staff',
+      'schedules',
+      'trips',
       'bookings',
       'reports',
     ]);
@@ -34,8 +38,10 @@ describe('TRANSPORT_ROUTES', () => {
     const expected = [
       TransportDashboard,
       ManageVehicles,
-      ManageRoutes,
-      TransportBookings,
+      StaffManagement,
+      ManageSchedules,
+      BusTrips,
+      BookingAnalytics,
       TransportReports,
     ];
     for (let i = 0; i < children.length; i++) {

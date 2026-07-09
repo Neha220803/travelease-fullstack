@@ -1,22 +1,325 @@
-<app-page-header title="Manage Vehicles" subtitle="Fleet inventory and status.">
-  <button hlmBtn action>
-    <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Vehicle
-  </button>
-</app-page-header>
+<app-page-header title="Vehicles" subtitle="Fleet inventory, status, and maintenance." />
 
-<div class="grid md:grid-cols-2 gap-4">
-  @for (v of vehicles; track v.id) {
-    <div hlmCard>
-      <div hlmCardContent class="pt-5 flex items-center gap-4">
-        <div class="h-12 w-12 rounded-md bg-primary/10 text-primary grid place-items-center">
-          <ng-icon name="lucideBus" class="h-6 w-6" />
-        </div>
-        <div class="flex-1">
-          <p class="font-medium">{{ v.name }}</p>
-          <p class="text-xs text-muted-foreground">{{ v.reg }} · {{ v.capacity }} seats</p>
-        </div>
-        <app-status-badge [status]="v.status" />
+<div hlmTabs [tab]="activeTab()" (tabActivated)="activeTab.set($event)" class="w-full">
+  <div hlmTabsList aria-label="Vehicles sections" class="bg-muted/50 p-1">
+    <button [hlmTabsTrigger]="'fleet'">Fleet</button>
+    <button [hlmTabsTrigger]="'maintenance'">Maintenance</button>
+  </div>
+
+  <div [hlmTabsContent]="'fleet'" class="mt-6">
+    <div class="flex justify-end mb-4">
+      <button hlmBtn (click)="openCreate()">
+        <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Vehicle
+      </button>
+    </div>
+
+    @if (loading()) {
+      <p class="text-muted-foreground">Loading fleet…</p>
+    } @else if (error()) {
+      <div hlmCard class="p-6 text-center">
+        <p class="text-destructive mb-4">{{ error() }}</p>
+        <button class="text-sm underline text-primary" (click)="load()">Retry</button>
+      </div>
+    } @else if (buses().length === 0) {
+      <p class="text-muted-foreground">No vehicles yet. Add your first bus to get started.</p>
+    } @else {
+      <div hlmCard>
+        <table hlmTable>
+          <thead hlmTHead>
+            <tr hlmTr>
+              <th hlmTh>Bus Number</th>
+              <th hlmTh>Name</th>
+              <th hlmTh>Seats</th>
+              <th hlmTh>Type</th>
+              <th hlmTh>Status</th>
+              <th hlmTh></th>
+            </tr>
+          </thead>
+          <tbody hlmTBody>
+            @for (bus of buses(); track bus.id) {
+              <tr hlmTr>
+                <td hlmTd>{{ bus.busNumber }}</td>
+                <td hlmTd>{{ bus.busName }}</td>
+                <td hlmTd>{{ bus.totalSeats }}</td>
+                <td hlmTd>{{ bus.busType }}</td>
+                <td hlmTd><app-status-badge [status]="bus.status" /></td>
+                <td hlmTd class="text-right space-x-2">
+                  <button hlmBtn variant="ghost" size="sm" (click)="openEdit(bus)">Edit</button>
+                  <button hlmBtn variant="ghost" size="sm" class="text-destructive" (click)="confirmDelete(bus)">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <div [hlmTabsContent]="'maintenance'" class="mt-6">
+    <div class="flex justify-end mb-4">
+      <button hlmBtn (click)="openScheduleMaintenance()">
+        <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Schedule Maintenance
+      </button>
+    </div>
+
+    @if (maintenanceLoading()) {
+      <p class="text-muted-foreground">Loading maintenance…</p>
+    } @else if (maintenanceError()) {
+      <div hlmCard class="p-6 text-center">
+        <p class="text-destructive mb-4">{{ maintenanceError() }}</p>
+        <button class="text-sm underline text-primary" (click)="loadMaintenance()">Retry</button>
+      </div>
+    } @else if (maintenanceRecords().length === 0) {
+      <p class="text-muted-foreground">No maintenance records yet.</p>
+    } @else {
+      <div hlmCard>
+        <table hlmTable>
+          <thead hlmTHead>
+            <tr hlmTr>
+              <th hlmTh>Bus</th>
+              <th hlmTh>Type</th>
+              <th hlmTh>Scheduled</th>
+              <th hlmTh>Cost</th>
+              <th hlmTh>Status</th>
+              <th hlmTh></th>
+            </tr>
+          </thead>
+          <tbody hlmTBody>
+            @for (m of maintenanceRecords(); track m.id) {
+              <tr hlmTr>
+                <td hlmTd>{{ m.busNumber }}</td>
+                <td hlmTd>{{ m.maintenanceType }}</td>
+                <td hlmTd>{{ m.scheduledDate }}</td>
+                <td hlmTd>₹{{ m.cost }}</td>
+                <td hlmTd><app-status-badge [status]="m.status" /></td>
+                <td hlmTd class="text-right space-x-2">
+                  @for (action of validActions(m.status); track action) {
+                    @if (action === 'START') {
+                      <button hlmBtn variant="ghost" size="sm" (click)="transitionMaintenance(m.id, { status: 'IN_PROGRESS' })">
+                        Start
+                      </button>
+                    } @else if (action === 'COMPLETE') {
+                      <button hlmBtn variant="ghost" size="sm" (click)="openComplete(m)">Complete</button>
+                    } @else if (action === 'CANCEL') {
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="sm"
+                        class="text-destructive"
+                        (click)="transitionMaintenance(m.id, { status: 'CANCELLED' })"
+                      >
+                        Cancel
+                      </button>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<hlm-sheet [state]="sheetOpen() ? 'open' : 'closed'" (stateChanged)="onSheetStateChanged($event)">
+  <hlm-sheet-content *brnSheetContent="let ctx" class="flex flex-col gap-0">
+    <div hlmSheetHeader>
+      <h3 hlmSheetTitle>{{ editingBus() ? 'Edit Vehicle' : 'Add Vehicle' }}</h3>
+      <p hlmSheetDescription>
+        {{ editingBus() ? 'Update this bus\'s details.' : 'Add a new bus to your fleet.' }}
+      </p>
+    </div>
+    <form
+      class="flex-1 overflow-y-auto px-4 space-y-4"
+      (submit)="onSubmit($event, busNumberInput.value, busNameInput.value, totalSeatsInput.value, amenitiesInput.value)"
+    >
+      <div class="space-y-2">
+        <label hlmLabel for="bus-number">Bus Number</label>
+        <input hlmInput id="bus-number" placeholder="KA-01-AB-1234" [value]="editingBus()?.busNumber ?? ''" #busNumberInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="bus-name">Bus Name</label>
+        <input hlmInput id="bus-name" placeholder="Volvo Sleeper" [value]="editingBus()?.busName ?? ''" #busNameInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="total-seats">Total Seats</label>
+        <input
+          hlmInput
+          id="total-seats"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="40"
+          [value]="editingBus()?.totalSeats ?? ''"
+          #totalSeatsInput
+        />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel>Bus Type</label>
+        <hlm-select [value]="selectedBusType()" (valueChange)="onBusTypeChange($event)">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (t of busTypes; track t) {
+                <hlm-select-item [value]="t">{{ t }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="amenities">Amenities</label>
+        <input
+          hlmInput
+          id="amenities"
+          placeholder="WIFI, CHARGING_POINT"
+          [value]="editingBus()?.amenities?.join(', ') ?? ''"
+          #amenitiesInput
+        />
+        <p class="text-xs text-muted-foreground">Comma-separated list.</p>
+      </div>
+      @if (formError()) {
+        <p class="text-xs text-destructive whitespace-pre-line">{{ formError() }}</p>
+      }
+      <div hlmSheetFooter>
+        <button hlmBtn type="submit" [disabled]="submitting()">
+          {{ editingBus() ? 'Save Changes' : 'Add Vehicle' }}
+        </button>
+        <button hlmBtn variant="outline" type="button" hlmSheetClose>Cancel</button>
+      </div>
+    </form>
+  </hlm-sheet-content>
+</hlm-sheet>
+
+<hlm-alert-dialog [state]="deleteTarget() ? 'open' : 'closed'" (stateChanged)="onDeleteDialogStateChanged($event)">
+  <hlm-alert-dialog-content *brnAlertDialogContent="let ctx">
+    <div hlmAlertDialogHeader>
+      <h3 hlmAlertDialogTitle>Delete vehicle?</h3>
+      <p hlmAlertDialogDescription>
+        This will deactivate bus {{ deleteTarget()?.busNumber }} ({{ deleteTarget()?.busName }}). This action cannot
+        be undone.
+      </p>
+    </div>
+    <div hlmAlertDialogFooter>
+      <button hlmAlertDialogCancel [disabled]="deleting()">Cancel</button>
+      <button hlmAlertDialogAction variant="destructive" [disabled]="deleting()" (click)="deleteBus()">Delete</button>
+    </div>
+  </hlm-alert-dialog-content>
+</hlm-alert-dialog>
+
+<hlm-sheet [state]="maintenanceSheetOpen() ? 'open' : 'closed'" (stateChanged)="onMaintenanceSheetStateChanged($event)">
+  <hlm-sheet-content *brnSheetContent="let ctx" class="flex flex-col gap-0">
+    <div hlmSheetHeader>
+      <h3 hlmSheetTitle>Schedule Maintenance</h3>
+      <p hlmSheetDescription>Schedule a maintenance record for a bus in your fleet.</p>
+    </div>
+    <form
+      class="flex-1 overflow-y-auto px-4 space-y-4"
+      (submit)="
+        onMaintenanceSubmit(
+          $event,
+          maintenanceTypeInput.value,
+          scheduledDateInput.value,
+          estimatedCostInput.value,
+          descriptionInput.value,
+          performedByInput.value,
+          nextMaintenanceDateInput.value
+        )
+      "
+    >
+      <p class="text-xs text-warning bg-warning/10 border border-warning/20 rounded-md p-2">
+        Scheduling this will set the bus's status to Maintenance until this record is completed or cancelled.
+      </p>
+      <div class="space-y-2">
+        <label hlmLabel>Bus</label>
+        <hlm-select [value]="selectedMaintenanceBusId()" (valueChange)="onMaintenanceBusChange($event)">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (bus of buses(); track bus.id) {
+                <hlm-select-item [value]="bus.id + ''">{{ bus.busNumber }} — {{ bus.busName }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="maintenance-type">Maintenance Type</label>
+        <input
+          hlmInput
+          id="maintenance-type"
+          list="maintenance-type-suggestions"
+          placeholder="OIL_CHANGE"
+          #maintenanceTypeInput
+        />
+        <datalist id="maintenance-type-suggestions">
+          @for (t of suggestedMaintenanceTypes; track t) {
+            <option [value]="t"></option>
+          }
+        </datalist>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="maintenance-scheduled-date">Scheduled Date</label>
+        <input hlmInput id="maintenance-scheduled-date" type="date" #scheduledDateInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="maintenance-estimated-cost">Estimated Cost</label>
+        <input hlmInput id="maintenance-estimated-cost" type="number" min="0" step="0.01" placeholder="0.00" #estimatedCostInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="maintenance-description">Description</label>
+        <input hlmInput id="maintenance-description" placeholder="Optional notes" #descriptionInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="maintenance-performed-by">Performed By</label>
+        <input hlmInput id="maintenance-performed-by" placeholder="Optional" #performedByInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="maintenance-next-date">Next Maintenance Date</label>
+        <input hlmInput id="maintenance-next-date" type="date" #nextMaintenanceDateInput />
+      </div>
+      @if (maintenanceFormError()) {
+        <p class="text-xs text-destructive whitespace-pre-line">{{ maintenanceFormError() }}</p>
+      }
+      <div hlmSheetFooter>
+        <button hlmBtn type="submit" [disabled]="maintenanceSubmitting()">Schedule Maintenance</button>
+        <button hlmBtn variant="outline" type="button" hlmSheetClose>Cancel</button>
+      </div>
+    </form>
+  </hlm-sheet-content>
+</hlm-sheet>
+
+<hlm-alert-dialog [state]="completeTarget() ? 'open' : 'closed'" (stateChanged)="onCompleteDialogStateChanged($event)">
+  <hlm-alert-dialog-content *brnAlertDialogContent="let ctx">
+    <div hlmAlertDialogHeader>
+      <h3 hlmAlertDialogTitle>Complete maintenance?</h3>
+      <p hlmAlertDialogDescription>
+        Record the final cost and completion date for {{ completeTarget()?.busNumber }} —
+        {{ completeTarget()?.maintenanceType }}.
+      </p>
+    </div>
+    <div class="space-y-4 px-1">
+      <div class="space-y-2">
+        <label hlmLabel for="complete-cost">Final Cost</label>
+        <input hlmInput id="complete-cost" type="number" min="0" step="0.01" [value]="completeTarget()?.cost ?? 0" #completeCostInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="complete-date">Completed Date</label>
+        <input hlmInput id="complete-date" type="date" #completeDateInput />
       </div>
     </div>
-  }
-</div>
+    <div hlmAlertDialogFooter>
+      <button hlmAlertDialogCancel [disabled]="completing()">Cancel</button>
+      <button
+        hlmAlertDialogAction
+        [disabled]="completing()"
+        (click)="confirmComplete(completeCostInput.value, completeDateInput.value)"
+      >
+        Complete
+      </button>
+    </div>
+  </hlm-alert-dialog-content>
+</hlm-alert-dialog>

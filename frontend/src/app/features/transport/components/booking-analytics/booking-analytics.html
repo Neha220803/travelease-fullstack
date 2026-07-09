@@ -1,0 +1,41 @@
+<app-page-header title="Booking Analytics" subtitle="Aggregate booking and revenue trends for your fleet." />
+
+@if (loading()) {
+  <p class="text-muted-foreground">Loading booking analytics…</p>
+} @else if (error()) {
+  <div hlmCard class="p-6 text-center">
+    <p class="text-destructive mb-4">{{ error() }}</p>
+    <button class="text-sm underline text-primary" (click)="load()">Retry</button>
+  </div>
+} @else {
+  @if (bookingAnalytics(); as b) {
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Total Bookings</p><p class="text-2xl font-semibold">{{ b.totalBookings }}</p></div></div>
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Confirmed</p><p class="text-2xl font-semibold">{{ b.confirmedBookings }}</p></div></div>
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Cancelled</p><p class="text-2xl font-semibold">{{ b.cancelledBookings }}</p></div></div>
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Cancellation Rate</p><p class="text-2xl font-semibold">{{ b.cancellationRate }}%</p></div></div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div hlmCard>
+        <div hlmCardHeader><h3 hlmCardTitle>Booking Growth</h3></div>
+        <div hlmCardContent><app-echart [options]="trendOptions(b.bookingGrowth)" height="220px" /></div>
+      </div>
+      <div hlmCard>
+        <div hlmCardHeader><h3 hlmCardTitle>Booking Status Distribution</h3></div>
+        <div hlmCardContent><app-echart [options]="trendOptions(b.bookingStatusDistribution)" height="220px" /></div>
+      </div>
+    </div>
+  }
+  @if (revenueAnalytics(); as r) {
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Range Revenue</p><p class="text-2xl font-semibold">₹{{ r.rangeRevenue }}</p></div></div>
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Revenue Growth</p><p class="text-2xl font-semibold">{{ r.revenueGrowthPercent }}%</p></div></div>
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Avg Booking Value</p><p class="text-2xl font-semibold">₹{{ r.averageBookingValue }}</p></div></div>
+      <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Avg Fare</p><p class="text-2xl font-semibold">₹{{ r.averageFare }}</p></div></div>
+    </div>
+    <div hlmCard>
+      <div hlmCardHeader><h3 hlmCardTitle>Daily Revenue Trend</h3></div>
+      <div hlmCardContent><app-echart [options]="trendOptions(r.dailyRevenueTrend)" height="220px" /></div>
+    </div>
+  }
+}

@@ -23,17 +23,29 @@ export const TRANSPORT_ROUTES: Routes = [
           ),
       },
       {
-        path: 'routes',
+        path: 'staff',
         loadComponent: () =>
-          import('@app/features/transport/components/manage-routes/manage-routes').then(
-            (m) => m.ManageRoutes,
+          import('@app/features/transport/components/staff-management/staff-management').then(
+            (m) => m.StaffManagement,
           ),
+      },
+      {
+        path: 'schedules',
+        loadComponent: () =>
+          import('@app/features/transport/components/manage-schedules/manage-schedules').then(
+            (m) => m.ManageSchedules,
+          ),
+      },
+      {
+        path: 'trips',
+        loadComponent: () =>
+          import('@app/features/transport/components/bus-trips/bus-trips').then((m) => m.BusTrips),
       },
       {
         path: 'bookings',
         loadComponent: () =>
-          import('@app/features/transport/components/transport-bookings/transport-bookings').then(
-            (m) => m.TransportBookings,
+          import('@app/features/transport/components/booking-analytics/booking-analytics').then(
+            (m) => m.BookingAnalytics,
           ),
       },
       {

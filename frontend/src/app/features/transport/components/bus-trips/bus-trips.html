@@ -1,0 +1,226 @@
+<app-page-header title="Bus Trips" subtitle="Operational execution of your scheduled trips.">
+  <button hlmBtn action (click)="openAssignCrew()">
+    <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Assign Crew
+  </button>
+</app-page-header>
+
+@if (availability(); as a) {
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Total Buses</p><p class="text-2xl font-semibold">{{ a.totalBuses }}</p></div></div>
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Active Buses</p><p class="text-2xl font-semibold">{{ a.activeBuses }}</p></div></div>
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Maintenance Buses</p><p class="text-2xl font-semibold">{{ a.maintenanceBuses }}</p></div></div>
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Inactive Buses</p><p class="text-2xl font-semibold">{{ a.inactiveBuses }}</p></div></div>
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Available Drivers</p><p class="text-2xl font-semibold">{{ a.availableDrivers }}</p></div></div>
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Available Conductors</p><p class="text-2xl font-semibold">{{ a.availableConductors }}</p></div></div>
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Active Trips</p><p class="text-2xl font-semibold">{{ a.activeTrips }}</p></div></div>
+    <div hlmCard><div hlmCardContent class="pt-5"><p class="text-xs text-muted-foreground">Scheduled Trips</p><p class="text-2xl font-semibold">{{ a.scheduledTrips }}</p></div></div>
+  </div>
+}
+
+@if (loading()) {
+  <p class="text-muted-foreground">Loading trips…</p>
+} @else if (error()) {
+  <div hlmCard class="p-6 text-center">
+    <p class="text-destructive mb-4">{{ error() }}</p>
+    <button class="text-sm underline text-primary" (click)="load()">Retry</button>
+  </div>
+} @else if (trips().length === 0) {
+  <p class="text-muted-foreground">No operational trips yet. Assign crew to a scheduled trip to get started.</p>
+} @else {
+  <div hlmCard class="overflow-x-auto">
+    <table hlmTable>
+      <thead hlmTHead>
+        <tr hlmTr>
+          <th hlmTh>Route</th>
+          <th hlmTh>Travel Date</th>
+          <th hlmTh>Bus</th>
+          <th hlmTh>Driver</th>
+          <th hlmTh>Conductor</th>
+          <th hlmTh>Status</th>
+          <th hlmTh>Delay</th>
+          <th hlmTh>Departed</th>
+          <th hlmTh>Arrived</th>
+          <th hlmTh></th>
+        </tr>
+      </thead>
+      <tbody hlmTBody>
+        @for (t of trips(); track t.id) {
+          <tr hlmTr>
+            <td hlmTd>{{ routeLabel(t) }}</td>
+            <td hlmTd>{{ travelDate(t) }}</td>
+            <td hlmTd>{{ t.busNumber }} — {{ t.busName }}</td>
+            <td hlmTd>{{ t.driverName ?? '—' }}</td>
+            <td hlmTd>{{ t.conductorName ?? '—' }}</td>
+            <td hlmTd><app-status-badge [status]="t.status" /></td>
+            <td hlmTd>{{ t.status === 'DELAYED' ? t.delayMinutes + ' min' : '—' }}</td>
+            <td hlmTd>{{ t.actualDepartureTime ?? '—' }}</td>
+            <td hlmTd>{{ t.actualArrivalTime ?? '—' }}</td>
+            <td hlmTd class="text-right space-x-2 whitespace-nowrap">
+              @for (action of validActions(t.status); track action) {
+                @if (action === 'BOARDING') {
+                  <button hlmBtn variant="ghost" size="sm" (click)="transition(t, 'BOARDING')">Start Boarding</button>
+                } @else if (action === 'DEPARTED') {
+                  <button hlmBtn variant="ghost" size="sm" (click)="transition(t, 'DEPARTED')">Mark Departed</button>
+                } @else if (action === 'RUNNING') {
+                  <button hlmBtn variant="ghost" size="sm" (click)="transition(t, 'RUNNING')">Mark Running</button>
+                } @else if (action === 'DELAYED') {
+                  <button hlmBtn variant="ghost" size="sm" (click)="openDelay(t)">Mark Delayed</button>
+                } @else if (action === 'ARRIVED') {
+                  <button hlmBtn variant="ghost" size="sm" (click)="transition(t, 'ARRIVED')">Mark Arrived</button>
+                } @else if (action === 'COMPLETED') {
+                  <button hlmBtn variant="ghost" size="sm" (click)="openComplete(t)">Complete</button>
+                } @else if (action === 'CANCELLED') {
+                  <button hlmBtn variant="ghost" size="sm" class="text-destructive" (click)="openCancel(t)">Cancel</button>
+                }
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<hlm-sheet [state]="assignSheetOpen() ? 'open' : 'closed'" (stateChanged)="onAssignSheetStateChanged($event)">
+  <hlm-sheet-content *brnSheetContent="let ctx" class="flex flex-col gap-0">
+    <div hlmSheetHeader>
+      <h3 hlmSheetTitle>Assign Crew</h3>
+      <p hlmSheetDescription>Assign a bus's driver and conductor to one of your scheduled trips.</p>
+    </div>
+    <form class="flex-1 overflow-y-auto px-4 space-y-4" (submit)="onAssignSubmit($event, notesInput.value)">
+      <div class="space-y-2">
+        <label hlmLabel>Schedule</label>
+        <hlm-select [value]="selectedScheduleId()" (valueChange)="onScheduleChange($event)">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (s of assignableSchedules(); track s.id) {
+                <hlm-select-item [value]="s.id + ''">
+                  {{ s.route.source }} → {{ s.route.destination }} · {{ s.travelDate }} · {{ s.bus.busNumber }}
+                </hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+        @if (assignableSchedules().length === 0) {
+          <p class="text-xs text-muted-foreground">No scheduled trips available to assign crew to.</p>
+        }
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel>Driver (optional)</label>
+        <hlm-select [value]="selectedDriverId()" (valueChange)="onDriverChange($event)">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              <hlm-select-item value="">None</hlm-select-item>
+              @for (d of availableDrivers(); track d.id) {
+                <hlm-select-item [value]="d.id + ''">{{ d.name }} — {{ d.licenseNumber }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel>Conductor (optional)</label>
+        <hlm-select [value]="selectedConductorId()" (valueChange)="onConductorChange($event)">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              <hlm-select-item value="">None</hlm-select-item>
+              @for (c of availableConductors(); track c.id) {
+                <hlm-select-item [value]="c.id + ''">{{ c.name }} — {{ c.employeeId }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="assign-notes">Notes (optional)</label>
+        <input hlmInput id="assign-notes" placeholder="Optional notes" #notesInput />
+      </div>
+      @if (assignFormError()) {
+        <p class="text-xs text-destructive whitespace-pre-line">{{ assignFormError() }}</p>
+      }
+      <div hlmSheetFooter>
+        <button hlmBtn type="submit" [disabled]="assignSubmitting()">Assign Crew</button>
+        <button hlmBtn variant="outline" type="button" hlmSheetClose>Cancel</button>
+      </div>
+    </form>
+  </hlm-sheet-content>
+</hlm-sheet>
+
+<hlm-alert-dialog [state]="delayTarget() ? 'open' : 'closed'" (stateChanged)="onDelayDialogStateChanged($event)">
+  <hlm-alert-dialog-content *brnAlertDialogContent="let ctx">
+    <div hlmAlertDialogHeader>
+      <h3 hlmAlertDialogTitle>Mark trip delayed?</h3>
+      <p hlmAlertDialogDescription>
+        Record the delay for {{ delayTarget()?.busNumber }}.
+      </p>
+    </div>
+    <div class="space-y-2 px-1">
+      <label hlmLabel for="delay-minutes">Delay (minutes)</label>
+      <input hlmInput id="delay-minutes" type="number" min="0" step="1" [value]="delayTarget()?.delayMinutes ?? 0" #delayMinutesInput />
+    </div>
+    <div hlmAlertDialogFooter>
+      <button hlmAlertDialogCancel [disabled]="delaySubmitting()">Cancel</button>
+      <button hlmAlertDialogAction [disabled]="delaySubmitting()" (click)="confirmDelay(delayMinutesInput.value)">
+        Mark Delayed
+      </button>
+    </div>
+  </hlm-alert-dialog-content>
+</hlm-alert-dialog>
+
+<hlm-alert-dialog [state]="completeTarget() ? 'open' : 'closed'" (stateChanged)="onCompleteDialogStateChanged($event)">
+  <hlm-alert-dialog-content *brnAlertDialogContent="let ctx">
+    <div hlmAlertDialogHeader>
+      <h3 hlmAlertDialogTitle>Complete trip?</h3>
+      <p hlmAlertDialogDescription>
+        Record the total distance covered for {{ completeTarget()?.busNumber }}.
+      </p>
+    </div>
+    <div class="space-y-2 px-1">
+      <label hlmLabel for="distance-covered">Distance Covered (km)</label>
+      <input
+        hlmInput
+        id="distance-covered"
+        type="number"
+        min="0"
+        step="0.1"
+        [value]="completeTarget()?.distanceCoveredKm ?? 0"
+        #distanceCoveredInput
+      />
+    </div>
+    <div hlmAlertDialogFooter>
+      <button hlmAlertDialogCancel [disabled]="completeSubmitting()">Cancel</button>
+      <button hlmAlertDialogAction [disabled]="completeSubmitting()" (click)="confirmComplete(distanceCoveredInput.value)">
+        Complete
+      </button>
+    </div>
+  </hlm-alert-dialog-content>
+</hlm-alert-dialog>
+
+<hlm-alert-dialog [state]="cancelTarget() ? 'open' : 'closed'" (stateChanged)="onCancelDialogStateChanged($event)">
+  <hlm-alert-dialog-content *brnAlertDialogContent="let ctx">
+    <div hlmAlertDialogHeader>
+      <h3 hlmAlertDialogTitle>Cancel trip?</h3>
+      <p hlmAlertDialogDescription>
+        This will cancel the trip on {{ cancelTarget()?.busNumber }}. This action cannot be undone.
+      </p>
+    </div>
+    <div class="space-y-2 px-1">
+      <label hlmLabel for="cancel-reason">Reason (optional)</label>
+      <input hlmInput id="cancel-reason" placeholder="Optional reason" #cancelReasonInput />
+    </div>
+    <div hlmAlertDialogFooter>
+      <button hlmAlertDialogCancel [disabled]="cancelSubmitting()">Back</button>
+      <button
+        hlmAlertDialogAction
+        variant="destructive"
+        [disabled]="cancelSubmitting()"
+        (click)="confirmCancel(cancelReasonInput.value)"
+      >
+        Cancel Trip
+      </button>
+    </div>
+  </hlm-alert-dialog-content>
+</hlm-alert-dialog>

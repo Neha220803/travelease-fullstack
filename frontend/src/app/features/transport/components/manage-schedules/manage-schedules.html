@@ -1,0 +1,133 @@
+<app-page-header title="Schedules" subtitle="Bookable trips across your fleet and admin-managed routes.">
+  <button hlmBtn action (click)="openCreate()">
+    <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Schedule
+  </button>
+</app-page-header>
+
+@if (loading()) {
+  <p class="text-muted-foreground">Loading schedules…</p>
+} @else if (error()) {
+  <div hlmCard class="p-6 text-center">
+    <p class="text-destructive mb-4">{{ error() }}</p>
+    <button class="text-sm underline text-primary" (click)="load()">Retry</button>
+  </div>
+} @else if (schedules().length === 0) {
+  <p class="text-muted-foreground">No schedules yet. Add one against one of your active buses.</p>
+} @else {
+  <div hlmCard>
+    <table hlmTable>
+      <thead hlmTHead>
+        <tr hlmTr>
+          <th hlmTh>Route</th>
+          <th hlmTh>Bus</th>
+          <th hlmTh>Travel Date</th>
+          <th hlmTh>Departure</th>
+          <th hlmTh>Arrival</th>
+          <th hlmTh>Fare</th>
+          <th hlmTh>Seats</th>
+          <th hlmTh>Status</th>
+          <th hlmTh></th>
+        </tr>
+      </thead>
+      <tbody hlmTBody>
+        @for (s of schedules(); track s.id) {
+          <tr hlmTr>
+            <td hlmTd>{{ s.route.source }} → {{ s.route.destination }}</td>
+            <td hlmTd>{{ s.bus.busNumber }}</td>
+            <td hlmTd>{{ s.travelDate }}</td>
+            <td hlmTd>{{ s.departureTime }}</td>
+            <td hlmTd>{{ s.arrivalTime }}</td>
+            <td hlmTd>₹{{ s.fare }}</td>
+            <td hlmTd>{{ s.availableSeats }}</td>
+            <td hlmTd><app-status-badge [status]="s.status" /></td>
+            <td hlmTd class="text-right space-x-2">
+              <button hlmBtn variant="ghost" size="sm" (click)="openEdit(s)">Edit</button>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="sm"
+                class="text-destructive"
+                [disabled]="!canCancel(s)"
+                (click)="cancelSchedule(s.id)"
+              >
+                Cancel
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<hlm-sheet [state]="sheetOpen() ? 'open' : 'closed'" (stateChanged)="onSheetStateChanged($event)">
+  <hlm-sheet-content *brnSheetContent="let ctx" class="flex flex-col gap-0">
+    <div hlmSheetHeader>
+      <h3 hlmSheetTitle>{{ editingSchedule() ? 'Edit Schedule' : 'Add Schedule' }}</h3>
+      <p hlmSheetDescription>
+        {{ editingSchedule() ? 'Update this schedule\'s details.' : 'Create a new bookable trip on one of your active buses.' }}
+      </p>
+    </div>
+    <form
+      class="flex-1 overflow-y-auto px-4 space-y-4"
+      (submit)="onSubmit($event, travelDateInput.value, departureTimeInput.value, arrivalTimeInput.value, fareInput.value)"
+    >
+      @if (editingSchedule()) {
+        <p class="text-xs text-warning bg-warning/10 border border-warning/20 rounded-md p-2">
+          Saving changes resets available seats to this bus's full capacity.
+        </p>
+      }
+      <div class="space-y-2">
+        <label hlmLabel>Route</label>
+        <hlm-select [value]="selectedRouteId()" (valueChange)="onRouteChange($event)">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (r of activeRoutes(); track r.id) {
+                <hlm-select-item [value]="r.id + ''">{{ r.source }} → {{ r.destination }} · {{ r.distanceKm ?? '—' }} km · {{ r.durationHours ?? '—' }} hrs</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel>Bus</label>
+        <hlm-select [value]="selectedBusId()" (valueChange)="onBusChange($event)">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (b of activeBuses(); track b.id) {
+                <hlm-select-item [value]="b.id + ''">{{ b.busNumber }} — {{ b.busName }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="travel-date">Travel Date</label>
+        <input hlmInput id="travel-date" type="date" [value]="editingSchedule()?.travelDate ?? ''" #travelDateInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="departure-time">Departure Time</label>
+        <input hlmInput id="departure-time" type="time" [value]="editingSchedule()?.departureTime ?? ''" #departureTimeInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="arrival-time">Arrival Time</label>
+        <input hlmInput id="arrival-time" type="time" [value]="editingSchedule()?.arrivalTime ?? ''" #arrivalTimeInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="fare">Fare</label>
+        <input hlmInput id="fare" type="number" min="0" step="0.01" [value]="editingSchedule()?.fare ?? ''" #fareInput />
+      </div>
+      @if (formError()) {
+        <p class="text-xs text-destructive whitespace-pre-line">{{ formError() }}</p>
+      }
+      <div hlmSheetFooter>
+        <button hlmBtn type="submit" [disabled]="submitting()">
+          {{ editingSchedule() ? 'Save Changes' : 'Add Schedule' }}
+        </button>
+        <button hlmBtn variant="outline" type="button" hlmSheetClose>Cancel</button>
+      </div>
+    </form>
+  </hlm-sheet-content>
+</hlm-sheet>

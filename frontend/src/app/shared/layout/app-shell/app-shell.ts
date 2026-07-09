@@ -6,6 +6,7 @@ import { NgIcon } from '@ng-icons/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
+import { HlmToasterImports } from '@spartan-ng/helm/sonner';
 import { Role, ROLE_HOME } from '@app/core/auth/auth.models';
 import { AuthService } from '@app/core/auth/auth.service';
 
@@ -47,8 +48,10 @@ const NAV_MAP: Record<Role, NavItem[]> = {
   transport: [
     { to: '/transport', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
     { to: '/transport/vehicles', label: 'Vehicles', icon: 'lucideBus' },
-    { to: '/transport/routes', label: 'Routes', icon: 'lucideRoute' },
-    { to: '/transport/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
+    { to: '/transport/staff', label: 'Staff', icon: 'lucideUsers' },
+    { to: '/transport/schedules', label: 'Schedules', icon: 'lucideCalendarClock' },
+    { to: '/transport/trips', label: 'Bus Trips', icon: 'lucideNavigation' },
+    { to: '/transport/bookings', label: 'Booking Analytics', icon: 'lucideChartLine' },
     { to: '/transport/reports', label: 'Reports', icon: 'lucideBarChart3' },
   ],
   activity: [
@@ -78,6 +81,7 @@ const ROLE_LABEL: Record<Role, string> = {
     HlmButtonImports,
     HlmInputImports,
     HlmAvatarImports,
+    HlmToasterImports,
   ],
   templateUrl: './app-shell.html',
 })

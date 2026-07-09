@@ -21,6 +21,9 @@ const STATUS_CLASS_MAP: Record<string, string> = {
   INVITED: 'bg-warning/15 text-[oklch(0.45_0.12_75)] border-warning/20',
   ACCEPTED: 'bg-success/10 text-success border-success/20',
   REJECTED: 'bg-destructive/15 text-destructive border-destructive/20',
+  ACTIVE: 'bg-success/10 text-success border-success/20',
+  MAINTENANCE: 'bg-warning/15 text-[oklch(0.45_0.12_75)] border-warning/20',
+  INACTIVE: 'bg-muted text-muted-foreground border-border',
 };
 
 @Component({

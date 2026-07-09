@@ -12,7 +12,7 @@ import {
 import { dispose, init, use } from 'echarts/core';
 import type { ECharts, EChartsCoreOption } from 'echarts/core';
 import { SVGRenderer } from 'echarts/renderers';
-import { BarChart, FunnelChart, HeatmapChart, LineChart } from 'echarts/charts';
+import { BarChart, FunnelChart, HeatmapChart, LineChart, PieChart } from 'echarts/charts';
 import {
   CalendarComponent,
   GridComponent,
@@ -26,6 +26,7 @@ use([
   FunnelChart,
   HeatmapChart,
   LineChart,
+  PieChart,
   CalendarComponent,
   GridComponent,
   TooltipComponent,
