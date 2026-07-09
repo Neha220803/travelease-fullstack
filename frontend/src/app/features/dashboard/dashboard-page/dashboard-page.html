@@ -88,7 +88,7 @@
             <div class="flex items-start justify-between gap-2">
               <div>
                 <p class="font-medium text-sm">{{ inv.tripName }}</p>
-                <p class="text-xs text-muted-foreground">By {{ inv.organizer?.name }} · {{ inv.startDate | date }}</p>
+                <p class="text-xs text-muted-foreground">By {{ inv.organizer.name }} · {{ inv.startDate | date }}</p>
               </div>
             </div>
             <div class="flex gap-2">
@@ -110,7 +110,7 @@
         @for (n of notifications(); track n.notificationId) {
           <div class="text-sm py-1.5 border-b last:border-0">
             <p class="font-medium">{{ n.title }}</p>
-            <p class="text-xs text-muted-foreground">{{ n.message }} · {{ n.createdAt | date }}</p>
+            <p class="text-xs text-muted-foreground">{{ n.message }} · {{ n.createdDate | date }}</p>
           </div>
         }
       </div>

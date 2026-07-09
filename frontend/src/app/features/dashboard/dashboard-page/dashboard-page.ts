@@ -6,7 +6,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmProgressImports } from '@spartan-ng/helm/progress';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { StatusBadge } from '@app/shared/ui/status-badge/status-badge';
-import { DestinationPill } from '@app/shared/ui/destination-pill/destination-pill';
+import { DatePipe } from '@angular/common';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { NotificationService } from '@app/features/notifications/services/notification.service';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
@@ -31,7 +31,7 @@ interface StatCard {
     HlmProgressImports,
     HlmAvatarImports,
     StatusBadge,
-    DestinationPill,
+    DatePipe,
   ],
   templateUrl: './dashboard-page.html',
 })
