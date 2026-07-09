@@ -10,6 +10,7 @@ import { PageHeader } from '@app/shared/ui/page-header/page-header';
 import { StatusBadge } from '@app/shared/ui/status-badge/status-badge';
 import { API_BASE_URL } from '@app/core/api/api-config';
 import { ApiResponse } from '@app/core/api/api-response.model';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
 
 interface AdminUserRow {
   id: string;
@@ -35,6 +36,7 @@ interface AdminUserRow {
 })
 export class AdminUsers implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly toastService = inject(ToastService);
 
   public readonly rows = signal<AdminUserRow[]>([]);
 
@@ -49,8 +51,8 @@ export class AdminUsers implements OnInit {
   });
 
   readonly submitting = signal(false);
-  readonly message = signal<string | null>(null);
   readonly loading = signal(false);
+  readonly fieldErrors = signal<Partial<Record<'name' | 'email' | 'phone' | 'password' | 'securityAnswer', string>>>({});
 
   ngOnInit(): void {
     void this.loadUsers();
@@ -58,6 +60,10 @@ export class AdminUsers implements OnInit {
 
   updateField(field: 'name' | 'email' | 'phone' | 'password' | 'securityQuestion' | 'securityAnswer', value: string): void {
     this.form.set({ ...this.form(), [field]: value });
+    if (field === 'name' || field === 'email' || field === 'phone' || field === 'password' || field === 'securityAnswer') {
+      const { [field]: _removed, ...rest } = this.fieldErrors();
+      this.fieldErrors.set(rest);
+    }
   }
 
   updateRole(value: string): void {
@@ -65,8 +71,13 @@ export class AdminUsers implements OnInit {
   }
 
   async createUser(): Promise<void> {
+    const errors = this.validateForm();
+    this.fieldErrors.set(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
     this.submitting.set(true);
-    this.message.set(null);
 
     try {
       const response = await firstValueFrom(
@@ -81,7 +92,7 @@ export class AdminUsers implements OnInit {
         }),
       );
 
-      this.message.set(response.message ?? 'User created successfully.');
+      this.toastService.showSuccess(response.message ?? 'User created successfully.');
       this.form.set({
         name: '',
         email: '',
@@ -93,10 +104,33 @@ export class AdminUsers implements OnInit {
       });
       await this.loadUsers();
     } catch (error) {
-      this.message.set('Unable to create user right now.');
+      this.toastService.showError('Unable to create user right now.');
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  private validateForm(): Partial<Record<'name' | 'email' | 'phone' | 'password' | 'securityAnswer', string>> {
+    const { name, email, phone, password, securityAnswer } = this.form();
+    const errors: Partial<Record<'name' | 'email' | 'phone' | 'password' | 'securityAnswer', string>> = {};
+
+    if (!name.trim()) {
+      errors.name = 'Name is required.';
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = 'Enter a valid email address.';
+    }
+    if (!phone.trim()) {
+      errors.phone = 'Phone is required.';
+    }
+    if (password.length < 8 || !/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password)) {
+      errors.password = 'Password must be at least 8 characters and contain a letter and a digit.';
+    }
+    if (!securityAnswer.trim()) {
+      errors.securityAnswer = 'Security answer is required.';
+    }
+
+    return errors;
   }
 
   private async loadUsers(): Promise<void> {
@@ -115,7 +149,7 @@ export class AdminUsers implements OnInit {
         avatar: this.getInitials(user.name),
       })));
     } catch (error) {
-      this.message.set('Unable to load users right now.');
+      this.toastService.showError('Unable to load users right now.');
     } finally {
       this.loading.set(false);
     }

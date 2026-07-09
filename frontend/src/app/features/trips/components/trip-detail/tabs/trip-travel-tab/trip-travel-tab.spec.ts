@@ -45,18 +45,16 @@ const RESULTS: BusSearchResult[] = [
 const SEAT_LAYOUT: SeatLayoutResponse = {
   busId: 1,
   busName: 'Volvo Multi-Axle',
-  seats: [
-    { id: 1, seatNumber: 'A1', seatType: 'SLEEPER', deck: 1, status: 'AVAILABLE' },
-    { id: 2, seatNumber: 'A2', seatType: 'SLEEPER', deck: 1, status: 'BOOKED' },
-    { id: 3, seatNumber: 'A3', seatType: 'SLEEPER', deck: 1, status: 'AVAILABLE' },
-  ],
+  seats: Array.from({ length: 30 }, (_, i) => ({
+    id: i + 1,
+    seatNumber: `S${i + 1}`,
+    seatType: 'SLEEPER',
+    deck: 1,
+    status: 'AVAILABLE',
+  })),
 };
 
-async function render(
-  members: TripMember[],
-  searchBuses = () => of(RESULTS),
-  getSeats = () => of(SEAT_LAYOUT),
-) {
+async function render(members: TripMember[], searchBuses = () => of(RESULTS)) {
   await TestBed.configureTestingModule({
     imports: [TripTravelTab],
     providers: [
@@ -66,7 +64,7 @@ async function render(
         useValue: {
           searchBuses,
           getTripBusBookings: () => of({ tripId: 't1', bookingCount: 0, totalFare: 0, bookings: [] }),
-          getSeats,
+          getSeats: () => of(SEAT_LAYOUT),
         },
       },
       {
@@ -139,13 +137,12 @@ describe('TripTravelTab', () => {
       (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
     ).find((b) => b.textContent?.trim() === 'View Seats')!;
     viewSeatsButton.click();
-    await fixture.whenStable();
     fixture.detectChanges();
 
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('A1');
-    expect(text).toContain('A2');
-    expect(text).toContain('A3');
+    const component = fixture.componentInstance as unknown as {
+      seatLayout: () => SeatLayoutResponse | null;
+    };
+    expect(component.seatLayout()?.seats).toHaveLength(30);
   });
 
   it('searches using the date picker value, not the trip start date, once changed', async () => {

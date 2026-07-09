@@ -167,6 +167,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public User updateProfile(String email, String name, String phone) {
+        User user = getByEmail(email);
+        user.setName(name);
+        user.setPhone(phone);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(String email, String securityAnswer, String newPassword) {
+        User user = getByEmail(email);
+        if (!passwordEncoder.matches(securityAnswer, user.getSecurityAnswerHash())) {
+            throw new InvalidRequestException("Security answer did not match");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
     public List<UserResponse> searchTravelers(String query) {
         if (query == null || query.isBlank()) {
             return List.of();

@@ -132,6 +132,23 @@ describe('AuthService', () => {
     await expect(registerPromise).resolves.toBeUndefined();
   });
 
+  it('submits a password reset with email, security answer, and new password', async () => {
+    const { service, httpMock } = await setup();
+
+    const resetPromise = service.resetPassword('asha@example.com', 'City General', 'NewPassw0rd1');
+
+    const req = httpMock.expectOne('http://localhost:8080/api/auth/reset-password');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      email: 'asha@example.com',
+      securityAnswer: 'City General',
+      newPassword: 'NewPassw0rd1',
+    });
+    req.flush({ success: true, data: null, message: 'Password reset successfully', error: null });
+
+    await expect(resetPromise).resolves.toBeUndefined();
+  });
+
   it('logout clears the session', async () => {
     const { service, httpMock } = await setup();
     const loginPromise = service.login('admin@travelease.test', 'password123');

@@ -91,4 +91,33 @@ describe('Login', () => {
     const link = (fixture.nativeElement as HTMLElement).querySelector('a[href="/register"]');
     expect(link).not.toBeNull();
   });
+
+  it('shows inline field errors for an invalid email and blank password without calling login', async () => {
+    const login = vi.fn();
+    const { fixture } = await setup({ login });
+    const el = fixture.nativeElement as HTMLElement;
+
+    submitWith(el, 'not-an-email', '');
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('Enter a valid email address.');
+    expect(el.textContent).toContain('Password is required.');
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it('clears a field error as soon as the user edits that field', async () => {
+    const login = vi.fn();
+    const { fixture } = await setup({ login });
+    const el = fixture.nativeElement as HTMLElement;
+
+    submitWith(el, 'not-an-email', '');
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Enter a valid email address.');
+
+    const emailInput = el.querySelectorAll('input')[0] as HTMLInputElement;
+    emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(el.textContent).not.toContain('Enter a valid email address.');
+  });
 });

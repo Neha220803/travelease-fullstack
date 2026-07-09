@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideIcons } from '@ng-icons/core';
+import { of } from 'rxjs';
 import {
   lucideCalendar,
   lucideMapPin,
@@ -130,6 +131,8 @@ describe('DashboardPage', () => {
   it('renders every pending invitation', async () => {
     const fixture = await render();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    for (const inv of INVITATIONS) {
+      expect(text).toContain(inv.tripName);
     for (const inv of INVITATIONS) {
       expect(text).toContain(inv.tripName);
     }

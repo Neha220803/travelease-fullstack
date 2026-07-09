@@ -42,40 +42,68 @@
     <div hlmCard class="overflow-hidden">
       <div hlmCardHeader class="border-b border-border/60">
         <h3 hlmCardTitle>Account details</h3>
-        <p class="text-sm text-muted-foreground">Your profile is synced from the authenticated account.</p>
+        <p class="text-sm text-muted-foreground">Update your name and phone number.</p>
       </div>
-      <div hlmCardContent class="grid gap-4 p-6 md:grid-cols-2">
-        <div class="space-y-2">
-          <label hlmLabel>Full name</label>
-          <input hlmInput [value]="profile()?.name ?? ''" />
-        </div>
-        <div class="space-y-2">
-          <label hlmLabel>Email</label>
-          <input hlmInput [value]="profile()?.email ?? ''" />
-        </div>
-        <div class="space-y-2">
-          <label hlmLabel>Phone</label>
-          <input hlmInput [value]="profile()?.phone || 'Not provided yet'" />
-        </div>
-        <div class="space-y-2">
-          <label hlmLabel>Preferred city</label>
-          <input hlmInput value="Not specified yet" />
-        </div>
-
-        <div class="md:col-span-2 rounded-xl border border-border/70 bg-muted/30 p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium">Travel preferences</p>
-              <p class="text-sm text-muted-foreground">We’ll use these to tailor recommendations and trip planning.</p>
+      <div hlmCardContent class="p-6 space-y-6">
+        <form class="grid gap-4 md:grid-cols-2" (submit)="onSaveProfile($event)">
+          @if (profileError()) {
+            <div class="md:col-span-2 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+              {{ profileError() }}
             </div>
-            <span class="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">Live</span>
+          }
+          <div class="space-y-2">
+            <label hlmLabel for="name">Full name</label>
+            <input hlmInput id="name" name="name" [value]="profile()?.name ?? ''" />
           </div>
-        </div>
+          <div class="space-y-2">
+            <label hlmLabel for="email">Email</label>
+            <input hlmInput id="email" [value]="profile()?.email ?? ''" readonly disabled />
+          </div>
+          <div class="space-y-2">
+            <label hlmLabel for="phone">Phone</label>
+            <input hlmInput id="phone" name="phone" [value]="profile()?.phone ?? ''" />
+          </div>
 
-        <div class="md:col-span-2 flex flex-wrap gap-3">
-          <button hlmBtn>Save changes</button>
-          <button hlmBtn variant="outline">Change password</button>
-        </div>
+          <div class="md:col-span-2 flex flex-wrap gap-3">
+            <button hlmBtn type="submit" [disabled]="savingProfile()">
+              {{ savingProfile() ? 'Saving...' : 'Save changes' }}
+            </button>
+            <button hlmBtn type="button" variant="outline" (click)="togglePasswordForm()">
+              {{ passwordFormOpen() ? 'Cancel' : 'Change password' }}
+            </button>
+          </div>
+        </form>
+
+        @if (passwordFormOpen()) {
+          <form class="grid gap-4 md:grid-cols-2 border-t border-border/60 pt-6" (submit)="onChangePassword($event)">
+            @if (passwordError()) {
+              <div class="md:col-span-2 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                {{ passwordError() }}
+              </div>
+            }
+            <div class="md:col-span-2 space-y-2">
+              <label hlmLabel>Security question</label>
+              <p class="text-sm text-muted-foreground">{{ profile()?.securityQuestion }}</p>
+            </div>
+            <div class="md:col-span-2 space-y-2">
+              <label hlmLabel for="securityAnswer">Your answer</label>
+              <input hlmInput id="securityAnswer" name="securityAnswer" />
+            </div>
+            <div class="space-y-2">
+              <label hlmLabel for="newPassword">New password</label>
+              <input hlmInput id="newPassword" name="newPassword" type="password" placeholder="At least 8 characters" />
+            </div>
+            <div class="space-y-2">
+              <label hlmLabel for="confirmNewPassword">Confirm new password</label>
+              <input hlmInput id="confirmNewPassword" name="confirmNewPassword" type="password" />
+            </div>
+            <div class="md:col-span-2">
+              <button hlmBtn type="submit" [disabled]="changingPassword()">
+                {{ changingPassword() ? 'Updating...' : 'Update password' }}
+              </button>
+            </div>
+          </form>
+        }
       </div>
     </div>
   </div>

@@ -8,10 +8,10 @@ import { ToastService } from './toast.service';
   standalone: true,
   imports: [CommonModule, NgIcon],
   template: `
-    <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div class="fixed top-4 right-4 z-50 flex flex-col gap-2">
       @for (toast of toastService.toasts(); track toast.id) {
         <div
-          class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm min-w-[300px] animate-in slide-in-from-bottom-2 fade-in"
+          class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm min-w-[300px] animate-in slide-in-from-top-2 fade-in"
           [ngClass]="{
             'bg-success text-success-foreground border border-success': toast.type === 'success',
             'bg-destructive text-destructive-foreground border border-destructive': toast.type === 'error',

@@ -23,6 +23,7 @@ export class Login {
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
   protected readonly passwordVisible = signal(false);
+  protected readonly fieldErrors = signal<Partial<Record<'email' | 'password', string>>>({});
 
   constructor() {
     const role = this.authService.isAuthenticated() ? this.authService.role() : null;
@@ -35,9 +36,27 @@ export class Login {
     this.passwordVisible.update((visible) => !visible);
   }
 
+  protected clearFieldError(field: 'email' | 'password'): void {
+    const { [field]: _removed, ...rest } = this.fieldErrors();
+    this.fieldErrors.set(rest);
+  }
+
   protected async onSubmit(event: Event, email: string, password: string): Promise<void> {
     event.preventDefault();
     this.error.set(null);
+
+    const errors: Partial<Record<'email' | 'password', string>> = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = 'Enter a valid email address.';
+    }
+    if (!password) {
+      errors.password = 'Password is required.';
+    }
+    this.fieldErrors.set(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
     this.submitting.set(true);
     try {
       const user = await this.authService.login(email, password);
