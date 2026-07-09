@@ -131,7 +131,7 @@ async function renderWithTripId(
           getTripBusBookings: () => of({ tripId: 'goa-2026', bookingCount: 0, totalFare: 0, bookings: [] }),
         },
       },
-      { provide: ActivitiesService, useValue: { getActivities: () => of([]) } },
+      { provide: ActivitiesService, useValue: { getActivities: () => of([]), getProviders: () => of([]) } },
       { provide: RecommendationsService, useValue: { getRecommendations: () => of([]) } },
       { provide: HotelsService, useValue: { searchHotels: () => of([]) } },
       {
@@ -153,6 +153,7 @@ async function renderWithTripId(
               pendingActivities: 0,
               completionPercentage: 0,
             }),
+          progressFor: () => null,
         },
       },
     ],

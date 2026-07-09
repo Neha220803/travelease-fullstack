@@ -12,9 +12,14 @@ export interface ItineraryItem {
   completionTime: string | null;
 }
 
+/**
+ * Either `activityId` (a provider-listed activity) or `activityName` (the
+ * traveler's own free-text plan) must be set - never both, never neither.
+ */
 export interface CreateItineraryPayload {
   tripId: string;
-  activityId: string;
+  activityId?: string;
+  activityName?: string;
   activityDate: string;
   status: ItineraryStatus;
 }

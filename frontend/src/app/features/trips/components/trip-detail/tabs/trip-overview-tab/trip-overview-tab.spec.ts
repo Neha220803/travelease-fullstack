@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideIcons } from '@ng-icons/core';
 import {
   lucideAlertTriangle,
@@ -58,8 +59,13 @@ const SUMMARY: BudgetSummary = {
 async function render(overrides: {
   budgetSummary?: BudgetSummary;
   busBookingCount?: number;
-  completionPercentage?: number;
+  totalActivities?: number;
+  itineraryService?: Partial<ItineraryService>;
 } = {}) {
+  const cachedProgress = signal<{ totalActivities: number } | null>(
+    overrides.totalActivities !== undefined ? { totalActivities: overrides.totalActivities } : null,
+  );
+
   await TestBed.configureTestingModule({
     imports: [TripOverviewTab],
     providers: [
@@ -88,11 +94,13 @@ async function render(overrides: {
           getProgress: () =>
             of({
               tripId: 't1',
-              totalActivities: 4,
-              completedActivities: overrides.completionPercentage === 100 ? 4 : 0,
-              pendingActivities: 0,
-              completionPercentage: overrides.completionPercentage ?? 0,
+              totalActivities: overrides.totalActivities ?? 0,
+              completedActivities: 0,
+              pendingActivities: overrides.totalActivities ?? 0,
+              completionPercentage: 0,
             }),
+          progressFor: () => cachedProgress(),
+          ...overrides.itineraryService,
         },
       },
       { provide: RecommendationsService, useValue: { getRecommendations: () => of([]) } },
@@ -104,7 +112,7 @@ async function render(overrides: {
   fixture.componentRef.setInput('trip', TRIP);
   fixture.componentRef.setInput('members', MEMBERS);
   fixture.detectChanges();
-  return fixture;
+  return { fixture, setCachedProgress: (v: { totalActivities: number } | null) => cachedProgress.set(v) };
 }
 
 interface TimelineStep {
@@ -119,7 +127,7 @@ function timelineSteps(fixture: ReturnType<typeof TestBed.createComponent<TripOv
 
 describe('TripOverviewTab', () => {
   it('renders the 5 stat cards from the members input and the budget summary', async () => {
-    const fixture = await render();
+    const { fixture } = await render();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
 
     expect(text).toContain('Total Members');
@@ -130,7 +138,7 @@ describe('TripOverviewTab', () => {
   });
 
   it('shows the budget warning when utilizationPercentage is over 80', async () => {
-    const fixture = await render({
+    const { fixture } = await render({
       budgetSummary: { ...SUMMARY, utilizationPercentage: 95 },
     });
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -138,25 +146,43 @@ describe('TripOverviewTab', () => {
   });
 
   it('hides the budget warning when utilizationPercentage is 80 or under', async () => {
-    const fixture = await render();
+    const { fixture } = await render();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).not.toContain('Budget nearing limit');
   });
 
   it('marks Bus Booked done when the trip has at least one bus booking', async () => {
-    const fixture = await render({ busBookingCount: 1 });
+    const { fixture } = await render({ busBookingCount: 1 });
     const steps = timelineSteps(fixture);
     expect(steps.find((s) => s.label === 'Bus Booked')?.done).toBe(true);
   });
 
-  it('marks Itinerary Finalized done only at 100% completion', async () => {
-    const fixture = await render({ completionPercentage: 100 });
+  it('marks Itinerary Finalized not done when no items have been added yet', async () => {
+    const { fixture } = await render({ totalActivities: 0 });
+    const steps = timelineSteps(fixture);
+    expect(steps.find((s) => s.label === 'Itinerary Finalized')?.done).toBe(false);
+  });
+
+  it('marks Itinerary Finalized done as soon as at least one itinerary item exists', async () => {
+    const { fixture } = await render({ totalActivities: 1 });
     const steps = timelineSteps(fixture);
     expect(steps.find((s) => s.label === 'Itinerary Finalized')?.done).toBe(true);
   });
 
+  it('updates Itinerary Finalized live once an item is added from the Itinerary tab, without a reload', async () => {
+    const { fixture, setCachedProgress } = await render({ totalActivities: 0 });
+    expect(timelineSteps(fixture).find((s) => s.label === 'Itinerary Finalized')?.done).toBe(false);
+
+    // Simulates TripItineraryTab.refreshProgress() updating the shared
+    // ItineraryService cache after the traveler adds an item.
+    setCachedProgress({ totalActivities: 1 });
+    fixture.detectChanges();
+
+    expect(timelineSteps(fixture).find((s) => s.label === 'Itinerary Finalized')?.done).toBe(true);
+  });
+
   it('does not include a Hotel Selected timeline step', async () => {
-    const fixture = await render();
+    const { fixture } = await render();
     const steps = timelineSteps(fixture);
     expect(steps.some((s) => s.label === 'Hotel Selected')).toBe(false);
   });

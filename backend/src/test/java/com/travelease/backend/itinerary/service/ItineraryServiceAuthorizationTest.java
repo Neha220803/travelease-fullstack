@@ -5,6 +5,7 @@ import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.itinerary.dto.ItineraryRequest;
 import com.travelease.backend.itinerary.dto.ItineraryResponse;
+import com.travelease.backend.itinerary.entity.Activity;
 import com.travelease.backend.itinerary.entity.Itinerary;
 import com.travelease.backend.itinerary.mapper.ItineraryMapper;
 import com.travelease.backend.itinerary.repository.ActivityRepository;
@@ -84,6 +85,15 @@ class ItineraryServiceAuthorizationTest {
         trip.setEndDate(LocalDate.now().plusDays(10));
         trip.setStatus(TravelerTripStatus.PLANNING);
         return trip;
+    }
+
+    private Activity activity(String activityId) {
+        Activity activity = new Activity();
+        activity.setActivityId(activityId);
+        activity.setActivityName("Test Activity");
+        activity.setProviderId(1L);
+        activity.setDestinationId(1);
+        return activity;
     }
 
     private Itinerary itemFor(Trip trip) {
@@ -197,6 +207,7 @@ class ItineraryServiceAuthorizationTest {
         Trip trip = trip(alice);
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(activityRepository.findById("ACT-1")).thenReturn(Optional.of(activity("ACT-1")));
         when(itineraryRepository.save(any(Itinerary.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ItineraryRequest request = new ItineraryRequest();
@@ -217,6 +228,7 @@ class ItineraryServiceAuthorizationTest {
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(userRepository.findByEmail(bob.getEmail())).thenReturn(Optional.of(bob));
         stubAccepted(trip, bob, true);
+        when(activityRepository.findById("ACT-2")).thenReturn(Optional.of(activity("ACT-2")));
         when(itineraryRepository.save(any(Itinerary.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ItineraryRequest request = new ItineraryRequest();

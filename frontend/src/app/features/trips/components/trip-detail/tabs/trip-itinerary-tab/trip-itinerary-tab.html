@@ -4,34 +4,30 @@
       <h3 hlmCardTitle>Day-wise Itinerary</h3>
       <hlm-dialog>
         <button hlmDialogTrigger hlmBtn size="sm">
-          <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Activity
+          <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Your Own
         </button>
         <ng-template hlmDialogPortal>
           <hlm-dialog-content>
             <div hlmDialogHeader>
-              <h3 hlmDialogTitle>Add Activity to Itinerary</h3>
+              <h3 hlmDialogTitle>Plan Your Own Activity</h3>
+              <p class="text-xs text-muted-foreground">
+                Not booking through a provider? Add anything you've already planned.
+              </p>
             </div>
-            <div class="space-y-3">
+            <form
+              #customForm
+              class="space-y-3"
+              (submit)="onAddCustomActivity($event, customForm, customNameInput.value)"
+            >
               <div class="space-y-2">
-                <label hlmLabel>Activity</label>
-                @if (availableActivities().length === 0) {
-                  <p class="text-xs text-muted-foreground">No activities available for this destination yet.</p>
-                } @else {
-                  <hlm-select
-                    [value]="selectedActivityId()"
-                    [itemToString]="activityIdToLabel"
-                    (valueChange)="onSelectedActivityChange($event)"
-                  >
-                    <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
-                    <ng-template hlmSelectPortal>
-                      <hlm-select-content>
-                        @for (a of availableActivities(); track a.activityId) {
-                          <hlm-select-item [value]="a.activityId">{{ a.activityName }}</hlm-select-item>
-                        }
-                      </hlm-select-content>
-                    </ng-template>
-                  </hlm-select>
-                }
+                <label hlmLabel for="custom-activity-name">Activity Name</label>
+                <input
+                  hlmInput
+                  id="custom-activity-name"
+                  placeholder="e.g. Sunset walk at Baga Beach"
+                  #customNameInput
+                  required
+                />
               </div>
               <div class="space-y-2">
                 <label hlmLabel>Date</label>
@@ -44,15 +40,15 @@
                   <hlm-date-picker-trigger class="w-full h-8 text-xs">Pick a day</hlm-date-picker-trigger>
                 </hlm-date-picker>
               </div>
-              @if (addError()) {
-                <p class="text-xs text-destructive">{{ addError() }}</p>
+              @if (customAddError()) {
+                <p class="text-xs text-destructive">{{ customAddError() }}</p>
               }
-            </div>
-            <div hlmDialogFooter>
-              <button hlmBtn [disabled]="!selectedActivityId()" (click)="onAddActivitySubmit()">
-                Add to Itinerary
-              </button>
-            </div>
+              <div hlmDialogFooter>
+                <button hlmBtn type="submit" [disabled]="addingCustom()">
+                  {{ addingCustom() ? 'Adding…' : 'Add to Itinerary' }}
+                </button>
+              </div>
+            </form>
           </hlm-dialog-content>
         </ng-template>
       </hlm-dialog>
@@ -133,7 +129,30 @@
       <h3 hlmCardTitle class="flex items-center gap-2">
         <ng-icon name="lucideSparkles" class="h-4 w-4 text-accent" />Available Activities
       </h3>
-      <p class="text-xs text-muted-foreground">Click + to slot into a day.</p>
+      <p class="text-xs text-muted-foreground">Pick a provider, then click + to slot one of their activities in.</p>
+
+      <div class="space-y-2 mt-2">
+        <label hlmLabel>Activity Provider</label>
+        @if (activityProviders().length === 0) {
+          <p class="text-xs text-muted-foreground">No activity providers for this destination yet.</p>
+        } @else {
+          <hlm-select
+            [value]="selectedProviderId() ? selectedProviderId()!.toString() : ''"
+            [itemToString]="providerIdToLabel"
+            (valueChange)="onProviderChange($event)"
+          >
+            <hlm-select-trigger class="w-full h-8 text-xs"><hlm-select-value /></hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                @for (p of activityProviders(); track p.providerId) {
+                  <hlm-select-item [value]="p.providerId.toString()">{{ p.providerName }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        }
+      </div>
+
       <hlm-date-picker
         class="mt-2"
         [date]="addDate()"
@@ -145,8 +164,8 @@
       </hlm-date-picker>
     </div>
     <div hlmCardContent class="space-y-2">
-      @if (availableActivities().length === 0) {
-        <p class="text-sm text-muted-foreground">No activities available for this destination yet.</p>
+      @if (activityProviders().length > 0 && availableActivities().length === 0) {
+        <p class="text-sm text-muted-foreground">This provider has no activities at this destination yet.</p>
       }
       @for (a of availableActivities(); track a.activityId) {
         <div class="flex items-center gap-3 p-2.5 rounded-md border bg-card">

@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { TripItineraryTab } from '@app/features/trips/components/trip-detail/tabs/trip-itinerary-tab/trip-itinerary-tab';
 import { ActivitiesService } from '@app/core/activities/activities.service';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
-import { Activity } from '@app/core/activities/activity.models';
+import { Activity, ActivityProviderOption } from '@app/core/activities/activity.models';
 import { ItineraryItem, ItineraryProgress } from '@app/features/trips/services/itinerary.models';
 import { Trip } from '@app/features/trips/services/trip.models';
 
@@ -25,14 +25,30 @@ const TRIP: Trip = {
   updatedAt: '2026-06-01T00:00:00Z',
 };
 
+const PROVIDERS: ActivityProviderOption[] = [
+  { providerId: 202, providerName: 'Goa Watersports Owner' },
+  { providerId: 210, providerName: 'Reef Divers Co' },
+];
+
 const ACTIVITIES: Activity[] = [
   {
     activityId: 'a1',
+    providerId: 202,
     destinationId: 2,
     activityName: 'Scuba Diving',
     durationHours: 3,
     startTime: '09:00',
     endTime: '12:00',
+    description: '',
+  },
+  {
+    activityId: 'a3',
+    providerId: 210,
+    destinationId: 2,
+    activityName: 'Reef Snorkeling',
+    durationHours: 2,
+    startTime: '08:00',
+    endTime: '10:00',
     description: '',
   },
 ];
@@ -59,12 +75,22 @@ const PROGRESS: ItineraryProgress = {
   completionPercentage: 0,
 };
 
-async function render(itineraryService: Partial<ItineraryService> = {}) {
+async function render(
+  itineraryService: Partial<ItineraryService> = {},
+  activitiesService: Partial<ActivitiesService> = {},
+) {
   await TestBed.configureTestingModule({
     imports: [TripItineraryTab],
     providers: [
       provideIcons({ lucideClock, lucidePlus, lucideSparkles, lucideCheckCircle2, lucideX }),
-      { provide: ActivitiesService, useValue: { getActivities: () => of(ACTIVITIES) } },
+      {
+        provide: ActivitiesService,
+        useValue: {
+          getActivities: () => of(ACTIVITIES),
+          getProviders: () => of(PROVIDERS),
+          ...activitiesService,
+        },
+      },
       {
         provide: ItineraryService,
         useValue: {
@@ -106,22 +132,37 @@ describe('TripItineraryTab', () => {
     expect(result[0].items[0].activityName).toBe('Sunset Walk');
   });
 
-  it('renders every available activity in the sidebar', async () => {
+  it('defaults the provider selection to the first provider and shows only their activities', async () => {
     const fixture = await render();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(
+      (fixture.componentInstance as unknown as { selectedProviderId: () => number | null }).selectedProviderId(),
+    ).toBe(202);
     expect(text).toContain('Scuba Diving');
+    expect(text).not.toContain('Reef Snorkeling');
+  });
+
+  it('switches the activity list when a different provider is selected', async () => {
+    const fixture = await render();
+    (
+      fixture.componentInstance as unknown as { onProviderChange: (id: string) => void }
+    ).onProviderChange('210');
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Reef Snorkeling');
+    expect(text).not.toContain('Scuba Diving');
+  });
+
+  it('shows a message when the destination has no activity providers yet', async () => {
+    const fixture = await render({}, { getProviders: () => of([]) });
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('No activity providers for this destination yet');
   });
 
   it('creates an itinerary item dated to the trip start date when the sidebar + is clicked', async () => {
     const create = vi.fn().mockReturnValue(of({ ...ITEMS[0], itineraryId: 'i2', activityId: 'a1' }));
     const fixture = await render({ list: () => of([]), create });
 
-    // Two buttons render a lucidePlus icon: the decorative header "Add Activity"
-    // button (no click handler) and the sidebar's per-activity "+" (which
-    // actually calls onAddActivity). Both get "h-7" from the shared size="sm"
-    // button variant, so that alone isn't unique — but only the sidebar button
-    // is also a square icon button (w-7 p-0, from the "h-7 w-7 p-0" template
-    // classes), so scope the query to that instead.
     const addButton = (fixture.nativeElement as HTMLElement).querySelector('button.w-7') as HTMLButtonElement;
     expect(addButton).not.toBeNull();
     addButton.click();
@@ -154,28 +195,59 @@ describe('TripItineraryTab', () => {
     });
   });
 
-  it('defaults the header dialog activity selection to the first available activity', async () => {
-    const fixture = await render();
-    expect(
-      (fixture.componentInstance as unknown as { selectedActivityId: () => string }).selectedActivityId(),
-    ).toBe('a1');
-  });
+  it('adds a custom (non-seeded) activity by name via the "Add Your Own" dialog', async () => {
+    const create = vi.fn().mockReturnValue(
+      of({
+        itineraryId: 'i3',
+        tripId: 't1',
+        activityId: 'custom-abc',
+        activityName: 'My own beach walk',
+        activityDate: '2026-07-12',
+        startTime: null,
+        endTime: null,
+        status: 'Pending',
+        completionTime: null,
+      }),
+    );
+    const fixture = await render({ list: () => of([]), create });
 
-  it('adds the selected activity when the header "Add Activity" dialog is submitted', async () => {
-    const create = vi.fn().mockReturnValue(of({ ...ITEMS[0], itineraryId: 'i2', activityId: 'a1' }));
-    const fixture = await render({ create });
-
+    const fakeForm = { reset: vi.fn() } as unknown as HTMLFormElement;
+    const fakeEvent = { preventDefault: () => {} } as Event;
     (
-      fixture.componentInstance as unknown as { onAddActivitySubmit: () => void }
-    ).onAddActivitySubmit();
+      fixture.componentInstance as unknown as {
+        onAddCustomActivity: (e: Event, f: HTMLFormElement, name: string) => void;
+      }
+    ).onAddCustomActivity(fakeEvent, fakeForm, 'My own beach walk');
     await fixture.whenStable();
+    fixture.detectChanges();
 
     expect(create).toHaveBeenCalledWith({
       tripId: 't1',
-      activityId: 'a1',
+      activityName: 'My own beach walk',
       activityDate: '2026-07-12',
       status: 'Pending',
     });
+    expect(fakeForm.reset).toHaveBeenCalled();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('My own beach walk');
+  });
+
+  it('rejects a blank custom activity name without calling the backend', async () => {
+    const create = vi.fn();
+    const fixture = await render({ create });
+
+    const fakeForm = { reset: vi.fn() } as unknown as HTMLFormElement;
+    const fakeEvent = { preventDefault: () => {} } as Event;
+    (
+      fixture.componentInstance as unknown as {
+        onAddCustomActivity: (e: Event, f: HTMLFormElement, name: string) => void;
+      }
+    ).onAddCustomActivity(fakeEvent, fakeForm, '   ');
+
+    expect(create).not.toHaveBeenCalled();
+    expect(
+      (fixture.componentInstance as unknown as { customAddError: () => string | null }).customAddError(),
+    ).toBe('Enter a name for your planned activity.');
   });
 
   it('renders the completion progress bar from the backend summary', async () => {

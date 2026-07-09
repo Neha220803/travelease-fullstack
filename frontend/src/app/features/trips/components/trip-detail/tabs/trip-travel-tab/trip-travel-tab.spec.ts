@@ -6,7 +6,7 @@ import { TripTravelTab } from '@app/features/trips/components/trip-detail/tabs/t
 import { ScheduleService } from '@app/features/trips/services/schedule.service';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { Trip, TripMember } from '@app/features/trips/services/trip.models';
-import { BusSearchResult } from '@app/features/trips/services/schedule.models';
+import { BusSearchResult, SeatLayoutResponse } from '@app/features/trips/services/schedule.models';
 
 const TRIP: Trip = {
   tripId: 't1',
@@ -42,7 +42,21 @@ const RESULTS: BusSearchResult[] = [
   },
 ];
 
-async function render(members: TripMember[], searchBuses = () => of(RESULTS)) {
+const SEAT_LAYOUT: SeatLayoutResponse = {
+  busId: 1,
+  busName: 'Volvo Multi-Axle',
+  seats: [
+    { id: 1, seatNumber: 'A1', seatType: 'SLEEPER', deck: 1, status: 'AVAILABLE' },
+    { id: 2, seatNumber: 'A2', seatType: 'SLEEPER', deck: 1, status: 'BOOKED' },
+    { id: 3, seatNumber: 'A3', seatType: 'SLEEPER', deck: 1, status: 'AVAILABLE' },
+  ],
+};
+
+async function render(
+  members: TripMember[],
+  searchBuses = () => of(RESULTS),
+  getSeats = () => of(SEAT_LAYOUT),
+) {
   await TestBed.configureTestingModule({
     imports: [TripTravelTab],
     providers: [
@@ -52,6 +66,7 @@ async function render(members: TripMember[], searchBuses = () => of(RESULTS)) {
         useValue: {
           searchBuses,
           getTripBusBookings: () => of({ tripId: 't1', bookingCount: 0, totalFare: 0, bookings: [] }),
+          getSeats,
         },
       },
       {
@@ -117,9 +132,20 @@ describe('TripTravelTab', () => {
     expect(text).not.toContain('Suitable for Group');
   });
 
-  it('renders exactly 30 seats in the allocation grid', async () => {
+  it('fetches and renders the seat layout once "View Seats" is clicked', async () => {
     const fixture = await render([]);
-    expect(fixture.componentInstance.seats).toHaveLength(30);
+
+    const viewSeatsButton = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+    ).find((b) => b.textContent?.trim() === 'View Seats')!;
+    viewSeatsButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('A1');
+    expect(text).toContain('A2');
+    expect(text).toContain('A3');
   });
 
   it('searches using the date picker value, not the trip start date, once changed', async () => {

@@ -26,6 +26,16 @@ public class Itinerary {
     @Column(name = "ActivityID", nullable = false)
     private String activityId;
 
+    /**
+     * Snapshotted at creation time - either resolved from the referenced
+     * Activity (provider-listed pick) or the traveler's own free-text entry
+     * (custom plan, no ActivityID FK backing it). Never re-resolved on read,
+     * so a later provider rename doesn't retroactively change what a trip
+     * already planned.
+     */
+    @Column(name = "ActivityName")
+    private String activityName;
+
     @Column(name = "ActivityDate")
     private LocalDate activityDate;
 

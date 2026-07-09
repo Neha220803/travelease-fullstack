@@ -2,12 +2,13 @@ import { Component, OnInit, computed, inject, input, signal } from '@angular/cor
 import { NgIcon } from '@ng-icons/core';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { ActivitiesService } from '@app/core/activities/activities.service';
-import { Activity } from '@app/core/activities/activity.models';
+import { Activity, ActivityProviderOption } from '@app/core/activities/activity.models';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
 import {
   ItineraryItem,
@@ -31,6 +32,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
     NgIcon,
     HlmCardImports,
     HlmButtonImports,
+    HlmInputImports,
     HlmDatePickerImports,
     HlmDialogImports,
     HlmSelectImports,
@@ -44,15 +46,22 @@ export class TripItineraryTab implements OnInit {
   private readonly activitiesService = inject(ActivitiesService);
   private readonly itineraryService = inject(ItineraryService);
 
-  protected readonly availableActivities = signal<Activity[]>([]);
+  protected readonly activityProviders = signal<ActivityProviderOption[]>([]);
+  protected readonly allActivities = signal<Activity[]>([]);
+  protected readonly selectedProviderId = signal<number | null>(null);
+  protected readonly availableActivities = computed(() =>
+    this.allActivities().filter((a) => a.providerId === this.selectedProviderId()),
+  );
+
   protected readonly items = signal<ItineraryItem[]>([]);
   protected readonly progress = signal<ItineraryProgress | null>(null);
   protected readonly addError = signal<string | null>(null);
+  protected readonly customAddError = signal<string | null>(null);
   protected readonly itemError = signal<string | null>(null);
   protected readonly addDate = signal<Date | undefined>(undefined);
-  protected readonly selectedActivityId = signal<string>('');
   protected readonly togglingId = signal<string | null>(null);
   protected readonly deletingId = signal<string | null>(null);
+  protected readonly addingCustom = signal(false);
   protected readonly minDate = computed(() => fromIsoDate(this.trip().startDate));
   protected readonly maxDate = computed(() => fromIsoDate(this.trip().endDate));
 
@@ -78,14 +87,21 @@ export class TripItineraryTab implements OnInit {
     this.addDate.set(fromIsoDate(trip.startDate));
 
     this.activitiesService.getActivities(trip.destinationId).subscribe({
-      next: (activities) => {
-        this.availableActivities.set(activities);
-        if (activities.length > 0) {
-          this.selectedActivityId.set(activities[0].activityId);
+      next: (activities) => this.allActivities.set(activities),
+      error: () => {
+        // Sidebar just stays empty.
+      },
+    });
+
+    this.activitiesService.getProviders(trip.destinationId).subscribe({
+      next: (providers) => {
+        this.activityProviders.set(providers);
+        if (providers.length > 0) {
+          this.selectedProviderId.set(providers[0].providerId);
         }
       },
       error: () => {
-        // Sidebar just stays empty.
+        // Provider select just stays empty.
       },
     });
 
@@ -107,21 +123,14 @@ export class TripItineraryTab implements OnInit {
     this.addDate.set(date);
   }
 
-  protected readonly activityIdToLabel = (id: string): string => {
-    const activity = this.availableActivities().find((a) => a.activityId === id);
-    return activity ? activity.activityName : id;
+  protected readonly providerIdToLabel = (id: string): string => {
+    const provider = this.activityProviders().find((p) => String(p.providerId) === id);
+    return provider ? provider.providerName : id;
   };
 
-  protected onSelectedActivityChange(activityId: string | null | undefined): void {
-    if (activityId) {
-      this.selectedActivityId.set(activityId);
-    }
-  }
-
-  protected onAddActivitySubmit(): void {
-    const activity = this.availableActivities().find((a) => a.activityId === this.selectedActivityId());
-    if (activity) {
-      this.onAddActivity(activity);
+  protected onProviderChange(providerId: string | null | undefined): void {
+    if (providerId) {
+      this.selectedProviderId.set(Number(providerId));
     }
   }
 
@@ -142,6 +151,41 @@ export class TripItineraryTab implements OnInit {
           this.refreshProgress();
         },
         error: () => this.addError.set('Could not add this activity. Please try again.'),
+      });
+  }
+
+  // The traveler's own free-text plan - no provider or seeded Activity involved.
+  protected onAddCustomActivity(event: Event, form: HTMLFormElement, name: string): void {
+    event.preventDefault();
+    this.customAddError.set(null);
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      this.customAddError.set('Enter a name for your planned activity.');
+      return;
+    }
+
+    const trip = this.trip();
+    const date = this.addDate() ?? fromIsoDate(trip.startDate);
+    this.addingCustom.set(true);
+    this.itineraryService
+      .create({
+        tripId: trip.tripId,
+        activityName: trimmed,
+        activityDate: toIsoDate(date),
+        status: 'Pending',
+      })
+      .subscribe({
+        next: (item) => {
+          this.addingCustom.set(false);
+          form.reset();
+          this.items.update((list) => [...list, item]);
+          this.refreshProgress();
+        },
+        error: () => {
+          this.addingCustom.set(false);
+          this.customAddError.set('Could not add your activity. Please try again.');
+        },
       });
   }
 
