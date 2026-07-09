@@ -1,42 +1,49 @@
 import { TestBed } from '@angular/core/testing';
-import { provideIcons } from '@ng-icons/core';
-import { lucideBus, lucidePlane, lucideUsers, lucideWallet } from '@ng-icons/lucide';
-import { partnerRoutes } from '@app/core/mock-data';
-import {
-  TransportDashboard,
-  occupancyTone,
-} from '@app/features/transport/components/transport-dashboard/transport-dashboard';
+import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { TransportDashboard } from '@app/features/transport/components/transport-dashboard/transport-dashboard';
+import { DashboardService } from '@app/features/transport/services/dashboard.service';
+import { ProviderDashboardResponse } from '@app/features/transport/services/dashboard.models';
 
-describe('occupancyTone', () => {
-  it('returns the success tone above 80%', () => {
-    expect(occupancyTone(85)).toBe('bg-success');
-  });
+const KPI = { title: 'x', value: 1, unit: 'u', changePercent: 0, trend: 'STABLE' as const, icon: 'i' };
+const DASHBOARD: ProviderDashboardResponse = {
+  providerId: 101,
+  todayBookings: KPI, todayRevenue: KPI, weeklyRevenue: KPI, monthlyRevenue: KPI, totalRevenue: KPI,
+  activeTrips: KPI, runningTrips: KPI, completedTrips: KPI, cancelledTrips: KPI, delayedTrips: KPI,
+  totalPassengers: KPI, fleetAvailability: KPI,
+  revenueTrend: [], bookingTrend: [], tripStatusDistribution: [],
+  fleetSummary: { totalBuses: 8, activeBuses: 6, maintenanceBuses: 2 },
+  staffSummary: { activeDrivers: 5, activeConductors: 5 },
+  maintenanceSummary: { upcomingCount: 0, nextItems: [] },
+  topRoutes: [],
+};
 
-  it('returns the primary tone between 61% and 80%', () => {
-    expect(occupancyTone(70)).toBe('bg-primary');
-  });
-
-  it('returns the warning tone at or below 60%', () => {
-    expect(occupancyTone(50)).toBe('bg-warning');
-  });
-});
+async function setup(dashboardService: Partial<DashboardService>) {
+  await TestBed.configureTestingModule({
+    imports: [TransportDashboard],
+    providers: [{ provide: DashboardService, useValue: dashboardService }],
+  }).compileComponents();
+  const fixture = TestBed.createComponent(TransportDashboard);
+  fixture.detectChanges();
+  return { fixture };
+}
 
 describe('TransportDashboard', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [TransportDashboard],
-      providers: [provideIcons({ lucideBus, lucidePlane, lucideUsers, lucideWallet })],
-    }).compileComponents();
+  it('loads and exposes the dashboard data as a signal', async () => {
+    const { fixture } = await setup({ getDashboard: () => of(DASHBOARD) });
+    const component = fixture.componentInstance;
+    expect(component.dashboard()).toEqual(DASHBOARD);
+    expect(component.loading()).toBe(false);
+    expect(component.error()).toBeNull();
   });
 
-  it('renders every route name and the two hardcoded stats', () => {
-    const fixture = TestBed.createComponent(TransportDashboard);
-    fixture.detectChanges();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const r of partnerRoutes) {
-      expect(text).toContain(r.route);
-    }
-    expect(text).toContain('1,284');
-    expect(text).toContain('47');
+  it('surfaces a read error without throwing', async () => {
+    const { fixture } = await setup({
+      getDashboard: () => throwError(() => new HttpErrorResponse({ status: 500 })),
+    });
+    const component = fixture.componentInstance;
+    expect(component.dashboard()).toBeNull();
+    expect(component.error()).toBe('Failed to load dashboard data.');
+    expect(component.loading()).toBe(false);
   });
 });

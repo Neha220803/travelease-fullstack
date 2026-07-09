@@ -56,6 +56,7 @@ export class AuthService {
       name: response.data.user.name,
       email: response.data.user.email,
       role,
+      providerId: response.data.user.providerId,
     };
 
     this.persist(response.data.accessToken, user);

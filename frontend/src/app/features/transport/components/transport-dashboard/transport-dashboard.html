@@ -1,57 +1,85 @@
-<app-page-header title="Transport Partner Dashboard" subtitle="VRL Travels · 36 vehicles · 24 routes" />
+<app-page-header title="Dashboard" subtitle="Live fleet, revenue, and operations overview." />
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-  <div hlmCard>
-    <div hlmCardContent class="pt-5">
-      <ng-icon name="lucideBus" class="h-4 w-4 text-primary mb-2" />
-      <p class="text-xs text-muted-foreground">Total Buses</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ totalBuses }}</p>
-    </div>
+@if (loading()) {
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    @for (i of [1,2,3,4,5,6,7,8]; track i) {
+      <div hlmSkeleton class="h-24 rounded-2xl"></div>
+    }
   </div>
-  <div hlmCard>
-    <div hlmCardContent class="pt-5">
-      <ng-icon name="lucideUsers" class="h-4 w-4 text-primary mb-2" />
-      <p class="text-xs text-muted-foreground">Seats Booked</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ seatsBooked }}</p>
-    </div>
+} @else if (error()) {
+  <div hlmCard class="p-6 text-center">
+    <p class="text-destructive mb-4">{{ error() }}</p>
+    <button class="text-sm underline text-primary" (click)="load()">Retry</button>
   </div>
-  <div hlmCard>
-    <div hlmCardContent class="pt-5">
-      <ng-icon name="lucidePlane" class="h-4 w-4 text-primary mb-2" />
-      <p class="text-xs text-muted-foreground">Upcoming Trips</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ upcomingTrips }}</p>
-    </div>
-  </div>
-  <div hlmCard>
-    <div hlmCardContent class="pt-5">
-      <ng-icon name="lucideWallet" class="h-4 w-4 text-primary mb-2" />
-      <p class="text-xs text-muted-foreground">Revenue (MTD)</p>
-      <p class="text-xl font-semibold mt-0.5 tabular-nums">{{ revenueMtd }}</p>
-    </div>
-  </div>
-</div>
-
-<div hlmCard>
-  <div hlmCardHeader>
-    <h3 hlmCardTitle>Route Occupancy</h3>
-  </div>
-  <div hlmCardContent class="space-y-4">
-    @for (r of routeOccupancy; track r.id) {
-      <div>
-        <div class="flex justify-between text-sm mb-1.5">
-          <div>
-            <span class="font-medium">{{ r.route }}</span>
-            <span class="text-xs text-muted-foreground ml-2">{{ r.departures }} departures/wk</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-xs text-muted-foreground tabular-nums">₹{{ r.revenue.toLocaleString() }}</span>
-            <span class="font-semibold tabular-nums">{{ r.occupancy }}%</span>
-          </div>
-        </div>
-        <div class="h-2.5 rounded-full bg-muted overflow-hidden">
-          <div [class]="'h-full ' + r.toneClass" [style.width.%]="r.occupancy"></div>
+} @else if (dashboard(); as d) {
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    @for (kpi of [d.todayBookings, d.todayRevenue, d.weeklyRevenue, d.monthlyRevenue, d.totalRevenue, d.activeTrips, d.runningTrips, d.completedTrips, d.cancelledTrips, d.delayedTrips, d.totalPassengers, d.fleetAvailability]; track kpi.title) {
+      <div hlmCard>
+        <div hlmCardContent class="pt-5">
+          <p class="text-xs text-muted-foreground">{{ kpi.title }}</p>
+          <p class="text-2xl font-semibold mt-1">{{ kpi.value }}{{ kpi.unit === '%' ? '%' : '' }}</p>
+          <p class="text-xs mt-1" [class.text-success]="kpi.trend === 'UP'" [class.text-destructive]="kpi.trend === 'DOWN'">
+            {{ kpi.changePercent }}%
+          </p>
         </div>
       </div>
     }
   </div>
-</div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div hlmCard>
+      <div hlmCardHeader><h3 hlmCardTitle>Revenue Trend</h3></div>
+      <div hlmCardContent><app-echart [options]="revenueTrendOptions(d.revenueTrend)" height="220px" /></div>
+    </div>
+    <div hlmCard>
+      <div hlmCardHeader><h3 hlmCardTitle>Booking Trend</h3></div>
+      <div hlmCardContent><app-echart [options]="bookingTrendOptions(d.bookingTrend)" height="220px" /></div>
+    </div>
+    <div hlmCard>
+      <div hlmCardHeader><h3 hlmCardTitle>Trip Status</h3></div>
+      <div hlmCardContent><app-echart [options]="tripStatusOptions(d.tripStatusDistribution)" height="220px" /></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div hlmCard>
+      <div hlmCardHeader><h3 hlmCardTitle>Fleet</h3></div>
+      <div hlmCardContent class="text-sm space-y-1">
+        <p>Total Buses: {{ d.fleetSummary.totalBuses }}</p>
+        <p>Active: {{ d.fleetSummary.activeBuses }}</p>
+        <p>In Maintenance: {{ d.fleetSummary.maintenanceBuses }}</p>
+      </div>
+    </div>
+    <div hlmCard>
+      <div hlmCardHeader><h3 hlmCardTitle>Staff</h3></div>
+      <div hlmCardContent class="text-sm space-y-1">
+        <p>Active Drivers: {{ d.staffSummary.activeDrivers }}</p>
+        <p>Active Conductors: {{ d.staffSummary.activeConductors }}</p>
+      </div>
+    </div>
+    <div hlmCard>
+      <div hlmCardHeader><h3 hlmCardTitle>Upcoming Maintenance</h3></div>
+      <div hlmCardContent class="text-sm space-y-1">
+        <p>{{ d.maintenanceSummary.upcomingCount }} upcoming</p>
+        @for (item of d.maintenanceSummary.nextItems.slice(0, 3); track item.maintenanceId) {
+          <p class="text-muted-foreground">{{ item.busNumber }} — {{ item.maintenanceType }} ({{ item.scheduledDate }})</p>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div hlmCard>
+    <div hlmCardHeader><h3 hlmCardTitle>Top Routes</h3></div>
+    <div hlmCardContent class="text-sm space-y-2">
+      @for (r of d.topRoutes; track r.routeId) {
+        <div class="flex justify-between border-b border-border pb-2">
+          <span>{{ r.source }} → {{ r.destination }}</span>
+          <span>{{ r.bookingCount }} bookings</span>
+          <span>₹{{ r.revenue }}</span>
+        </div>
+      } @empty {
+        <p class="text-muted-foreground">No route data yet.</p>
+      }
+    </div>
+  </div>
+}

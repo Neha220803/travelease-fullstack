@@ -55,11 +55,39 @@ describe('AuthService', () => {
     });
 
     const user = await loginPromise;
-    expect(user).toEqual({ id: 'u1', name: 'Admin User', email: 'admin@travelease.test', role: 'admin' });
+    expect(user).toEqual({ id: 'u1', name: 'Admin User', email: 'admin@travelease.test', role: 'admin', providerId: null });
     expect(service.isAuthenticated()).toBe(true);
     expect(service.role()).toBe('admin');
     expect(localStorage.getItem('te_access_token')).toBe('jwt-token');
     expect(JSON.parse(localStorage.getItem('te_user')!)).toEqual(user);
+  });
+
+  it('captures providerId from the login response for a transport provider', async () => {
+    const { service, httpMock } = await setup();
+
+    const loginPromise = service.login('provider1@travelease.test', 'password123');
+
+    const req = httpMock.expectOne('http://localhost:8080/api/auth/login');
+    req.flush({
+      success: true,
+      data: {
+        accessToken: 'jwt-token',
+        user: {
+          id: 'u2',
+          name: 'Provider One',
+          email: 'provider1@travelease.test',
+          phone: '9000000001',
+          role: 'ROLE_PROVIDER',
+          providerId: 101,
+        },
+      },
+      message: 'Login successful',
+      error: null,
+    });
+
+    const user = await loginPromise;
+    expect(user.providerId).toBe(101);
+    expect(service.currentUser()?.providerId).toBe(101);
   });
 
   it('rejects and does not persist on a failed login', async () => {
