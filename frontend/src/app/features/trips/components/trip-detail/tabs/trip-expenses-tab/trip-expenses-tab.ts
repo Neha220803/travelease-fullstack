@@ -23,6 +23,7 @@ import {
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { TripMember } from '@app/features/trips/services/trip.models';
 import { AuthService } from '@app/core/auth/auth.service';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
 
 /** Max settlement rows visible before "View All" is shown */
 const SETTLEMENT_DISPLAY_LIMIT = 5;
@@ -48,6 +49,7 @@ export class TripExpensesTab {
   private readonly settlementService = inject(TripSettlementService);
   private readonly tripsService = inject(TripsService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
 
   private readonly tripId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('tripId') ?? '')),
@@ -247,8 +249,10 @@ export class TripExpensesTab {
         this.pendingSettlements.update((list) =>
           list.filter((s) => s.id !== updated.id),
         );
+        this.toastService.showSuccess('Settlement marked as paid');
       },
       error: () => {
+        this.toastService.showError('Could not mark settlement as paid. Please try again.');
         this.error.set('Could not mark settlement as paid. Please try again.');
       },
     });
@@ -328,6 +332,7 @@ export class TripExpensesTab {
         this.expenses.update(list => [expense, ...list]);
         this.totalElements.update(n => n + 1);
         this.isSaving.set(false);
+        this.toastService.showSuccess('Expense added successfully');
         this.resetForm();
         
         // Refresh settlements since new expense affects it
@@ -337,6 +342,7 @@ export class TripExpensesTab {
       },
       error: (err) => {
         console.error('Failed to save expense', err);
+        this.toastService.showError('Failed to save expense');
         this.isSaving.set(false);
       }
     });

@@ -8,6 +8,8 @@ import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { AuthService } from '@app/core/auth/auth.service';
 import { ROLE_HOME } from '@app/core/auth/auth.models';
 
+import { ToastService } from '@app/shared/ui/toast/toast.service';
+
 @Component({
   selector: 'app-login',
   imports: [RouterLink, NgIcon, HlmButtonImports, HlmInputImports, HlmLabelImports],
@@ -16,6 +18,7 @@ import { ROLE_HOME } from '@app/core/auth/auth.models';
 export class Login {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
@@ -38,6 +41,7 @@ export class Login {
     this.submitting.set(true);
     try {
       const user = await this.authService.login(email, password);
+      this.toastService.showSuccess('Login successful');
       this.router.navigate([ROLE_HOME[user.role]]);
     } catch (err) {
       this.error.set(

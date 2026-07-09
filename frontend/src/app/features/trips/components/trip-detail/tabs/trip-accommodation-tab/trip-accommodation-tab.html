@@ -64,8 +64,8 @@
                 ₹{{ h.pricePerNight }}<span class="text-xs text-muted-foreground font-normal">/night</span>
               </p>
               <div class="flex gap-2">
-                <button hlmBtn variant="outline" size="sm" disabled>Details</button>
-                <button hlmBtn size="sm" disabled>Select</button>
+                <button hlmBtn variant="outline" size="sm" class="hidden">Details</button>
+                <button hlmBtn size="sm" (click)="bookHotel(h.hotelId)">Book</button>
               </div>
             </div>
           </div>

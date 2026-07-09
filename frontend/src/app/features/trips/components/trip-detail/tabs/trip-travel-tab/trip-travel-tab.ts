@@ -17,6 +17,7 @@ import {
 } from '@app/features/trips/services/schedule.models';
 import { Trip, TripMember } from '@app/features/trips/services/trip.models';
 import { fromIsoDate, toIsoDate } from '@app/core/dates/date-utils';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
 
 @Component({
   selector: 'app-trip-travel-tab',
@@ -37,6 +38,7 @@ export class TripTravelTab implements OnInit {
 
   private readonly scheduleService = inject(ScheduleService);
   private readonly destinationsService = inject(DestinationsService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly destinationName = signal('');
   protected readonly results = signal<BusSearchResult[]>([]);
@@ -101,7 +103,7 @@ export class TripTravelTab implements OnInit {
         this.fetchingSeats.set(false);
       },
       error: () => {
-        alert('Failed to load seats');
+        this.toastService.showError('Failed to load seats');
         this.fetchingSeats.set(false);
       },
     });
@@ -117,7 +119,7 @@ export class TripTravelTab implements OnInit {
       this.selectedSeatIds.set(current.filter((id) => id !== seat.id));
     } else {
       if (current.length >= maxSeats) {
-        alert(`You can only select up to ${maxSeats} seats based on your group size.`);
+        this.toastService.showError(`You can only select up to ${maxSeats} seats based on your group size.`);
         return;
       }
       this.selectedSeatIds.set([...current, seat.id]);
@@ -163,7 +165,7 @@ export class TripTravelTab implements OnInit {
         next: (bookingResp) => {
           this.scheduleService.attachBookingToTrip(this.trip().tripId, bookingResp.id).subscribe({
             next: () => {
-              alert('Bus booked and added to trip!');
+              this.toastService.showSuccess('Bus booked and added to trip!');
               this.isBooking.set(false);
               this.selectedScheduleId.set(null);
               this.seatLayout.set(null);
@@ -171,7 +173,7 @@ export class TripTravelTab implements OnInit {
               this.loadTripBookings(this.trip().tripId);
             },
             error: () => {
-              alert('Booking succeeded, but failed to attach to trip.');
+              this.toastService.showError('Booking succeeded, but failed to attach to trip.');
               this.isBooking.set(false);
             },
           });
@@ -179,7 +181,7 @@ export class TripTravelTab implements OnInit {
         error: (err) => {
           console.error(err);
           const msg = err.error?.error?.message || err.error?.message || err.message || 'Unknown error';
-          alert('Failed to create bus booking: ' + msg);
+          this.toastService.showError('Failed to create bus booking: ' + msg);
           this.isBooking.set(false);
         },
       });

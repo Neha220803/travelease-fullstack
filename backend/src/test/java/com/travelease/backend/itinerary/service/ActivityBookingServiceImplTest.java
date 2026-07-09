@@ -70,6 +70,8 @@ class ActivityBookingServiceImplTest {
     private TripRepository tripRepository;
     @Mock
     private TripMemberRepository tripMemberRepository;
+    @Mock
+    private com.travelease.backend.itinerary.service.NotificationService notificationService;
 
     private ActivityBookingServiceImpl service;
 
@@ -83,7 +85,7 @@ class ActivityBookingServiceImplTest {
         TripAuthorizationService tripAuthorizationService = new TripAuthorizationService(tripMemberRepository);
         service = new ActivityBookingServiceImpl(
                 activityBookingRepository, activitySlotRepository, activityRepository, userRepository,
-                tripRepository, tripAuthorizationService, securityUtil);
+                tripRepository, tripMemberRepository, tripAuthorizationService, notificationService, securityUtil);
     }
 
     private void authenticateAs(String email, String role) {
