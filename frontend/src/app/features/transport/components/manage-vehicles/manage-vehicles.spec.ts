@@ -68,6 +68,11 @@ describe('ManageVehicles', () => {
     });
 
     expect(createBus).toHaveBeenCalled();
+    // Regression guard: BusRequest.providerId is @NotNull @Positive and is
+    // validated (not discarded) against the caller's own id server-side —
+    // a hardcoded placeholder like 0 fails in production. Must send the
+    // real authenticated provider's own id (101 from the mocked AuthService).
+    expect(createBus.mock.calls[0][1]).toBe(101);
     expect(success).toHaveBeenCalledWith('Bus created successfully.');
     expect(listBuses).toHaveBeenCalledTimes(2);
   });

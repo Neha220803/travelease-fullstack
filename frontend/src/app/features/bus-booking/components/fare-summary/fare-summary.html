@@ -1,0 +1,17 @@
+@if (breakdown(); as b) {
+  <div hlmCard>
+    <div hlmCardHeader><h3 hlmCardTitle>Fare Summary</h3></div>
+    <div hlmCardContent class="space-y-1.5 text-sm">
+      <div class="flex justify-between"><span class="text-muted-foreground">Subtotal</span><span>₹{{ b.subtotal }}</span></div>
+      @if (b.discountAmount > 0) {
+        <div class="flex justify-between text-success"><span>Discount ({{ b.appliedDiscount }})</span><span>-₹{{ b.discountAmount }}</span></div>
+      }
+      @if (b.couponDiscount > 0) {
+        <div class="flex justify-between text-success"><span>Coupon ({{ b.appliedCoupon }})</span><span>-₹{{ b.couponDiscount }}</span></div>
+      }
+      <div class="flex justify-between"><span class="text-muted-foreground">GST</span><span>₹{{ b.gstAmount }}</span></div>
+      <div class="flex justify-between"><span class="text-muted-foreground">Tax</span><span>₹{{ b.taxAmount }}</span></div>
+      <div class="flex justify-between font-semibold text-base pt-2 border-t"><span>Total Payable</span><span>₹{{ b.finalAmount }}</span></div>
+    </div>
+  </div>
+}

@@ -1,0 +1,55 @@
+@if (booking(); as b) {
+  <div hlmCard>
+    <div hlmCardHeader><h3 hlmCardTitle>{{ b.bookingReference }}</h3></div>
+    <div hlmCardContent class="space-y-3">
+      <p>Status: {{ b.status }}</p>
+      <p>Total Fare: ₹{{ b.totalFare }}</p>
+      <div class="flex gap-2">
+        @if (canModify()) {
+          <button hlmBtn variant="outline" size="sm" (click)="showModifyDialog.set(true)">Modify</button>
+        }
+        @if (canCancelFull()) {
+          <button hlmBtn variant="destructive" size="sm" (click)="showCancelDialog.set(true)">Cancel Booking</button>
+        }
+        @if (canPartialCancel()) {
+          <button hlmBtn variant="outline" size="sm" (click)="showPartialCancelDialog.set(true)">Cancel Some Seats</button>
+        }
+      </div>
+      @if (showCancelDialog()) {
+        <app-cancel-booking-dialog
+          [bookingId]="b.id"
+          [scheduleId]="b.scheduleId"
+          [totalFare]="b.totalFare"
+          (cancelled)="onCancelled($event)"
+        />
+      }
+      @if (showPartialCancelDialog()) {
+        <app-partial-cancel-dialog [bookingId]="b.id" [seats]="b.seats" (cancelled)="onCancelled($event)" />
+      }
+      @if (showModifyDialog()) {
+        <app-modify-booking-dialog
+          [bookingId]="b.id"
+          [contactEmail]="b.contactEmail"
+          [contactPhone]="b.contactPhone"
+          [seats]="b.seats"
+          (modified)="onModified($event)"
+          (cancelled)="showModifyDialog.set(false)"
+        />
+      }
+      <div class="pt-3 border-t">
+        <h4 class="font-medium text-sm mb-2">Timeline</h4>
+        @for (t of timeline(); track t.occurredAt) {
+          <p class="text-xs text-muted-foreground">{{ t.occurredAt }} — {{ t.description }}</p>
+        }
+      </div>
+      @if (refunds().length > 0) {
+        <div class="pt-3 border-t">
+          <h4 class="font-medium text-sm mb-2">Refunds</h4>
+          @for (r of refunds(); track r.id) {
+            <p class="text-xs text-muted-foreground">{{ r.refundReference }} — ₹{{ r.netRefundable }} ({{ r.status }})</p>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

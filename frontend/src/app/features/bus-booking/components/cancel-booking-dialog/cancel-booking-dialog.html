@@ -1,0 +1,11 @@
+@if (preview(); as p) {
+  <div class="space-y-2 text-sm">
+    <p class="text-xs uppercase tracking-wide text-muted-foreground">Estimated</p>
+    <div class="flex justify-between"><span>Cancellation charge</span><span>₹{{ p.cancellationCharge }}</span></div>
+    <div class="flex justify-between font-medium"><span>Refundable amount</span><span>₹{{ p.refundableAmount }}</span></div>
+    <p class="text-xs text-muted-foreground">Final amounts are confirmed only after you cancel.</p>
+  </div>
+}
+<button hlmBtn variant="destructive" class="mt-4" [disabled]="cancelling()" (click)="confirmCancel()">
+  @if (cancelling()) { Cancelling… } @else { Confirm Cancellation }
+</button>

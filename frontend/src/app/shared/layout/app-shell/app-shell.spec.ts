@@ -28,6 +28,7 @@ import {
 import { of } from 'rxjs';
 import { AppShell } from '@app/shared/layout/app-shell/app-shell';
 import { AuthService } from '@app/core/auth/auth.service';
+import { NotificationService } from '@app/features/notifications/services/notification.service';
 
 const ALL_ICONS = {
   lucideActivity,
@@ -60,7 +61,8 @@ async function configureWithRole(role: string | undefined) {
       provideRouter([]),
       provideIcons(ALL_ICONS),
       { provide: ActivatedRoute, useValue: { data: of(role === undefined ? {} : { role }) } },
-      { provide: AuthService, useValue: { logout: vi.fn() } },
+      { provide: AuthService, useValue: { logout: vi.fn(), isAuthenticated: () => true } },
+      { provide: NotificationService, useValue: { getNotifications: () => of([]) } },
     ],
   }).compileComponents();
 }
@@ -74,6 +76,14 @@ describe('AppShell', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('My Trips');
     expect(text).toContain('Invitations');
+  });
+
+  it('renders the Bus Booking nav entry for the traveler role', async () => {
+    await configureWithRole('traveler');
+    const fixture = TestBed.createComponent(AppShell);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Bus Booking');
   });
 
   it('renders admin nav items', async () => {

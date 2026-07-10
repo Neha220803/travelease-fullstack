@@ -1,0 +1,24 @@
+<div hlmCard>
+  <div hlmCardHeader><h3 hlmCardTitle>Search Buses</h3></div>
+  <div hlmCardContent>
+    <div class="grid md:grid-cols-4 gap-3">
+      <div class="space-y-1.5">
+        <label hlmLabel for="source">Source</label>
+        <input hlmInput id="source" [value]="source()" (input)="onSourceInput($any($event.target).value)" />
+      </div>
+      <div class="space-y-1.5">
+        <label hlmLabel for="destination">Destination</label>
+        <input hlmInput id="destination" [value]="destination()" (input)="onDestinationInput($any($event.target).value)" />
+      </div>
+      <div class="space-y-1.5">
+        <label hlmLabel for="date">Date</label>
+        <hlm-date-picker id="date" [date]="date()" (dateChange)="onDateChange($event)">
+          <hlm-date-picker-input placeholder="Select date" />
+        </hlm-date-picker>
+      </div>
+      <div class="flex items-end">
+        <button hlmBtn class="w-full" (click)="onSearchClick()">Search</button>
+      </div>
+    </div>
+  </div>
+</div>

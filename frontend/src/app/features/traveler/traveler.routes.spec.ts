@@ -18,6 +18,7 @@ describe('TRAVELER_ROUTES', () => {
     expect(children.map((r) => r.path)).toEqual([
       'dashboard',
       'trips',
+      'bus-booking',
       'expenses',
       'profile',
       'notifications',
@@ -35,6 +36,13 @@ describe('TRAVELER_ROUTES', () => {
     const tripsChild = children.find((r) => r.path === 'trips')!;
     const { TRIPS_ROUTES } = await import('@app/features/trips/trips.routes');
     expect(await tripsChild.loadChildren!()).toBe(TRIPS_ROUTES);
+  });
+
+  it('lazily loads the bus-booking route group', async () => {
+    const children = TRAVELER_ROUTES[0].children ?? [];
+    const busBookingChild = children.find((r) => r.path === 'bus-booking')!;
+    const { BUS_BOOKING_ROUTES } = await import('@app/features/bus-booking/bus-booking.routes');
+    expect(await busBookingChild.loadChildren!()).toBe(BUS_BOOKING_ROUTES);
   });
 
   it('lazily loads the expenses, profile, notifications, and invitations route groups', async () => {

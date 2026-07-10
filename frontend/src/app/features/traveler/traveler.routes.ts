@@ -18,6 +18,11 @@ export const TRAVELER_ROUTES: Routes = [
         loadChildren: () => import('@app/features/trips/trips.routes').then((m) => m.TRIPS_ROUTES),
       },
       {
+        path: 'bus-booking',
+        loadChildren: () =>
+          import('@app/features/bus-booking/bus-booking.routes').then((m) => m.BUS_BOOKING_ROUTES),
+      },
+      {
         path: 'expenses',
         loadChildren: () =>
           import('@app/features/expenses/expenses.routes').then((m) => m.EXPENSES_ROUTES),

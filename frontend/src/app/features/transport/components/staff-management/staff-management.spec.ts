@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { StaffManagement } from '@app/features/transport/components/staff-management/staff-management';
 import { DriverService } from '@app/features/transport/services/driver.service';
 import { ConductorService } from '@app/features/transport/services/conductor.service';
+import { AuthService } from '@app/core/auth/auth.service';
 import { ToastService } from '@app/core/toast/toast.service';
 import { DRIVER_STATUSES } from '@app/features/transport/services/transport-enums';
 import { ConductorResponse, DriverResponse } from '@app/features/transport/services/staff.models';
@@ -27,6 +28,7 @@ async function setup(driverService: Partial<DriverService>, conductorService: Pa
     providers: [
       { provide: DriverService, useValue: driverService },
       { provide: ConductorService, useValue: { listConductors: () => of([]), ...conductorService } },
+      { provide: AuthService, useValue: { currentUser: () => ({ providerId: 101 }) } },
       { provide: ToastService, useValue: { success: toastSuccess, error: toastError } },
     ],
   }).compileComponents();
@@ -67,7 +69,10 @@ describe('StaffManagement', () => {
     const payload = { name: 'Ravi Kumar', licenseNumber: 'KA-DL-001' };
     fixture.componentInstance.submitCreateDriver(payload);
 
-    expect(createDriver).toHaveBeenCalledWith(payload);
+    // Regression guard: DriverRequest.providerId is validated (not
+    // discarded) server-side against the caller's own id — must send the
+    // real providerId (101 from the mocked AuthService), not a placeholder.
+    expect(createDriver).toHaveBeenCalledWith(payload, 101);
     expect(toastSuccess).toHaveBeenCalledWith('Driver added successfully.');
   });
 
@@ -78,7 +83,7 @@ describe('StaffManagement', () => {
     const payload = { name: 'Ravi Kumar', status: 'ASSIGNED' as const, phone: '9999999999' };
     fixture.componentInstance.submitEditDriver(ACTIVE_DRIVER.id, payload);
 
-    expect(updateDriver).toHaveBeenCalledWith(ACTIVE_DRIVER.id, payload);
+    expect(updateDriver).toHaveBeenCalledWith(ACTIVE_DRIVER.id, payload, 101);
     expect(toastSuccess).toHaveBeenCalledWith('Driver updated successfully.');
   });
 
@@ -102,7 +107,7 @@ describe('StaffManagement', () => {
     const payload = { name: 'Suresh Rao', employeeId: 'EMP-001' };
     fixture.componentInstance.submitCreateConductor(payload);
 
-    expect(createConductor).toHaveBeenCalledWith(payload);
+    expect(createConductor).toHaveBeenCalledWith(payload, 101);
     expect(toastSuccess).toHaveBeenCalledWith('Conductor added successfully.');
   });
 
@@ -116,7 +121,7 @@ describe('StaffManagement', () => {
     const payload = { name: 'Suresh Rao', status: 'ON_TRIP' as const, email: 'suresh@example.com' };
     fixture.componentInstance.submitEditConductor(ACTIVE_CONDUCTOR.id, payload);
 
-    expect(updateConductor).toHaveBeenCalledWith(ACTIVE_CONDUCTOR.id, payload);
+    expect(updateConductor).toHaveBeenCalledWith(ACTIVE_CONDUCTOR.id, payload, 101);
     expect(toastSuccess).toHaveBeenCalledWith('Conductor updated successfully.');
   });
 

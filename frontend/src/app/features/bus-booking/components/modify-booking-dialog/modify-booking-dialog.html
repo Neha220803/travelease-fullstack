@@ -1,0 +1,58 @@
+<div hlmCard class="p-4 space-y-4">
+  <h4 class="font-medium text-sm">Modify Booking</h4>
+
+  <div class="grid md:grid-cols-2 gap-3">
+    <div class="space-y-1.5">
+      <label hlmLabel>Contact Email</label>
+      <input hlmInput data-role="contact-email" [value]="email()" (input)="email.set($any($event.target).value)" />
+    </div>
+    <div class="space-y-1.5">
+      <label hlmLabel>Contact Phone</label>
+      <input hlmInput data-role="contact-phone" [value]="phone()" (input)="phone.set($any($event.target).value)" />
+    </div>
+  </div>
+
+  <div class="space-y-3">
+    @for (row of rows(); track row.seatId) {
+      <div hlmCard class="p-3 space-y-2" [attr.data-seat-id]="row.seatId">
+        <p class="text-xs text-muted-foreground">Seat {{ row.seatNumber }}</p>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div class="space-y-1.5">
+            <label hlmLabel>Name</label>
+            <input hlmInput data-role="name" [value]="row.name" (input)="updateRow(row.seatId, { name: $any($event.target).value })" />
+          </div>
+          <div class="space-y-1.5">
+            <label hlmLabel>Age</label>
+            <input
+              hlmInput
+              type="number"
+              data-role="age"
+              [value]="row.age"
+              (input)="updateRow(row.seatId, { age: +$any($event.target).value })"
+            />
+          </div>
+          <div class="space-y-1.5">
+            <label hlmLabel>Gender</label>
+            <select
+              data-role="gender"
+              class="border rounded-md h-9 px-2 text-sm w-full"
+              [value]="row.gender"
+              (change)="updateRow(row.seatId, { gender: $any($event.target).value })"
+            >
+              <option value="FEMALE">Female</option>
+              <option value="MALE">Male</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="flex gap-2">
+    <button hlmBtn size="sm" [disabled]="submitting()" (click)="submit()">
+      @if (submitting()) { Saving… } @else { Save Changes }
+    </button>
+    <button hlmBtn variant="outline" size="sm" [disabled]="submitting()" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</div>

@@ -1,0 +1,11 @@
+<div class="max-w-md mx-auto mt-12 space-y-4">
+  <h2 class="text-lg font-semibold">Verify a Ticket</h2>
+  <div class="flex gap-2">
+    <input hlmInput placeholder="Ticket number" [value]="ticketNumber()" (input)="onInput($any($event.target).value)" />
+    <button hlmBtn (click)="verify()">Verify</button>
+  </div>
+  @if (error()) {
+    <p class="text-sm text-destructive">{{ error() }}</p>
+  }
+  <app-ticket-card [ticket]="ticket()" />
+</div>

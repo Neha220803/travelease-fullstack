@@ -2,7 +2,17 @@ import { routes } from './app.routes';
 
 describe('routes', () => {
   it('mounts every feature route group at its expected path, with the wildcard last', () => {
-    expect(routes.map((r) => r.path)).toEqual(['', '', '', 'activity', 'hotel', 'transport', 'admin', '**']);
+    expect(routes.map((r) => r.path)).toEqual([
+      '',
+      '',
+      '',
+      'activity',
+      'hotel',
+      'transport',
+      'admin',
+      'verify-ticket',
+      '**',
+    ]);
   });
 
   it('gives the wildcard route a 404 title and lazily loads RoutePlaceholder', async () => {

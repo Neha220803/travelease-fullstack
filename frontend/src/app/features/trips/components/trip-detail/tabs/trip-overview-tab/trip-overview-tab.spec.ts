@@ -11,7 +11,7 @@ import {
 import { of } from 'rxjs';
 import { TripOverviewTab } from '@app/features/trips/components/trip-detail/tabs/trip-overview-tab/trip-overview-tab';
 import { TripsService } from '@app/features/trips/services/trips.service';
-import { ScheduleService } from '@app/features/trips/services/schedule.service';
+import { BookingService } from '@app/features/bus-booking/services/booking.service';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
 import { ActivitiesService } from '@app/core/activities/activities.service';
 import { RecommendationsService } from '@app/core/recommendations/recommendations.service';
@@ -76,7 +76,7 @@ async function render(overrides: {
         useValue: { getBudgetSummary: () => of(overrides.budgetSummary ?? SUMMARY) },
       },
       {
-        provide: ScheduleService,
+        provide: BookingService,
         useValue: {
           getTripBusBookings: () =>
             of({ tripId: 't1', bookingCount: overrides.busBookingCount ?? 0, totalFare: 0, bookings: [] }),

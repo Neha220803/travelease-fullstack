@@ -1,0 +1,18 @@
+@if (booking(); as b) {
+  <div hlmCard>
+    <div hlmCardHeader><h3 hlmCardTitle>Booking Confirmed</h3></div>
+    <div hlmCardContent class="space-y-3">
+      <p>Reference: {{ b.bookingReference }}</p>
+      <p>Total Fare: ₹{{ b.totalFare }}</p>
+      <div class="flex gap-3">
+        <a hlmBtn [routerLink]="['/bus-booking', b.id, 'ticket']">View Ticket</a>
+        @if (tripId() && !attached()) {
+          <button hlmBtn variant="outline" (click)="attachToTrip()">Attach to this Trip?</button>
+        }
+        @if (tripId()) {
+          <a hlmBtn variant="outline" [routerLink]="['/trips', tripId()]">Back to Trip</a>
+        }
+      </div>
+    </div>
+  </div>
+}

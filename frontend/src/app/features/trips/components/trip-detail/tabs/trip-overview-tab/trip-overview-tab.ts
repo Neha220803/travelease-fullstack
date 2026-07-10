@@ -5,7 +5,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmProgressImports } from '@spartan-ng/helm/progress';
 import { TripsService } from '@app/features/trips/services/trips.service';
-import { ScheduleService } from '@app/features/trips/services/schedule.service';
+import { BookingService } from '@app/features/bus-booking/services/booking.service';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
 import { ActivitiesService } from '@app/core/activities/activities.service';
 import { Activity } from '@app/core/activities/activity.models';
@@ -40,7 +40,7 @@ export class TripOverviewTab implements OnInit {
   public readonly members = input.required<TripMember[]>();
 
   private readonly tripsService = inject(TripsService);
-  private readonly scheduleService = inject(ScheduleService);
+  private readonly bookingService = inject(BookingService);
   private readonly itineraryService = inject(ItineraryService);
   private readonly activitiesService = inject(ActivitiesService);
   private readonly recommendationsService = inject(RecommendationsService);
@@ -95,7 +95,7 @@ export class TripOverviewTab implements OnInit {
       },
     });
 
-    this.scheduleService.getTripBusBookings(trip.tripId).subscribe({
+    this.bookingService.getTripBusBookings(trip.tripId).subscribe({
       next: (summary) => this.busBooked.set(summary.bookingCount > 0),
       error: () => {
         // Stays "not done" — a fair default when we can't confirm a booking.

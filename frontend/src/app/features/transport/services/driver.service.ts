@@ -7,8 +7,16 @@ import {
   DriverCreatePayload, DriverEditPayload, DriverResponse,
 } from '@app/features/transport/services/staff.models';
 
-/** DriverRequest.providerId is @NotNull but always server-overwritten (Category 5). */
-const PROVIDER_ID_PLACEHOLDER = 0;
+/**
+ * DriverRequest.providerId is @NotNull. It is NOT unconditionally discarded
+ * server-side: FleetOperationController calls
+ * securityUtil.resolveEffectiveProviderId(request.getProviderId()), which
+ * throws AccessDeniedException("Providers may only access their own
+ * providerId") when a non-null value doesn't match the caller's own id.
+ * A hardcoded placeholder therefore always fails for a real authenticated
+ * provider. Callers must supply the caller's own real providerId here,
+ * sourced from StoredUser.providerId (never a user-facing selector).
+ */
 
 @Injectable({ providedIn: 'root' })
 export class DriverService {
@@ -20,20 +28,20 @@ export class DriverService {
       .pipe(map((response) => response.data));
   }
 
-  createDriver(payload: DriverCreatePayload): Observable<DriverResponse> {
+  createDriver(payload: DriverCreatePayload, providerId: number): Observable<DriverResponse> {
     return this.http
       .post<ApiResponse<DriverResponse>>(`${API_BASE_URL}/api/operations/drivers`, {
         ...payload,
-        providerId: PROVIDER_ID_PLACEHOLDER,
+        providerId,
       })
       .pipe(map((response) => response.data));
   }
 
-  updateDriver(id: number, payload: DriverEditPayload): Observable<DriverResponse> {
+  updateDriver(id: number, payload: DriverEditPayload, providerId: number): Observable<DriverResponse> {
     return this.http
       .put<ApiResponse<DriverResponse>>(`${API_BASE_URL}/api/operations/drivers/${id}`, {
         ...payload,
-        providerId: PROVIDER_ID_PLACEHOLDER,
+        providerId,
       })
       .pipe(map((response) => response.data));
   }

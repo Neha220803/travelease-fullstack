@@ -1,0 +1,14 @@
+<div class="space-y-2">
+  @for (seat of seats(); track seat.seatId) {
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" [checked]="selectedSeatIds().includes(seat.seatId)" (change)="toggleSeat(seat.seatId)" />
+      Seat {{ seat.seatNumber }} — {{ seat.passengerName }}
+    </label>
+  }
+  @if (isAllSelected()) {
+    <p class="text-sm text-destructive">To cancel all seats, use Cancel Booking.</p>
+  }
+  <button hlmBtn variant="destructive" [disabled]="!canConfirm()" (click)="confirmPartialCancel()">
+    Confirm Partial Cancellation
+  </button>
+</div>

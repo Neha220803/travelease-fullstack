@@ -21,6 +21,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
   traveler: [
     { to: '/dashboard', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
     { to: '/trips', label: 'My Trips', icon: 'lucidePlane' },
+    { to: '/bus-booking', label: 'Bus Booking', icon: 'lucideBus' },
     { to: '/invitations', label: 'Invitations', icon: 'lucideMail' },
     { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
     { to: '/support/tickets', label: 'Contact Support', icon: 'lucideLifeBuoy' },

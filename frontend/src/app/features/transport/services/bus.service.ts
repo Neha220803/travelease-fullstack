@@ -6,12 +6,19 @@ import { ApiResponse } from '@app/core/api/api-response.model';
 import { BusFormPayload, BusResponse } from '@app/features/transport/services/bus.models';
 
 /**
- * BusRequest.providerId is @NotNull for Bean Validation, but BusController
- * always overwrites it via SecurityUtil.resolveEffectiveProviderId before
- * persistence (Category 5 in the design spec). This placeholder only
- * satisfies validation and is never shown in any form.
+ * BusRequest.providerId is @NotNull @Positive for Bean Validation. It is
+ * NOT unconditionally discarded server-side: BusController calls
+ * securityUtil.resolveEffectiveProviderId(request.getProviderId()), which
+ * (per SecurityUtil.java) returns the caller's own providerId when the
+ * value is null, but THROWS AccessDeniedException("Providers may only
+ * access their own providerId") when a non-null value is supplied that
+ * does not match the caller's own id. A hardcoded placeholder (e.g. 0)
+ * therefore always fails in production for any real authenticated
+ * provider. The only value that is always both valid (@Positive, non-null)
+ * and guaranteed to pass the backend's own-identity check is the caller's
+ * own real providerId — so callers must supply it here, sourced from
+ * StoredUser.providerId (never a user-facing provider selector).
  */
-const PROVIDER_ID_PLACEHOLDER = 0;
 
 @Injectable({ providedIn: 'root' })
 export class BusService {
@@ -24,20 +31,20 @@ export class BusService {
       .pipe(map((response) => response.data));
   }
 
-  createBus(payload: BusFormPayload): Observable<BusResponse> {
+  createBus(payload: BusFormPayload, providerId: number): Observable<BusResponse> {
     return this.http
       .post<ApiResponse<BusResponse>>(`${API_BASE_URL}/api/buses`, {
         ...payload,
-        providerId: PROVIDER_ID_PLACEHOLDER,
+        providerId,
       })
       .pipe(map((response) => response.data));
   }
 
-  updateBus(id: number, payload: BusFormPayload): Observable<BusResponse> {
+  updateBus(id: number, payload: BusFormPayload, providerId: number): Observable<BusResponse> {
     return this.http
       .put<ApiResponse<BusResponse>>(`${API_BASE_URL}/api/buses/${id}`, {
         ...payload,
-        providerId: PROVIDER_ID_PLACEHOLDER,
+        providerId,
       })
       .pipe(map((response) => response.data));
   }

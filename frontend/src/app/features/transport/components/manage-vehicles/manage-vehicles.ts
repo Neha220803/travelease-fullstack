@@ -152,7 +152,13 @@ export class ManageVehicles {
   }
 
   submitCreate(payload: BusFormPayload): void {
-    this.busService.createBus(payload).subscribe({
+    const providerId = this.authService.currentUser()?.providerId;
+    if (providerId == null) {
+      this.submitting.set(false);
+      this.toastService.error('No provider account found for the current session.');
+      return;
+    }
+    this.busService.createBus(payload, providerId).subscribe({
       next: () => {
         this.submitting.set(false);
         this.toastService.success('Bus created successfully.');
@@ -169,7 +175,13 @@ export class ManageVehicles {
   }
 
   submitEdit(id: number, payload: BusFormPayload): void {
-    this.busService.updateBus(id, payload).subscribe({
+    const providerId = this.authService.currentUser()?.providerId;
+    if (providerId == null) {
+      this.submitting.set(false);
+      this.toastService.error('No provider account found for the current session.');
+      return;
+    }
+    this.busService.updateBus(id, payload, providerId).subscribe({
       next: () => {
         this.submitting.set(false);
         this.toastService.success('Bus updated successfully.');

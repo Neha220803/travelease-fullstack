@@ -33,6 +33,13 @@ export const routes: Routes = [
     loadChildren: () => import('@app/features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
   {
+    path: 'verify-ticket',
+    loadComponent: () =>
+      import('@app/features/bus-booking/components/ticket-verification/ticket-verification').then(
+        (m) => m.TicketVerification,
+      ),
+  },
+  {
     path: '**',
     loadComponent: () =>
       import('@app/shared/ui/route-placeholder/route-placeholder').then((m) => m.RoutePlaceholder),

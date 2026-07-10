@@ -1,0 +1,15 @@
+@if (ticket(); as t) {
+  <div hlmCard>
+    <div hlmCardHeader><h3 hlmCardTitle>{{ t.busName }}</h3></div>
+    <div hlmCardContent class="flex flex-col md:flex-row gap-6 items-center">
+      <qrcode [qrdata]="t.qrCodeString" [width]="140" />
+      <div class="space-y-1 text-sm">
+        <p>Ticket: {{ t.ticketNumber }}</p>
+        <p>Reference: {{ t.bookingReference }}</p>
+        <p>{{ t.source }} → {{ t.destination }}</p>
+        <p>Primary passenger: {{ t.primaryPassengerName }} ({{ t.totalPassengers }} total)</p>
+        <p class="font-semibold">₹{{ t.totalFare }}</p>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,20 @@
+<div class="space-y-3">
+  @if (loading()) {
+    <p class="text-sm text-muted-foreground py-4">Loading bookings…</p>
+  } @else if (bookings().length === 0) {
+    <p class="text-sm text-muted-foreground py-4">No bookings yet.</p>
+  } @else {
+    @for (b of bookings(); track b.id) {
+      <a [routerLink]="['/bus-booking', b.id]" hlmCard class="p-4 flex justify-between items-center block">
+        <div>
+          <p class="font-medium">{{ b.bookingReference }}</p>
+          <p class="text-xs text-muted-foreground">{{ b.source }} → {{ b.destination }} · {{ b.travelDate }}</p>
+        </div>
+        <div class="text-right">
+          <p class="font-semibold">₹{{ b.totalFare }}</p>
+          <p class="text-xs text-muted-foreground">{{ b.status }}</p>
+        </div>
+      </a>
+    }
+  }
+</div>

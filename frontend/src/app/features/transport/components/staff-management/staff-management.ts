@@ -12,6 +12,7 @@ import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
 import { StatusBadge } from '@app/shared/ui/status-badge/status-badge';
+import { AuthService } from '@app/core/auth/auth.service';
 import { ToastService } from '@app/core/toast/toast.service';
 import { DriverService } from '@app/features/transport/services/driver.service';
 import { ConductorService } from '@app/features/transport/services/conductor.service';
@@ -44,6 +45,7 @@ import {
 export class StaffManagement {
   private readonly driverService = inject(DriverService);
   private readonly conductorService = inject(ConductorService);
+  private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
 
   public readonly driverStatuses = DRIVER_STATUSES;
@@ -158,7 +160,13 @@ export class StaffManagement {
   }
 
   submitCreateDriver(payload: DriverCreatePayload): void {
-    this.driverService.createDriver(payload).subscribe({
+    const providerId = this.authService.currentUser()?.providerId;
+    if (providerId == null) {
+      this.driverSubmitting.set(false);
+      this.toastService.error('No provider account found for the current session.');
+      return;
+    }
+    this.driverService.createDriver(payload, providerId).subscribe({
       next: () => {
         this.driverSubmitting.set(false);
         this.toastService.success('Driver added successfully.');
@@ -175,7 +183,13 @@ export class StaffManagement {
   }
 
   submitEditDriver(id: number, payload: DriverEditPayload): void {
-    this.driverService.updateDriver(id, payload).subscribe({
+    const providerId = this.authService.currentUser()?.providerId;
+    if (providerId == null) {
+      this.driverSubmitting.set(false);
+      this.toastService.error('No provider account found for the current session.');
+      return;
+    }
+    this.driverService.updateDriver(id, payload, providerId).subscribe({
       next: () => {
         this.driverSubmitting.set(false);
         this.toastService.success('Driver updated successfully.');
@@ -251,7 +265,13 @@ export class StaffManagement {
   }
 
   submitCreateConductor(payload: ConductorCreatePayload): void {
-    this.conductorService.createConductor(payload).subscribe({
+    const providerId = this.authService.currentUser()?.providerId;
+    if (providerId == null) {
+      this.conductorSubmitting.set(false);
+      this.toastService.error('No provider account found for the current session.');
+      return;
+    }
+    this.conductorService.createConductor(payload, providerId).subscribe({
       next: () => {
         this.conductorSubmitting.set(false);
         this.toastService.success('Conductor added successfully.');
@@ -268,7 +288,13 @@ export class StaffManagement {
   }
 
   submitEditConductor(id: number, payload: ConductorEditPayload): void {
-    this.conductorService.updateConductor(id, payload).subscribe({
+    const providerId = this.authService.currentUser()?.providerId;
+    if (providerId == null) {
+      this.conductorSubmitting.set(false);
+      this.toastService.error('No provider account found for the current session.');
+      return;
+    }
+    this.conductorService.updateConductor(id, payload, providerId).subscribe({
       next: () => {
         this.conductorSubmitting.set(false);
         this.toastService.success('Conductor updated successfully.');

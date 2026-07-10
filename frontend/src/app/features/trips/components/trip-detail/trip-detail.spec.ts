@@ -20,7 +20,8 @@ import {
 import { Subject, of, throwError } from 'rxjs';
 import { TripDetail } from '@app/features/trips/components/trip-detail/trip-detail';
 import { TripsService } from '@app/features/trips/services/trips.service';
-import { ScheduleService } from '@app/features/trips/services/schedule.service';
+import { ScheduleService } from '@app/features/bus-booking/services/schedule.service';
+import { BookingService } from '@app/features/bus-booking/services/booking.service';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { ActivitiesService } from '@app/core/activities/activities.service';
@@ -128,7 +129,14 @@ async function renderWithTripId(
         provide: ScheduleService,
         useValue: {
           searchBuses: () => of([]),
+        },
+      },
+      {
+        provide: BookingService,
+        useValue: {
           getTripBusBookings: () => of({ tripId: 'goa-2026', bookingCount: 0, totalFare: 0, bookings: [] }),
+          createBooking: () => of(null),
+          attachBookingToTrip: () => of(null),
         },
       },
       { provide: ActivitiesService, useValue: { getActivities: () => of([]) } },

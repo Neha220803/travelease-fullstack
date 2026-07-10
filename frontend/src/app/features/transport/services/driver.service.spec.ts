@@ -27,24 +27,29 @@ describe('DriverService', () => {
     expect(result).toEqual([DRIVER]);
   });
 
-  it('creates a driver without a status field and with the providerId placeholder', async () => {
+  it('creates a driver without a status field and with the caller\'s own real providerId', async () => {
     const { service, httpMock } = await setup();
     let result: DriverResponse | undefined;
-    service.createDriver({ name: 'Ravi Kumar', licenseNumber: 'KA-DL-001', phone: '9000000002' }).subscribe((driver) => (result = driver));
+    service.createDriver({ name: 'Ravi Kumar', licenseNumber: 'KA-DL-001', phone: '9000000002' }, 101).subscribe((driver) => (result = driver));
     const req = httpMock.expectOne('http://localhost:8080/api/operations/drivers');
     expect(req.request.body.status).toBeUndefined();
-    expect(req.request.body.providerId).toBe(0);
+    // DriverRequest.providerId is @NotNull and is validated (not discarded)
+    // server-side via resolveEffectiveProviderId, which throws when a
+    // non-null value doesn't match the caller's own id. Must send the
+    // real providerId, not a hardcoded placeholder.
+    expect(req.request.body.providerId).toBe(101);
     req.flush({ success: true, data: DRIVER, message: null, error: null });
     expect(result).toEqual(DRIVER);
   });
 
-  it('updates a driver with name/phone/email/status but not licenseNumber', async () => {
+  it('updates a driver with name/phone/email/status but not licenseNumber, sending the real providerId', async () => {
     const { service, httpMock } = await setup();
     let result: DriverResponse | undefined;
-    service.updateDriver(1, { name: 'Ravi Kumar', phone: '9000000002', status: 'OFF_DUTY' }).subscribe((driver) => (result = driver));
+    service.updateDriver(1, { name: 'Ravi Kumar', phone: '9000000002', status: 'OFF_DUTY' }, 101).subscribe((driver) => (result = driver));
     const req = httpMock.expectOne('http://localhost:8080/api/operations/drivers/1');
     expect(req.request.method).toBe('PUT');
     expect(req.request.body.licenseNumber).toBeUndefined();
+    expect(req.request.body.providerId).toBe(101);
     req.flush({ success: true, data: { ...DRIVER, status: 'OFF_DUTY' }, message: null, error: null });
     expect(result?.status).toBe('OFF_DUTY');
   });

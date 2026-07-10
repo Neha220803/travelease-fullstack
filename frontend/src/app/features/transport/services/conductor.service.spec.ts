@@ -27,24 +27,29 @@ describe('ConductorService', () => {
     expect(result).toEqual([CONDUCTOR]);
   });
 
-  it('creates a conductor without a status field and with the providerId placeholder', async () => {
+  it('creates a conductor without a status field and with the caller\'s own real providerId', async () => {
     const { service, httpMock } = await setup();
     let result: ConductorResponse | undefined;
-    service.createConductor({ name: 'Vikram Singh', employeeId: 'EMP-001', phone: '9000000001' }).subscribe((conductor) => (result = conductor));
+    service.createConductor({ name: 'Vikram Singh', employeeId: 'EMP-001', phone: '9000000001' }, 101).subscribe((conductor) => (result = conductor));
     const req = httpMock.expectOne('http://localhost:8080/api/operations/conductors');
     expect(req.request.body.status).toBeUndefined();
-    expect(req.request.body.providerId).toBe(0);
+    // ConductorRequest.providerId is @NotNull and is validated (not
+    // discarded) server-side via resolveEffectiveProviderId, which throws
+    // when a non-null value doesn't match the caller's own id. Must send
+    // the real providerId, not a hardcoded placeholder.
+    expect(req.request.body.providerId).toBe(101);
     req.flush({ success: true, data: CONDUCTOR, message: null, error: null });
     expect(result).toEqual(CONDUCTOR);
   });
 
-  it('updates a conductor with name/phone/email/status but not employeeId', async () => {
+  it('updates a conductor with name/phone/email/status but not employeeId, sending the real providerId', async () => {
     const { service, httpMock } = await setup();
     let result: ConductorResponse | undefined;
-    service.updateConductor(1, { name: 'Vikram Singh', phone: '9000000001', status: 'OFF_DUTY' }).subscribe((conductor) => (result = conductor));
+    service.updateConductor(1, { name: 'Vikram Singh', phone: '9000000001', status: 'OFF_DUTY' }, 101).subscribe((conductor) => (result = conductor));
     const req = httpMock.expectOne('http://localhost:8080/api/operations/conductors/1');
     expect(req.request.method).toBe('PUT');
     expect(req.request.body.employeeId).toBeUndefined();
+    expect(req.request.body.providerId).toBe(101);
     req.flush({ success: true, data: { ...CONDUCTOR, status: 'OFF_DUTY' }, message: null, error: null });
     expect(result?.status).toBe('OFF_DUTY');
   });

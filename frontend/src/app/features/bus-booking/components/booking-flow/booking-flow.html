@@ -1,0 +1,31 @@
+@switch (step()) {
+  @case ('search') {
+    <app-bus-search-form initialSource="" initialDestination="" (search)="onSearch($event)" />
+    <div class="space-y-3 mt-6">
+      @for (bus of results(); track bus.scheduleId) {
+        <div hlmCard class="p-4 flex justify-between items-center">
+          <div>
+            <p class="font-semibold">{{ bus.busName }}</p>
+            <p class="text-sm text-muted-foreground">{{ bus.source }} → {{ bus.destination }} · {{ bus.departureTime }}</p>
+          </div>
+          <button hlmBtn variant="outline" size="sm" (click)="selectBus(bus)">View Seats</button>
+        </div>
+      }
+    </div>
+  }
+  @case ('seats') {
+    <app-seat-grid [scheduleId]="selectedBus()!.scheduleId" [layout]="seatLayout()" (selectionChange)="onSeatSelectionChange($event)" />
+    <app-fare-summary [breakdown]="fareBreakdown()" />
+    <button hlmBtn class="mt-4" [disabled]="selectedSeatIds().length === 0" (click)="proceedToPassengers()">Continue</button>
+  }
+  @case ('passengers') {
+    <app-passenger-details-form [seats]="selectedSeats" (detailsChange)="onDetailsChange($event)" />
+    <button hlmBtn class="mt-4" [disabled]="!passengersValid()" (click)="proceedToReview()">Continue to Review</button>
+  }
+  @case ('review') {
+    <app-fare-summary [breakdown]="fareBreakdown()" />
+    <button hlmBtn class="mt-4" [disabled]="submitting()" (click)="submitBooking()">
+      @if (submitting()) { Processing… } @else { Confirm & Pay }
+    </button>
+  }
+}

@@ -1,0 +1,31 @@
+<div class="rounded-xl border bg-muted/20 p-5">
+  @if (secondsRemaining() !== null) {
+    <p class="text-xs text-center mb-2 text-muted-foreground">
+      Seats held for {{ secondsRemaining() }}s
+    </p>
+  }
+  <p class="text-xs text-muted-foreground mb-3 text-center">Driver</p>
+  <div class="grid grid-cols-5 gap-2">
+    @for (seat of layout()?.seats; track seat.id) {
+      <button
+        type="button"
+        [attr.data-seat-id]="seat.id"
+        (click)="toggleSeat(seat)"
+        [disabled]="seat.status !== 'AVAILABLE'"
+        class="h-8 w-8 rounded-md border grid place-items-center text-[10px] font-medium transition-colors relative"
+        [class]="seatClasses(seat)"
+      >
+        {{ seat.seatNumber }}
+        @if (seat.seatType === 'LADIES') {
+          <span class="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-pink-500"></span>
+        }
+      </button>
+    }
+  </div>
+  <div class="flex gap-4 mt-4 text-xs text-muted-foreground justify-center">
+    <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-card border"></span>Available</span>
+    <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-muted border"></span>Unavailable</span>
+    <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-primary"></span>Selected</span>
+    <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-pink-500"></span>Ladies</span>
+  </div>
+</div>

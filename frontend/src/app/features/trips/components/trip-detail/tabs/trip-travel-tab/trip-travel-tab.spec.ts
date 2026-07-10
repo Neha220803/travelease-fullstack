@@ -1,12 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { provideIcons } from '@ng-icons/core';
-import { lucideAlertTriangle, lucideArrowRight, lucideBus, lucideSparkles } from '@ng-icons/lucide';
 import { of } from 'rxjs';
 import { TripTravelTab } from '@app/features/trips/components/trip-detail/tabs/trip-travel-tab/trip-travel-tab';
-import { ScheduleService } from '@app/features/trips/services/schedule.service';
+import { BookingService } from '@app/features/bus-booking/services/booking.service';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
+import { AuthService } from '@app/core/auth/auth.service';
 import { Trip, TripMember } from '@app/features/trips/services/trip.models';
-import { BusSearchResult } from '@app/features/trips/services/schedule.models';
 
 const TRIP: Trip = {
   tripId: 't1',
@@ -24,49 +22,49 @@ const TRIP: Trip = {
   updatedAt: '2026-06-01T00:00:00Z',
 };
 
-const RESULTS: BusSearchResult[] = [
-  {
-    scheduleId: 1,
-    busName: 'Volvo Multi-Axle',
-    busNumber: 'KA-01-1234',
-    busType: 'AC_SLEEPER',
-    source: 'Bengaluru',
-    destination: 'Goa',
-    departureTime: '20:00:00',
-    arrivalTime: '07:00:00',
-    fare: 1800,
-    availableSeats: 4,
-    duration: 11,
-    travelDate: '2026-07-12',
-    amenities: [],
-  },
+const MEMBERS: TripMember[] = [
+  { tripMemberId: 'm1', userId: 'u2', name: 'Bob', email: 'bob@travelease.test', memberStatus: 'ACCEPTED', joinedDate: '2026-06-02T00:00:00Z', budgetAmount: 0, spentAmount: 0 },
 ];
 
-async function render(members: TripMember[], searchBuses = () => of(RESULTS)) {
+const BOOKING = {
+  bookingId: 10,
+  bookingReference: 'BK10',
+  status: 'CONFIRMED',
+  totalFare: 1800,
+  scheduleId: 1,
+  travelDate: '2026-07-12',
+  source: 'Bengaluru',
+  destination: 'Goa',
+  bookedByUserId: 'u1',
+  travelerTripId: 't1',
+};
+
+async function render(bookings = [BOOKING]) {
   await TestBed.configureTestingModule({
     imports: [TripTravelTab],
     providers: [
-      provideIcons({ lucideAlertTriangle, lucideArrowRight, lucideBus, lucideSparkles }),
       {
-        provide: ScheduleService,
+        provide: BookingService,
         useValue: {
-          searchBuses,
-          getTripBusBookings: () => of({ tripId: 't1', bookingCount: 0, totalFare: 0, bookings: [] }),
+          getTripBusBookings: () => of({ tripId: 't1', bookingCount: bookings.length, totalFare: 1800, bookings }),
+          removeBookingFromTrip: vi.fn(() => of(undefined)),
         },
       },
       {
         provide: DestinationsService,
-        useValue: {
-          listDestinations: () =>
-            of([{ destinationId: 2, destinationName: 'Goa', state: 'Goa', country: 'India', description: '' }]),
-        },
+        useValue: { listDestinations: () => of([{ destinationId: 2, destinationName: 'Goa', state: 'Goa', country: 'India', description: '' }]) },
       },
+      // The plan's real AuthService.currentUser() shape (verified via grep of
+      // auth.service.ts / auth.models.ts) exposes the id under `.id`, not
+      // `.userId` as the plan draft assumed. Mocked here as the current
+      // logged-in user 'u1' (the trip organizer, and the owner of BOOKING),
+      // matching the convention used elsewhere (e.g. manage-vehicles.spec.ts).
+      { provide: AuthService, useValue: { currentUser: () => ({ id: 'u1' }) } },
     ],
   }).compileComponents();
-
   const fixture = TestBed.createComponent(TripTravelTab);
   fixture.componentRef.setInput('trip', TRIP);
-  fixture.componentRef.setInput('members', members);
+  fixture.componentRef.setInput('members', MEMBERS);
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
@@ -74,71 +72,23 @@ async function render(members: TripMember[], searchBuses = () => of(RESULTS)) {
 }
 
 describe('TripTravelTab', () => {
-  it('auto-searches on load using the trip source/destination/date and renders results', async () => {
-    const searchBuses = vi.fn().mockReturnValue(of(RESULTS));
-    const fixture = await render([], searchBuses);
+  it('embeds the shared BookingFlow with the current trip id bound', async () => {
+    const fixture = await render();
+    const flowEl = (fixture.nativeElement as HTMLElement).querySelector('app-booking-flow');
+    expect(flowEl).toBeTruthy();
+  });
 
-    expect(searchBuses).toHaveBeenCalledWith('Bengaluru', 'Goa', '2026-07-12');
+  it('shows Detach only on the current-user-owned row (organizer is u1, booking bookedByUserId is u1)', async () => {
+    const fixture = await render();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Volvo Multi-Axle');
+    expect(text).toContain('BK10');
+    expect(text).toContain('Detach');
   });
 
-  it('shows the Suitable for Group badge when the trip has few members', async () => {
-    const members: TripMember[] = [
-      {
-        tripMemberId: 'm1',
-        userId: 'u2',
-        name: 'Bob',
-        email: 'bob@travelease.test',
-        memberStatus: 'ACCEPTED',
-        joinedDate: '2026-06-02T00:00:00Z',
-        budgetAmount: 0,
-        spentAmount: 0,
-      },
-    ];
-    const fixture = await render(members);
+  it('hides Detach on a row booked by a different trip member', async () => {
+    const fixture = await render([{ ...BOOKING, bookedByUserId: 'u2' }]);
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Suitable for Group');
-  });
-
-  it('hides the Suitable for Group badge when the trip has more members than any bus has seats', async () => {
-    const members: TripMember[] = Array.from({ length: 10 }, (_, i) => ({
-      tripMemberId: `m${i}`,
-      userId: `u${i}`,
-      name: `Member ${i}`,
-      email: `m${i}@travelease.test`,
-      memberStatus: 'ACCEPTED' as const,
-      joinedDate: '2026-06-02T00:00:00Z',
-      budgetAmount: 0,
-      spentAmount: 0,
-    }));
-    const fixture = await render(members);
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).not.toContain('Suitable for Group');
-  });
-
-  it('renders exactly 30 seats in the allocation grid', async () => {
-    const fixture = await render([]);
-    expect(fixture.componentInstance.seats).toHaveLength(30);
-  });
-
-  it('searches using the date picker value, not the trip start date, once changed', async () => {
-    const searchBuses = vi.fn().mockReturnValue(of(RESULTS));
-    const fixture = await render([], searchBuses);
-    searchBuses.mockClear();
-
-    (fixture.componentInstance as unknown as { onDateChange: (date: Date) => void }).onDateChange(
-      new Date(2026, 6, 14),
-    );
-    const sourceInput = (fixture.nativeElement as HTMLElement).querySelector('#source') as HTMLInputElement;
-    const destinationInput = (fixture.nativeElement as HTMLElement).querySelector(
-      '#destination',
-    ) as HTMLInputElement;
-    const searchButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(
-      (b) => b.textContent?.trim() === 'Search',
-    )!;
-    searchButton.click();
-
-    expect(searchBuses).toHaveBeenCalledWith(sourceInput.value, destinationInput.value, '2026-07-14');
+    expect(text).toContain('BK10');
+    expect(text).not.toContain('Detach');
   });
 });
