@@ -11,24 +11,39 @@
   <div class="grid grid-cols-2 gap-3">
     <div class="space-y-2">
       <label hlmLabel for="name">Name</label>
-      <input hlmInput id="name" name="name" placeholder="Jane Doe" />
+      <input hlmInput id="name" name="name" placeholder="Jane Doe" (input)="clearFieldError('name')" />
+      @if (fieldErrors().name) {
+        <p class="text-xs text-destructive">{{ fieldErrors().name }}</p>
+      }
     </div>
     <div class="space-y-2">
       <label hlmLabel for="phone">Phone</label>
-      <input hlmInput id="phone" name="phone" placeholder="+91 9876543210" />
+      <input hlmInput id="phone" name="phone" placeholder="+91 9876543210" (input)="clearFieldError('phone')" />
+      @if (fieldErrors().phone) {
+        <p class="text-xs text-destructive">{{ fieldErrors().phone }}</p>
+      }
     </div>
   </div>
   <div class="space-y-2">
     <label hlmLabel for="email">Email</label>
-    <input hlmInput id="email" name="email" type="email" placeholder="you@example.com" />
+    <input hlmInput id="email" name="email" type="email" placeholder="you@example.com" (input)="clearFieldError('email')" />
+    @if (fieldErrors().email) {
+      <p class="text-xs text-destructive">{{ fieldErrors().email }}</p>
+    }
   </div>
   <div class="space-y-2">
     <label hlmLabel for="password">Password</label>
-    <input hlmInput id="password" name="password" type="password" placeholder="At least 8 characters" />
+    <input hlmInput id="password" name="password" type="password" placeholder="At least 8 characters" (input)="clearFieldError('password')" />
+    @if (fieldErrors().password) {
+      <p class="text-xs text-destructive">{{ fieldErrors().password }}</p>
+    }
   </div>
   <div class="space-y-2">
     <label hlmLabel for="confirmPassword">Confirm password</label>
-    <input hlmInput id="confirmPassword" name="confirmPassword" type="password" />
+    <input hlmInput id="confirmPassword" name="confirmPassword" type="password" (input)="clearFieldError('confirmPassword')" />
+    @if (fieldErrors().confirmPassword) {
+      <p class="text-xs text-destructive">{{ fieldErrors().confirmPassword }}</p>
+    }
   </div>
   <div class="space-y-2">
     <label hlmLabel for="securityQuestion">Security question</label>
@@ -42,7 +57,10 @@
   </div>
   <div class="space-y-2">
     <label hlmLabel for="securityAnswer">Your answer</label>
-    <input hlmInput id="securityAnswer" name="securityAnswer" placeholder="Enter your answer" />
+    <input hlmInput id="securityAnswer" name="securityAnswer" placeholder="Enter your answer" (input)="clearFieldError('securityAnswer')" />
+    @if (fieldErrors().securityAnswer) {
+      <p class="text-xs text-destructive">{{ fieldErrors().securityAnswer }}</p>
+    }
   </div>
   <button hlmBtn type="submit" class="w-full" [disabled]="submitting()">
     {{ submitting() ? 'Creating account...' : 'Create account' }}

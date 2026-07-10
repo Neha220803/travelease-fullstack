@@ -5,24 +5,29 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { AuthService } from '@app/core/auth/auth.service';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
+
+const SECURITY_QUESTION = 'What is the name of the hospital where you were born?';
 
 @Component({
-  selector: 'app-register',
+  selector: 'app-forgot-password',
   imports: [RouterLink, HlmButtonImports, HlmInputImports, HlmLabelImports],
-  templateUrl: './register.html',
+  templateUrl: './forgot-password.html',
 })
-export class Register {
+export class ForgotPassword {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
 
+  protected readonly securityQuestion = SECURITY_QUESTION;
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
   protected readonly fieldErrors = signal<
-    Partial<Record<'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'securityAnswer', string>>
+    Partial<Record<'email' | 'securityAnswer' | 'newPassword' | 'confirmNewPassword', string>>
   >({});
 
   protected clearFieldError(
-    field: 'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'securityAnswer',
+    field: 'email' | 'securityAnswer' | 'newPassword' | 'confirmNewPassword',
   ): void {
     const { [field]: _removed, ...rest } = this.fieldErrors();
     this.fieldErrors.set(rest);
@@ -34,34 +39,25 @@ export class Register {
 
     const form = event.target as HTMLFormElement;
     const data = new FormData(form);
-    const name = String(data.get('name') ?? '').trim();
-    const phone = String(data.get('phone') ?? '').trim();
     const email = String(data.get('email') ?? '').trim();
-    const password = String(data.get('password') ?? '');
-    const confirmPassword = String(data.get('confirmPassword') ?? '');
-    const securityQuestion = String(data.get('securityQuestion') ?? '').trim();
     const securityAnswer = String(data.get('securityAnswer') ?? '').trim();
+    const newPassword = String(data.get('newPassword') ?? '');
+    const confirmNewPassword = String(data.get('confirmNewPassword') ?? '');
 
     const errors: Partial<
-      Record<'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'securityAnswer', string>
+      Record<'email' | 'securityAnswer' | 'newPassword' | 'confirmNewPassword', string>
     > = {};
-    if (name.length < 2) {
-      errors.name = 'Name must be at least 2 characters.';
-    }
-    if (!phone) {
-      errors.phone = 'Phone is required.';
-    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errors.email = 'Enter a valid email address.';
     }
-    if (password.length < 8 || !/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password)) {
-      errors.password = 'Password must be at least 8 characters and contain a letter and a digit.';
-    }
-    if (confirmPassword !== password) {
-      errors.confirmPassword = 'Passwords do not match.';
-    }
     if (!securityAnswer) {
       errors.securityAnswer = 'Security answer is required.';
+    }
+    if (newPassword.length < 8 || !/^(?=.*[A-Za-z])(?=.*\d).+$/.test(newPassword)) {
+      errors.newPassword = 'Password must be at least 8 characters and contain a letter and a digit.';
+    }
+    if (confirmNewPassword !== newPassword) {
+      errors.confirmNewPassword = 'Passwords do not match.';
     }
     this.fieldErrors.set(errors);
     if (Object.keys(errors).length > 0) {
@@ -70,20 +66,14 @@ export class Register {
 
     this.submitting.set(true);
     try {
-      await this.authService.register({
-        name,
-        email,
-        phone,
-        password,
-        securityQuestion,
-        securityAnswer,
-      });
+      await this.authService.resetPassword(email, securityAnswer, newPassword);
+      this.toastService.showSuccess('Password reset successfully. Please sign in.');
       this.router.navigate(['/login']);
     } catch (err) {
       this.error.set(
         err instanceof HttpErrorResponse
-          ? (err.error?.error?.message ?? 'Unable to create your account right now.')
-          : 'Unable to create your account right now.',
+          ? (err.error?.error?.message ?? 'Unable to reset your password right now.')
+          : 'Unable to reset your password right now.',
       );
     } finally {
       this.submitting.set(false);

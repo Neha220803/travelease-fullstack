@@ -87,4 +87,24 @@ describe('ItineraryService', () => {
 
     expect(result).toEqual(progress);
   });
+
+  it('caches the latest progress per trip so other components can read it without a new request', async () => {
+    const { service, httpMock } = await setup();
+    const progress: ItineraryProgress = {
+      tripId: 't1',
+      totalActivities: 2,
+      completedActivities: 0,
+      pendingActivities: 2,
+      completionPercentage: 0,
+    };
+
+    expect(service.progressFor('t1')).toBeNull();
+
+    service.getProgress('t1').subscribe();
+    httpMock
+      .expectOne((r) => r.url === 'http://localhost:8080/api/itinerary/progress' && r.params.get('tripId') === 't1')
+      .flush(progress);
+
+    expect(service.progressFor('t1')).toEqual(progress);
+  });
 });

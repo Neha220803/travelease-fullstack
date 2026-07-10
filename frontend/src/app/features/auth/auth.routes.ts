@@ -23,6 +23,13 @@ export const AUTH_ROUTES: Routes = [
             (m) => m.PartnerRegister,
           ),
       },
+      {
+        path: 'forgot-password',
+        loadComponent: () =>
+          import('@app/features/auth/components/forgot-password/forgot-password').then(
+            (m) => m.ForgotPassword,
+          ),
+      },
     ],
   },
 ];

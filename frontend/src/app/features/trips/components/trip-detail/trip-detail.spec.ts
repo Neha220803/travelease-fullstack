@@ -139,7 +139,7 @@ async function renderWithTripId(
           attachBookingToTrip: () => of(null),
         },
       },
-      { provide: ActivitiesService, useValue: { getActivities: () => of([]) } },
+      { provide: ActivitiesService, useValue: { getActivities: () => of([]), getProviders: () => of([]) } },
       { provide: RecommendationsService, useValue: { getRecommendations: () => of([]) } },
       { provide: HotelsService, useValue: { searchHotels: () => of([]) } },
       {
@@ -161,6 +161,7 @@ async function renderWithTripId(
               pendingActivities: 0,
               completionPercentage: 0,
             }),
+          progressFor: () => null,
         },
       },
     ],

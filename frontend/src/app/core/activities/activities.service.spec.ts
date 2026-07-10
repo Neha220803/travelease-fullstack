@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivitiesService } from '@app/core/activities/activities.service';
-import { Activity } from '@app/core/activities/activity.models';
+import { Activity, ActivityProviderOption } from '@app/core/activities/activity.models';
 
 async function setup() {
   await TestBed.configureTestingModule({
@@ -20,6 +20,7 @@ describe('ActivitiesService', () => {
     const activities: Activity[] = [
       {
         activityId: 'a1',
+        providerId: 202,
         destinationId: 2,
         activityName: 'Scuba Diving',
         durationHours: 3,
@@ -51,5 +52,21 @@ describe('ActivitiesService', () => {
     req.flush({ message: 'boom' }, { status: 500, statusText: 'Server Error' });
 
     expect(errored).toBe(true);
+  });
+
+  it('fetches activity providers for a destination (raw array, no envelope)', async () => {
+    const { service, httpMock } = await setup();
+    const providers: ActivityProviderOption[] = [{ providerId: 202, providerName: 'Goa Watersports Owner' }];
+
+    let result: ActivityProviderOption[] | undefined;
+    service.getProviders(2).subscribe((r) => (result = r));
+
+    const req = httpMock.expectOne(
+      (r) => r.url === 'http://localhost:8080/api/activities/providers' && r.params.get('destinationId') === '2',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(providers);
+
+    expect(result).toEqual(providers);
   });
 });

@@ -49,4 +49,43 @@ describe('AdminUsers', () => {
 
     http.verify();
   });
+
+  it('blocks user creation when the form is invalid, shows inline field errors, and makes no HTTP call', async () => {
+    const { fixture, http } = await setup();
+    fixture.detectChanges();
+
+    http.expectOne(`${API_BASE_URL}/api/admin/users`).flush(usersResponse);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    await fixture.componentInstance.createUser();
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Name is required.');
+    expect(text).toContain('Enter a valid email address.');
+    expect(text).toContain('Phone is required.');
+    expect(text).toContain('Password must be at least 8 characters and contain a letter and a digit.');
+    expect(text).toContain('Security answer is required.');
+
+    http.verify();
+  });
+
+  it('clears a field error as soon as the user edits that field', async () => {
+    const { fixture, http } = await setup();
+    fixture.detectChanges();
+
+    http.expectOne(`${API_BASE_URL}/api/admin/users`).flush(usersResponse);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    await fixture.componentInstance.createUser();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent ?? '').toContain('Name is required.');
+
+    fixture.componentInstance.updateField('name', 'Jane Doe');
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent ?? '').not.toContain('Name is required.');
+  });
 });

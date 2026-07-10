@@ -47,8 +47,13 @@ export class TripOverviewTab implements OnInit {
 
   protected readonly budgetSummary = signal<BudgetSummary | null>(null);
   protected readonly busBooked = signal(false);
-  protected readonly itineraryFinalized = signal(false);
   protected readonly recommendedActivities = signal<RecommendedActivityCard[]>([]);
+
+  // Reads from the shared cache in ItineraryService so this stays in sync
+  // once the traveler adds an item from the Itinerary tab, without a reload.
+  protected readonly itineraryFinalized = computed(
+    () => (this.itineraryService.progressFor(this.trip().tripId)?.totalActivities ?? 0) > 0,
+  );
 
   protected readonly pct = computed(() => Math.round(this.budgetSummary()?.utilizationPercentage ?? 0));
 
@@ -103,9 +108,8 @@ export class TripOverviewTab implements OnInit {
     });
 
     this.itineraryService.getProgress(trip.tripId).subscribe({
-      next: (progress) => this.itineraryFinalized.set(progress.completionPercentage === 100),
       error: () => {
-        // Stays "not done".
+        // Stays "not done" - itineraryFinalized falls back to false when the cache has no entry.
       },
     });
 

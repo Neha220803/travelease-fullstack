@@ -6,18 +6,30 @@
       <div class="space-y-2">
         <label class="text-sm font-medium">Full name</label>
         <input hlmInput placeholder="Jane Doe" [value]="form().name" (input)="updateField('name', $any($event.target).value)" />
+        @if (fieldErrors().name) {
+          <p class="text-xs text-destructive">{{ fieldErrors().name }}</p>
+        }
       </div>
       <div class="space-y-2">
         <label class="text-sm font-medium">Email</label>
         <input hlmInput type="email" placeholder="jane@example.com" [value]="form().email" (input)="updateField('email', $any($event.target).value)" />
+        @if (fieldErrors().email) {
+          <p class="text-xs text-destructive">{{ fieldErrors().email }}</p>
+        }
       </div>
       <div class="space-y-2">
         <label class="text-sm font-medium">Phone</label>
         <input hlmInput placeholder="9999999999" [value]="form().phone" (input)="updateField('phone', $any($event.target).value)" />
+        @if (fieldErrors().phone) {
+          <p class="text-xs text-destructive">{{ fieldErrors().phone }}</p>
+        }
       </div>
       <div class="space-y-2">
         <label class="text-sm font-medium">Password</label>
         <input hlmInput type="password" placeholder="Create password" [value]="form().password" (input)="updateField('password', $any($event.target).value)" />
+        @if (fieldErrors().password) {
+          <p class="text-xs text-destructive">{{ fieldErrors().password }}</p>
+        }
       </div>
       <div class="space-y-2">
         <label class="text-sm font-medium">Role</label>
@@ -31,6 +43,9 @@
       <div class="space-y-2">
         <label class="text-sm font-medium">Security answer</label>
         <input hlmInput placeholder="Birth hospital" [value]="form().securityAnswer" (input)="updateField('securityAnswer', $any($event.target).value)" />
+        @if (fieldErrors().securityAnswer) {
+          <p class="text-xs text-destructive">{{ fieldErrors().securityAnswer }}</p>
+        }
       </div>
     </div>
 
@@ -38,9 +53,6 @@
       <button hlmBtn (click)="createUser()" [disabled]="submitting()">
         {{ submitting() ? 'Creating…' : 'Create user' }}
       </button>
-      @if (message()) {
-        <span class="text-sm text-muted-foreground">{{ message() }}</span>
-      }
     </div>
   </div>
 </div>
