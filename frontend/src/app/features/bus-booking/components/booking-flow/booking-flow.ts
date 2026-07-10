@@ -1,4 +1,4 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -66,9 +66,15 @@ export class BookingFlow {
     this.step.set('passengers');
   }
 
-  protected get selectedSeats() {
-    return (this.seatLayout()?.seats ?? []).filter((s) => this.selectedSeatIds().includes(s.id));
-  }
+  // `computed()` (not a plain getter) so the derived array is only recomputed
+  // when `seatLayout`/`selectedSeatIds` actually change. A getter re-runs
+  // `.filter()` on every template read, handing PassengerDetailsForm a new
+  // array reference on every change-detection pass (e.g. each passenger-form
+  // keystroke), which would re-trigger its `seats()`-driven effect and reset
+  // all typed passenger data back to blank.
+  protected readonly selectedSeats = computed(() =>
+    (this.seatLayout()?.seats ?? []).filter((s) => this.selectedSeatIds().includes(s.id)),
+  );
 
   protected onDetailsChange(event: { valid: boolean; passengers: PassengerDetailDto[] }): void {
     this.passengersValid.set(event.valid);

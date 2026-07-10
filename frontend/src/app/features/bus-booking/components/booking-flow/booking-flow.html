@@ -19,7 +19,7 @@
     <button hlmBtn class="mt-4" [disabled]="selectedSeatIds().length === 0" (click)="proceedToPassengers()">Continue</button>
   }
   @case ('passengers') {
-    <app-passenger-details-form [seats]="selectedSeats" (detailsChange)="onDetailsChange($event)" />
+    <app-passenger-details-form [seats]="selectedSeats()" (detailsChange)="onDetailsChange($event)" />
     <button hlmBtn class="mt-4" [disabled]="!passengersValid()" (click)="proceedToReview()">Continue to Review</button>
   }
   @case ('review') {
