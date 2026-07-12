@@ -7,6 +7,7 @@ export interface Activity {
   startTime: string;
   endTime: string;
   description: string | null;
+  price: number | null;
 }
 
 export interface ActivityPayload {

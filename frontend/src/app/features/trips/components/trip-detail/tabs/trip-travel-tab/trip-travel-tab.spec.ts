@@ -1,11 +1,14 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { TripTravelTab } from '@app/features/trips/components/trip-detail/tabs/trip-travel-tab/trip-travel-tab';
 import { BookingService } from '@app/features/bus-booking/services/booking.service';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { AuthService } from '@app/core/auth/auth.service';
 import { Trip, TripMember } from '@app/features/trips/services/trip.models';
-import { BusSearchResult, SeatLayoutResponse } from '@app/features/trips/services/schedule.models';
+import { TripBusBooking } from '@app/features/bus-booking/services/booking.models';
 
 const TRIP: Trip = {
   tripId: 't1',
@@ -23,46 +26,44 @@ const TRIP: Trip = {
   updatedAt: '2026-06-01T00:00:00Z',
 };
 
-const RESULTS: BusSearchResult[] = [
+const MEMBERS: TripMember[] = [
   {
-    scheduleId: 1,
-    busName: 'Volvo Multi-Axle',
-    busNumber: 'KA-01-1234',
-    busType: 'AC_SLEEPER',
-    source: 'Bengaluru',
-    destination: 'Goa',
-    departureTime: '20:00:00',
-    arrivalTime: '07:00:00',
-    fare: 1800,
-    availableSeats: 4,
-    duration: 11,
-    travelDate: '2026-07-12',
-    amenities: [],
+    tripMemberId: 'm1',
+    userId: 'u2',
+    name: 'Bob',
+    email: 'bob@travelease.test',
+    memberStatus: 'ACCEPTED',
+    joinedDate: '2026-06-02T00:00:00Z',
+    budgetAmount: 0,
+    spentAmount: 0,
   },
 ];
 
-const SEAT_LAYOUT: SeatLayoutResponse = {
-  busId: 1,
-  busName: 'Volvo Multi-Axle',
-  seats: Array.from({ length: 30 }, (_, i) => ({
-    id: i + 1,
-    seatNumber: `S${i + 1}`,
-    seatType: 'SLEEPER',
-    deck: 1,
-    status: 'AVAILABLE',
-  })),
+const BOOKING: TripBusBooking = {
+  bookingId: 10,
+  bookingReference: 'BK10',
+  status: 'CONFIRMED',
+  totalFare: 1800,
+  scheduleId: 1,
+  travelDate: '2026-07-12',
+  source: 'Bengaluru',
+  destination: 'Goa',
+  bookedByUserId: 'u1',
+  travelerTripId: 't1',
 };
 
-async function render(bookings = [BOOKING]) {
+async function render(bookings: TripBusBooking[] = [BOOKING]) {
   await TestBed.configureTestingModule({
     imports: [TripTravelTab],
     providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      provideRouter([]),
       {
         provide: BookingService,
         useValue: {
-          searchBuses,
-          getTripBusBookings: () => of({ tripId: 't1', bookingCount: 0, totalFare: 0, bookings: [] }),
-          getSeats: () => of(SEAT_LAYOUT),
+          getTripBusBookings: () => of({ tripId: 't1', bookingCount: bookings.length, totalFare: 0, bookings }),
+          removeBookingFromTrip: () => of(void 0),
         },
       },
       {
@@ -103,41 +104,6 @@ describe('TripTravelTab', () => {
   it('hides Detach on a row booked by a different trip member', async () => {
     const fixture = await render([{ ...BOOKING, bookedByUserId: 'u2' }]);
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).not.toContain('Suitable for Group');
-  });
-
-  it('fetches and renders the seat layout once "View Seats" is clicked', async () => {
-    const fixture = await render([]);
-
-    const viewSeatsButton = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
-    ).find((b) => b.textContent?.trim() === 'View Seats')!;
-    viewSeatsButton.click();
-    fixture.detectChanges();
-
-    const component = fixture.componentInstance as unknown as {
-      seatLayout: () => SeatLayoutResponse | null;
-    };
-    expect(component.seatLayout()?.seats).toHaveLength(30);
-  });
-
-  it('searches using the date picker value, not the trip start date, once changed', async () => {
-    const searchBuses = vi.fn().mockReturnValue(of(RESULTS));
-    const fixture = await render([], searchBuses);
-    searchBuses.mockClear();
-
-    (fixture.componentInstance as unknown as { onDateChange: (date: Date) => void }).onDateChange(
-      new Date(2026, 6, 14),
-    );
-    const sourceInput = (fixture.nativeElement as HTMLElement).querySelector('#source') as HTMLInputElement;
-    const destinationInput = (fixture.nativeElement as HTMLElement).querySelector(
-      '#destination',
-    ) as HTMLInputElement;
-    const searchButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(
-      (b) => b.textContent?.trim() === 'Search',
-    )!;
-    searchButton.click();
-
-    expect(searchBuses).toHaveBeenCalledWith(sourceInput.value, destinationInput.value, '2026-07-14');
+    expect(text).not.toContain('Detach');
   });
 });

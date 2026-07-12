@@ -20,11 +20,11 @@ const SAMPLE_EXPENSE: ExpenseResponse = {
   description: 'Dinner at Britto\'s',
   payerId: 'u1',
   payerName: 'Alice',
-  status: 'PENDING',
+  status: 'FINALIZED',
   participants: [
-    { userId: 'u1', name: 'Alice', shareAmount: 1000, status: 'PENDING' },
-    { userId: 'u2', name: 'Bob', shareAmount: 1000, status: 'PENDING' },
-    { userId: 'u3', name: 'Charlie', shareAmount: 1000, status: 'PENDING' },
+    { userId: 'u1', name: 'Alice', shareAmount: 1000, status: 'APPROVED' },
+    { userId: 'u2', name: 'Bob', shareAmount: 1000, status: 'APPROVED' },
+    { userId: 'u3', name: 'Charlie', shareAmount: 1000, status: 'APPROVED' },
   ],
   createdAt: '2026-08-02T18:30:00Z',
 };
@@ -43,16 +43,25 @@ describe('TripExpenseService', () => {
   it('fetches and unwraps trip expenses', async () => {
     const { service, httpMock } = await setup();
 
+    const page: PagedResponse<ExpenseResponse> = {
+      content: [SAMPLE_EXPENSE],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+      totalPages: 1,
+      last: true,
+    };
+
     let result: PagedResponse<ExpenseResponse> | undefined;
     service.listTripExpenses(TRIP_ID).subscribe((expenses) => (result = expenses));
 
     const req = httpMock.expectOne(
-      `http://localhost:8080/api/trips/${TRIP_ID}/expenses`,
+      `http://localhost:8080/api/trips/${TRIP_ID}/expenses?page=0&size=10`,
     );
     expect(req.request.method).toBe('GET');
-    req.flush({ success: true, data: [SAMPLE_EXPENSE], message: 'Trip expenses retrieved', error: null });
+    req.flush({ success: true, data: page, message: 'Trip expenses retrieved', error: null });
 
-    expect(result).toEqual([SAMPLE_EXPENSE]);
+    expect(result).toEqual(page);
   });
 
   it('creates an expense and unwraps the response', async () => {
@@ -103,7 +112,7 @@ describe('TripExpenseService', () => {
     service.listTripExpenses(TRIP_ID).subscribe({ error: () => (errored = true) });
 
     const req = httpMock.expectOne(
-      `http://localhost:8080/api/trips/${TRIP_ID}/expenses`,
+      `http://localhost:8080/api/trips/${TRIP_ID}/expenses?page=0&size=10`,
     );
     req.flush(
       { success: false, data: null, message: null, error: { code: 'SERVER_ERROR', message: 'boom' } },

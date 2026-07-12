@@ -26,6 +26,7 @@ describe('ACTIVITY_ROUTES', () => {
       'bookings',
       'capacity',
       'reports',
+      'notifications',
     ]);
   });
 
@@ -38,8 +39,15 @@ describe('ACTIVITY_ROUTES', () => {
       ActivityCapacity,
       ActivityReports,
     ];
-    for (let i = 0; i < children.length; i++) {
+    for (let i = 0; i < expected.length; i++) {
       expect(await children[i].loadComponent!()).toBe(expected[i]);
     }
+  });
+
+  it('lazily loads the notifications route group', async () => {
+    const children = ACTIVITY_ROUTES[0].children ?? [];
+    const notificationsChild = children.find((r) => r.path === 'notifications')!;
+    const { NOTIFICATIONS_ROUTES } = await import('@app/features/notifications/notifications.routes');
+    expect(await notificationsChild.loadChildren!()).toBe(NOTIFICATIONS_ROUTES);
   });
 });

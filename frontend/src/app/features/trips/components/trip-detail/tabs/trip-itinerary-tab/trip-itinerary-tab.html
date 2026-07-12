@@ -87,24 +87,36 @@
             <p class="font-medium">Day {{ day.day }}</p>
             @for (it of day.items; track it.itineraryId) {
               <div class="flex items-start gap-3 p-3 rounded-md border bg-card">
-                <button
-                  type="button"
-                  class="mt-0.5 shrink-0 disabled:opacity-50"
-                  [disabled]="togglingId() === it.itineraryId"
-                  (click)="toggleStatus(it)"
-                  [attr.aria-label]="it.status === 'Completed' ? 'Mark as pending' : 'Mark as completed'"
-                >
-                  <ng-icon
-                    [name]="it.status === 'Completed' ? 'lucideCheckCircle2' : 'lucideClock'"
-                    [class]="'h-4 w-4 ' + (it.status === 'Completed' ? 'text-success' : 'text-muted-foreground')"
-                  />
-                </button>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium" [class.line-through]="it.status === 'Completed'">
                     {{ it.activityName }}
                   </p>
+                  <p class="text-xs text-muted-foreground">
+                    @if (providerNameFor(it.activityId); as providerName) {
+                      {{ providerName }}
+                      @if (it.startTime) {
+                        ·
+                      }
+                    }
+                    @if (it.startTime) {
+                      {{ formatTime(it.startTime) }}
+                    }
+                  </p>
                 </div>
-                <span class="text-xs text-muted-foreground tabular-nums">{{ it.status }}</span>
+                <app-status-badge [status]="it.status" />
+                @if (it.status === 'Pending') {
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="outline"
+                    size="sm"
+                    class="h-7 text-xs shrink-0"
+                    [disabled]="togglingId() === it.itineraryId"
+                    (click)="markComplete(it)"
+                  >
+                    Mark as Complete
+                  </button>
+                }
                 <button
                   type="button"
                   hlmBtn
@@ -124,33 +136,30 @@
       }
     </div>
   </div>
+
   <div hlmCard>
     <div hlmCardHeader>
       <h3 hlmCardTitle class="flex items-center gap-2">
-        <ng-icon name="lucideSparkles" class="h-4 w-4 text-accent" />Available Activities
+        <ng-icon name="lucideSparkles" class="h-4 w-4 text-accent" />Book an Activity
       </h3>
-      <p class="text-xs text-muted-foreground">Pick a provider, then click + to slot one of their activities in.</p>
+      <p class="text-xs text-muted-foreground">Pick a provider, then an activity to book and confirm payment.</p>
 
       <div class="space-y-2 mt-2">
         <label hlmLabel>Activity Provider</label>
-        @if (activityProviders().length === 0) {
-          <p class="text-xs text-muted-foreground">No activity providers for this destination yet.</p>
-        } @else {
-          <hlm-select
-            [value]="selectedProviderId() ? selectedProviderId()!.toString() : ''"
-            [itemToString]="providerIdToLabel"
-            (valueChange)="onProviderChange($event)"
-          >
-            <hlm-select-trigger class="w-full h-8 text-xs"><hlm-select-value /></hlm-select-trigger>
-            <ng-template hlmSelectPortal>
-              <hlm-select-content>
-                @for (p of activityProviders(); track p.providerId) {
-                  <hlm-select-item [value]="p.providerId.toString()">{{ p.providerName }}</hlm-select-item>
-                }
-              </hlm-select-content>
-            </ng-template>
-          </hlm-select>
-        }
+        <div class="grid gap-1.5">
+          @for (p of providers; track p) {
+            <button
+              type="button"
+              hlmBtn
+              [variant]="selectedProvider() === p ? 'default' : 'outline'"
+              size="sm"
+              class="justify-start text-xs h-8"
+              (click)="selectProvider(p)"
+            >
+              {{ p }}
+            </button>
+          }
+        </div>
       </div>
 
       <hlm-date-picker
@@ -164,23 +173,151 @@
       </hlm-date-picker>
     </div>
     <div hlmCardContent class="space-y-2">
-      @if (activityProviders().length > 0 && availableActivities().length === 0) {
-        <p class="text-sm text-muted-foreground">This provider has no activities at this destination yet.</p>
+      @if (!selectedProvider()) {
+        <p class="text-sm text-muted-foreground">Select a provider above to see their activities.</p>
+      } @else if (activitiesForProvider().length === 0) {
+        <p class="text-sm text-muted-foreground">This provider has no activities for this trip yet.</p>
       }
-      @for (a of availableActivities(); track a.activityId) {
-        <div class="flex items-center gap-3 p-2.5 rounded-md border bg-card">
+      @for (a of activitiesForProvider(); track a.activityId) {
+        <button
+          type="button"
+          class="w-full flex items-center gap-3 p-2.5 rounded-md border bg-card text-left hover:bg-muted/40 transition-colors"
+          (click)="openBooking(a)"
+        >
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium truncate">{{ a.activityName }}</p>
-            <p class="text-xs text-muted-foreground">{{ a.durationHours }} hr</p>
+            <p class="text-xs text-muted-foreground">{{ a.startTime }}–{{ a.endTime }}</p>
           </div>
-          <button hlmBtn size="sm" variant="ghost" class="h-7 w-7 p-0" (click)="onAddActivity(a)">
-            <ng-icon name="lucidePlus" class="h-4 w-4" />
-          </button>
-        </div>
-      }
-      @if (addError()) {
-        <p class="text-xs text-destructive">{{ addError() }}</p>
+          <p class="text-sm font-semibold whitespace-nowrap">₹{{ a.price?.toLocaleString() }}</p>
+        </button>
       }
     </div>
   </div>
 </div>
+
+<hlm-dialog [state]="bookingDialogState()" (stateChanged)="setBookingDialogState($event)">
+  <ng-template hlmDialogPortal>
+    <hlm-dialog-content>
+      @if (selectedActivity(); as activity) {
+        @if (bookingStage() === 'form') {
+          <div hlmDialogHeader>
+            <h3 hlmDialogTitle>Booking Confirmation</h3>
+          </div>
+          <div class="space-y-3">
+            <div class="rounded-md border p-3 space-y-1 text-sm">
+              <p class="font-medium">{{ activity.activityName }}</p>
+              <p class="text-xs text-muted-foreground">{{ activity.providerName }}</p>
+              <p class="text-xs text-muted-foreground">
+                {{ selectedDateLabel() }} · {{ activity.startTime }}–{{ activity.endTime }}
+              </p>
+              <p class="text-base font-semibold pt-1">Amount: ₹{{ activity.price?.toLocaleString() }}</p>
+            </div>
+
+            <div class="space-y-3 pt-1">
+              <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dummy Payment</p>
+
+              <div class="space-y-2">
+                <label hlmLabel for="card-number">Card Number</label>
+                <input
+                  hlmInput
+                  id="card-number"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="16"
+                  placeholder="1234 5678 9012"
+                  #cardNumberInput
+                  [value]="paymentDraft().cardNumber"
+                  (keydown)="onCardNumberKeydown($event)"
+                  (input)="updatePaymentField('cardNumber', cardNumberInput.value)"
+                  (blur)="markPaymentTouched('cardNumber')"
+                />
+                @if (paymentTouched().cardNumber && paymentErrors().cardNumber) {
+                  <p class="text-xs text-destructive">{{ paymentErrors().cardNumber }}</p>
+                }
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-2">
+                  <label hlmLabel for="card-expiry">Expiry</label>
+                  <input
+                    hlmInput
+                    id="card-expiry"
+                    type="text"
+                    maxlength="5"
+                    placeholder="MM/YY"
+                    #expiryInput
+                    [value]="paymentDraft().expiry"
+                    (input)="updatePaymentField('expiry', expiryInput.value)"
+                    (blur)="markPaymentTouched('expiry')"
+                  />
+                  @if (paymentTouched().expiry && paymentErrors().expiry) {
+                    <p class="text-xs text-destructive">{{ paymentErrors().expiry }}</p>
+                  }
+                </div>
+                <div class="space-y-2">
+                  <label hlmLabel for="card-cvv">CVV</label>
+                  <input
+                    hlmInput
+                    id="card-cvv"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="3"
+                    placeholder="123"
+                    #cvvInput
+                    [value]="paymentDraft().cvv"
+                    (keydown)="onCvvKeydown($event)"
+                    (input)="updatePaymentField('cvv', cvvInput.value)"
+                    (blur)="markPaymentTouched('cvv')"
+                  />
+                  @if (paymentTouched().cvv && paymentErrors().cvv) {
+                    <p class="text-xs text-destructive">{{ paymentErrors().cvv }}</p>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div hlmDialogFooter class="pt-2">
+              <button type="button" hlmBtn variant="outline" [disabled]="paying()" (click)="cancelBooking()">
+                Cancel
+              </button>
+              <button type="button" hlmBtn [disabled]="!paymentValid() || paying()" (click)="confirmAndPay()">
+                @if (paying()) {
+                  <ng-icon name="lucideLoader2" class="h-4 w-4 mr-1 animate-spin" />Processing…
+                } @else {
+                  Confirm &amp; Pay
+                }
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="space-y-4 text-center py-2">
+            <div class="mx-auto h-12 w-12 rounded-full bg-success/15 text-success grid place-items-center">
+              <ng-icon name="lucideCheckCircle2" class="h-7 w-7" />
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold">Booking Confirmed!</h3>
+              <p class="text-xs text-muted-foreground mt-1">Booking reference: {{ bookingReference() }}</p>
+            </div>
+            <div class="rounded-md border p-3 space-y-1 text-sm text-left">
+              <p class="font-medium">{{ activity.activityName }}</p>
+              <p class="text-xs text-muted-foreground">{{ activity.providerName }}</p>
+              <p class="text-xs text-muted-foreground">
+                {{ selectedDateLabel() }} · {{ activity.startTime }}–{{ activity.endTime }}
+              </p>
+              <p class="text-base font-semibold pt-1">Amount Paid: ₹{{ activity.price?.toLocaleString() }}</p>
+            </div>
+            <div hlmDialogFooter class="justify-center">
+              <button type="button" hlmBtn [disabled]="addingToItinerary()" (click)="addToItinerary()">
+                @if (addingToItinerary()) {
+                  <ng-icon name="lucideLoader2" class="h-4 w-4 mr-1 animate-spin" />Adding…
+                } @else {
+                  Add to Itinerary
+                }
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </hlm-dialog-content>
+  </ng-template>
+</hlm-dialog>

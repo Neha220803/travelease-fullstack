@@ -44,4 +44,17 @@ public class Activity {
 
     @Column(name = "Description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "Price")
+    private Double price;
+
+    /**
+     * Human-readable Activity Provider tenant name for traveler-facing display
+     * (e.g. the itinerary booking flow's provider picker). Nullable - falls back
+     * to resolving the owning ROLE_ACTIVITY_PROVIDER user's name at read time
+     * (see RecommendationController) when not explicitly set, same fallback
+     * ActivityController.resolveProviderOption already uses.
+     */
+    @Column(name = "ProviderName")
+    private String providerName;
 }

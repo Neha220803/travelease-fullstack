@@ -33,9 +33,14 @@ describe('TripExpensesTab', () => {
   function flushPendingRequests() {
     // Flush expenses
     const expensesReq = httpMock.expectOne(
-      `http://localhost:8080/api/trips/${TRIP_ID}/expenses`,
+      `http://localhost:8080/api/trips/${TRIP_ID}/expenses?page=0&size=10`,
     );
-    expensesReq.flush({ success: true, data: [], message: 'ok', error: null });
+    expensesReq.flush({
+      success: true,
+      data: { content: [], page: 0, size: 10, totalElements: 0, totalPages: 0, last: true },
+      message: 'ok',
+      error: null,
+    });
 
     // Flush members
     const membersReq = httpMock.expectOne(
@@ -77,8 +82,13 @@ describe('TripExpensesTab', () => {
 
     // Flush expenses
     httpMock
-      .expectOne(`http://localhost:8080/api/trips/${TRIP_ID}/expenses`)
-      .flush({ success: true, data: [], message: 'ok', error: null });
+      .expectOne(`http://localhost:8080/api/trips/${TRIP_ID}/expenses?page=0&size=10`)
+      .flush({
+        success: true,
+        data: { content: [], page: 0, size: 10, totalElements: 0, totalPages: 0, last: true },
+        message: 'ok',
+        error: null,
+      });
 
     // Flush members
     httpMock

@@ -169,7 +169,8 @@ public class ActivityProviderServiceImpl implements ActivityProviderService {
                 activity.getDurationHours(),
                 activity.getStartTime(),
                 activity.getEndTime(),
-                activity.getDescription()
+                activity.getDescription(),
+                activity.getPrice()
         );
     }
 

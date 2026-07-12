@@ -8,6 +8,7 @@ public record ActivityProviderResponse(
         Double durationHours,
         String startTime,
         String endTime,
-        String description
+        String description,
+        Double price
 ) {
 }

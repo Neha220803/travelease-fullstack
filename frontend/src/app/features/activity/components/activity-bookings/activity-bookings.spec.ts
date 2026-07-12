@@ -28,7 +28,7 @@ const OLDER_BOOKING: ActivityBooking = {
 };
 
 const OVERVIEW: ActivityOverview[] = [
-  { activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '' }, slots: [], bookings: [CONFIRMED_BOOKING, OLDER_BOOKING] },
+  { activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '', price: null }, slots: [], bookings: [CONFIRMED_BOOKING, OLDER_BOOKING] },
 ];
 
 async function setup(activityService: Partial<ActivityService>) {

@@ -47,4 +47,11 @@ describe('HOTEL_ROUTES', () => {
     }
     expect(children[6].loadChildren).toBeDefined();
   });
+
+  it('lazily loads the notifications route group', async () => {
+    const children = HOTEL_ROUTES[0].children ?? [];
+    const notificationsChild = children.find((r) => r.path === 'notifications')!;
+    const { NOTIFICATIONS_ROUTES } = await import('@app/features/notifications/notifications.routes');
+    expect(await notificationsChild.loadChildren!()).toBe(NOTIFICATIONS_ROUTES);
+  });
 });

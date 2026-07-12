@@ -43,6 +43,13 @@ export const ACTIVITY_ROUTES: Routes = [
             (m) => m.ActivityReports,
           ),
       },
+      {
+        path: 'notifications',
+        loadChildren: () =>
+          import('@app/features/notifications/notifications.routes').then(
+            (m) => m.NOTIFICATIONS_ROUTES,
+          ),
+      },
     ],
   },
 ];

@@ -35,7 +35,7 @@ export class BusSearchForm {
   protected readonly routesError = signal(false);
 
   protected readonly source = linkedSignal(this.initialSource);
-  protected readonly destination = linkedSignal(this.initialDestination);
+  public readonly destination = linkedSignal(this.initialDestination);
   protected readonly date = linkedSignal(this.initialDate);
   protected readonly today = new Date();
 
@@ -48,7 +48,7 @@ export class BusSearchForm {
   // Destinations filtered to routes that actually exist from the selected
   // source, rather than every destination in the system - so a traveler can
   // never pick a source/destination pair with no possible route.
-  protected readonly destinations = computed(() => {
+  public readonly destinations = computed(() => {
     const src = this.source();
     const unique = new Set(
       this.routes()
@@ -73,7 +73,7 @@ export class BusSearchForm {
     });
   }
 
-  protected onSourceChange(value: string | null | undefined): void {
+  public onSourceChange(value: string | null | undefined): void {
     if (!value) return;
     this.source.set(value);
     // The previously-selected destination may not be reachable from the new
@@ -83,7 +83,7 @@ export class BusSearchForm {
     }
   }
 
-  protected onDestinationChange(value: string | null | undefined): void {
+  public onDestinationChange(value: string | null | undefined): void {
     if (value) {
       this.destination.set(value);
     }

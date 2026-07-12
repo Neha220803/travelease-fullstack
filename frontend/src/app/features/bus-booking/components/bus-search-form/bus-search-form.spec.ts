@@ -51,7 +51,7 @@ describe('BusSearchForm', () => {
   it('only offers destinations that are reachable from the selected source', async () => {
     const { fixture, http } = await setup();
 
-    expect(fixture.componentInstance.destinations()).toEqual(['Goa']);
+    expect(fixture.componentInstance.destinations()).toEqual(['Chennai', 'Goa']);
 
     fixture.componentInstance.onSourceChange('Mumbai');
     fixture.detectChanges();

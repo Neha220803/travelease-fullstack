@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { provideIcons } from '@ng-icons/core';
@@ -65,8 +65,15 @@ async function configureWithRole(role: string | undefined) {
       provideRouter([]),
       provideIcons(ALL_ICONS),
       { provide: ActivatedRoute, useValue: { data: of(role === undefined ? {} : { role }) } },
-      { provide: AuthService, useValue: { logout: vi.fn(), isAuthenticated: () => true, role: () => role ?? 'traveler', currentUser: () => ({ name: 'Test User' }) } },
-      { provide: NotificationService, useValue: { getNotifications: () => of([]) } },
+      { provide: AuthService, useValue: { logout: vi.fn(), isAuthenticated: () => true } },
+      {
+        provide: NotificationService,
+        useValue: {
+          getNotifications: () => of([]),
+          refreshUnreadCount: () => {},
+          unreadCount: signal(0),
+        },
+      },
     ],
   }).compileComponents();
 }

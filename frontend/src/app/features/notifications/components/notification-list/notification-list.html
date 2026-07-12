@@ -10,12 +10,15 @@
 
     @if (!isLoading() && notifications().length === 0) {
       <div class="text-center py-8 text-muted-foreground">
-        No notifications yet.
+        No new notifications
       </div>
     }
 
     @for (n of notifications(); track n.notificationId) {
-      <div class="flex gap-4 py-4" [ngClass]="{'opacity-60': n.isRead}">
+      <div
+        class="flex gap-4 py-4 cursor-pointer hover:bg-muted/40 rounded-md px-2 -mx-2"
+        (click)="markAsRead(n)"
+      >
         <div class="h-10 w-10 shrink-0 rounded-md bg-primary/10 text-primary grid place-items-center">
           <ng-icon [name]="getIcon(n.notificationType)" class="h-5 w-5" />
         </div>
@@ -25,12 +28,7 @@
             <span class="text-xs font-normal text-muted-foreground">{{ n.createdDate | date:'medium' }}</span>
           </p>
           <p class="text-sm text-muted-foreground mt-1">{{ n.message }}</p>
-          
-          @if (!n.isRead) {
-            <div class="mt-2 flex justify-end">
-              <button hlmBtn variant="ghost" size="sm" (click)="markAsRead(n)">Mark as Read</button>
-            </div>
-          }
+          <p class="text-xs text-muted-foreground mt-1">{{ n.notificationType }}</p>
         </div>
       </div>
     }
