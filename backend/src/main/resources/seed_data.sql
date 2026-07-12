@@ -150,21 +150,26 @@ INSERT INTO seats (bus_id, seat_number, seat_type, deck, status, version) VALUES
 (6, 'M9', 'WINDOW', 2, 'MAINTENANCE', 0), (6, 'M10', 'AISLE', 2, 'MAINTENANCE', 0);
 
 -- ============================================================
--- 5. STAFF (drivers + conductors merged into one table)
--- Entity columns: id, provider_id, name, staff_type, license_number,
---   employee_id, phone, email, status, total_trips, total_distance_km,
---   rating, active, created_at, updated_at
--- IDs 1-4 = drivers, 5-7 = conductors (order matters: bus_trips inserts
--- below reference these staff ids directly by position).
+-- 5. DRIVERS
+-- Entity columns: id, provider_id, name, license_number, phone,
+--   email, status, total_trips, total_distance_km, rating,
+--   active, created_at, updated_at
 -- ============================================================
-INSERT INTO staff (provider_id, name, staff_type, license_number, employee_id, phone, email, status, total_trips, total_distance_km, rating, active, created_at, updated_at) VALUES
-(1, 'Rajesh Kumar', 'DRIVER', 'DL-KA-2024-001', NULL, '9876543210', 'rajesh@example.com', 'AVAILABLE', 150, 45000.0, 4.8, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
-(1, 'Suresh Reddy', 'DRIVER', 'DL-KA-2024-002', NULL, '9876543211', 'suresh@example.com', 'ON_TRIP', 200, 60000.0, 4.6, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
-(1, 'Manoj Singh', 'DRIVER', 'DL-MH-2024-003', NULL, '9876543212', 'manoj@example.com', 'OFF_DUTY', 80, 24000.0, 4.5, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
-(1, 'Vikram Patel', 'DRIVER', 'DL-TN-2024-004', NULL, '9876543213', 'vikram@example.com', 'AVAILABLE', 120, 36000.0, 4.7, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
-(1, 'Amit Sharma', 'CONDUCTOR', NULL, 'EMP-CON-001', '9876543220', 'amit@example.com', 'AVAILABLE', 100, 0.0, 4.5, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
-(1, 'Ravi Verma', 'CONDUCTOR', NULL, 'EMP-CON-002', '9876543221', 'ravi@example.com', 'ON_TRIP', 180, 0.0, 4.3, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
-(1, 'Deepak Joshi', 'CONDUCTOR', NULL, 'EMP-CON-003', '9876543222', 'deepak@example.com', 'OFF_DUTY', 60, 0.0, 4.6, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00');
+INSERT INTO drivers (provider_id, name, license_number, phone, email, status, total_trips, total_distance_km, rating, active, created_at, updated_at) VALUES
+(1, 'Rajesh Kumar', 'DL-KA-2024-001', '9876543210', 'rajesh@example.com', 'AVAILABLE', 150, 45000.0, 4.8, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(1, 'Suresh Reddy', 'DL-KA-2024-002', '9876543211', 'suresh@example.com', 'ON_TRIP', 200, 60000.0, 4.6, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(1, 'Manoj Singh', 'DL-MH-2024-003', '9876543212', 'manoj@example.com', 'OFF_DUTY', 80, 24000.0, 4.5, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(1, 'Vikram Patel', 'DL-TN-2024-004', '9876543213', 'vikram@example.com', 'AVAILABLE', 120, 36000.0, 4.7, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00');
+
+-- ============================================================
+-- 6. CONDUCTORS
+-- Entity columns: id, provider_id, name, employee_id, phone,
+--   email, status, total_trips, rating, active, created_at, updated_at
+-- ============================================================
+INSERT INTO conductors (provider_id, name, employee_id, phone, email, status, total_trips, rating, active, created_at, updated_at) VALUES
+(1, 'Amit Sharma', 'EMP-CON-001', '9876543220', 'amit@example.com', 'AVAILABLE', 100, 4.5, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(1, 'Ravi Verma', 'EMP-CON-002', '9876543221', 'ravi@example.com', 'ON_TRIP', 180, 4.3, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00'),
+(1, 'Deepak Joshi', 'EMP-CON-003', '9876543222', 'deepak@example.com', 'OFF_DUTY', 60, 4.6, 1, '2026-01-01 10:00:00', '2026-01-01 10:00:00');
 
 -- ============================================================
 -- 7. MAINTENANCE RECORDS
@@ -194,12 +199,11 @@ INSERT INTO maintenance_records (bus_id, maintenance_type, description, status, 
 -- Inserting this BusBooking column set into "trips" fails with a column-not-found
 -- error, silently swallowed by spring.sql.init.continue-on-error=true.
 -- ============================================================
--- driver_id/conductor_id reference the merged staff ids (drivers 1-4, conductors 5-7).
 INSERT INTO bus_trips (schedule_id, driver_id, conductor_id, status, actual_departure_time, actual_arrival_time, delay_minutes, distance_covered_km, notes, created_at, updated_at) VALUES
-(1, 1, 5, 'COMPLETED', '2026-07-14 22:05:00', '2026-07-15 05:10:00', 10, 350.5, 'On-time arrival', '2026-07-14 20:00:00', '2026-07-15 05:10:00'),
-(2, 2, 6, 'RUNNING', '2026-07-15 21:00:00', NULL, 0, 200.0, 'Currently en route', '2026-07-15 19:00:00', '2026-07-15 21:00:00'),
-(3, 3, 7, 'SCHEDULED', NULL, NULL, 0, 0.0, 'Upcoming trip', '2026-07-15 18:00:00', '2026-07-15 18:00:00'),
-(4, 4, 5, 'DELAYED', '2026-07-16 18:45:00', NULL, 45, 300.0, 'Heavy traffic', '2026-07-16 16:00:00', '2026-07-16 18:45:00');
+(1, 1, 1, 'COMPLETED', '2026-07-14 22:05:00', '2026-07-15 05:10:00', 10, 350.5, 'On-time arrival', '2026-07-14 20:00:00', '2026-07-15 05:10:00'),
+(2, 2, 2, 'RUNNING', '2026-07-15 21:00:00', NULL, 0, 200.0, 'Currently en route', '2026-07-15 19:00:00', '2026-07-15 21:00:00'),
+(3, 3, 3, 'SCHEDULED', NULL, NULL, 0, 0.0, 'Upcoming trip', '2026-07-15 18:00:00', '2026-07-15 18:00:00'),
+(4, 4, 1, 'DELAYED', '2026-07-16 18:45:00', NULL, 45, 300.0, 'Heavy traffic', '2026-07-16 16:00:00', '2026-07-16 18:45:00');
 
 -- ============================================================
 -- 9. COUPONS
@@ -422,14 +426,17 @@ INSERT INTO seats (bus_id, seat_number, seat_type, deck, status, version) VALUES
 (8, 'C13', 'WINDOW', 2, 'MAINTENANCE', 0), (8, 'C14', 'AISLE', 2, 'MAINTENANCE', 0),
 (8, 'C15', 'WINDOW', 2, 'MAINTENANCE', 0), (8, 'C16', 'AISLE', 2, 'MAINTENANCE', 0);
 
--- --- 20c/20d. STAFF (continues from id 7 -> ids 8, 9 drivers, 10, 11 conductors) ---
--- staff 8 is ASSIGNED to trip 5 (SCHEDULED, not yet run); staff 9 is AVAILABLE,
+-- --- 20c. DRIVERS (continues from id 4 -> ids 5, 6) ---
+-- driver 5 is ASSIGNED to trip 5 (SCHEDULED, not yet run); driver 6 is AVAILABLE,
 -- matching TripServiceImpl's post-completion reset for trip 6 (COMPLETED).
-INSERT INTO staff (provider_id, name, staff_type, license_number, employee_id, phone, email, status, total_trips, total_distance_km, rating, active, created_at, updated_at) VALUES
-(2, 'Arjun Mehta', 'DRIVER', 'DL-KA-2024-101', NULL, '9123456780', 'arjun.mehta@example.com', 'ASSIGNED', 0, 0.0, 4.2, 1, '2026-01-07 10:00:00', '2026-01-07 10:00:00'),
-(2, 'Rohan Kapoor', 'DRIVER', 'DL-KA-2024-102', NULL, '9123456781', 'rohan.kapoor@example.com', 'AVAILABLE', 45, 15000.0, 4.4, 1, '2026-01-07 10:00:00', '2026-07-11 14:20:00'),
-(2, 'Neha Singh', 'CONDUCTOR', NULL, 'EMP-P2-001', '9123456790', 'neha.singh@example.com', 'ASSIGNED', 0, 0.0, 4.1, 1, '2026-01-07 10:00:00', '2026-01-07 10:00:00'),
-(2, 'Karan Malhotra', 'CONDUCTOR', NULL, 'EMP-P2-002', '9123456791', 'karan.malhotra@example.com', 'AVAILABLE', 30, 0.0, 4.3, 1, '2026-01-07 10:00:00', '2026-07-11 14:20:00');
+INSERT INTO drivers (provider_id, name, license_number, phone, email, status, total_trips, total_distance_km, rating, active, created_at, updated_at) VALUES
+(2, 'Arjun Mehta', 'DL-KA-2024-101', '9123456780', 'arjun.mehta@example.com', 'ASSIGNED', 0, 0.0, 4.2, 1, '2026-01-07 10:00:00', '2026-01-07 10:00:00'),
+(2, 'Rohan Kapoor', 'DL-KA-2024-102', '9123456781', 'rohan.kapoor@example.com', 'AVAILABLE', 45, 15000.0, 4.4, 1, '2026-01-07 10:00:00', '2026-07-11 14:20:00');
+
+-- --- 20d. CONDUCTORS (continues from id 3 -> ids 4, 5) ---
+INSERT INTO conductors (provider_id, name, employee_id, phone, email, status, total_trips, rating, active, created_at, updated_at) VALUES
+(2, 'Neha Singh', 'EMP-P2-001', '9123456790', 'neha.singh@example.com', 'ASSIGNED', 0, 4.1, 1, '2026-01-07 10:00:00', '2026-01-07 10:00:00'),
+(2, 'Karan Malhotra', 'EMP-P2-002', '9123456791', 'karan.malhotra@example.com', 'AVAILABLE', 30, 4.3, 1, '2026-01-07 10:00:00', '2026-07-11 14:20:00');
 
 -- --- 20e. MAINTENANCE (continues from id 5 -> id 6) ---
 -- Coherent with bus 8's MAINTENANCE status: an IN_PROGRESS job, not just a future
@@ -460,10 +467,9 @@ INSERT INTO fare_rules (route_id, bus_type, base_fare, gst_percent, cancellation
 -- conductor all providerId = 2) ---
 -- TARGET-SCHEMA COMPATIBILITY ADAPTATION: table is "bus_trips", not "trips" (see
 -- Section 8's note above for why).
--- driver_id/conductor_id reference the merged staff ids (8, 9 = drivers; 10, 11 = conductors).
 INSERT INTO bus_trips (schedule_id, driver_id, conductor_id, status, actual_departure_time, actual_arrival_time, delay_minutes, distance_covered_km, notes, created_at, updated_at) VALUES
-(8, 8, 10, 'SCHEDULED', NULL, NULL, 0, 0.0, 'Upcoming trip', '2026-07-08 09:00:00', '2026-07-08 09:00:00'),
-(9, 9, 11, 'COMPLETED', '2026-07-11 07:05:00', '2026-07-11 14:20:00', 5, 420.0, 'On-time arrival', '2026-07-11 06:00:00', '2026-07-11 14:20:00');
+(8, 5, 4, 'SCHEDULED', NULL, NULL, 0, 0.0, 'Upcoming trip', '2026-07-08 09:00:00', '2026-07-08 09:00:00'),
+(9, 6, 5, 'COMPLETED', '2026-07-11 07:05:00', '2026-07-11 14:20:00', 5, 420.0, 'On-time arrival', '2026-07-11 06:00:00', '2026-07-11 14:20:00');
 
 -- --- 20j. BOOKINGS (continues from id 4 -> ids 5, 6, 7) ---
 -- Booking 5: CONFIRMED, schedule 8 (upcoming trip), coupon applied.
@@ -634,26 +640,6 @@ INSERT INTO activity_slots (activity_slot_id, activity_id, activity_date, start_
 ('f3000000-0000-0000-0000-000000000012', 'f2000000-0000-0000-0000-000000000006', '2026-06-28', '07:00:00', '09:00:00', 3500.00, 8, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000013', 'f2000000-0000-0000-0000-000000000006', '2026-08-05', '07:00:00', '09:00:00', 3500.00, 8, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000014', 'f2000000-0000-0000-0000-000000000007', '2026-07-25', '17:30:00', '19:00:00', 1000.00, 25, '2026-01-01 09:00:00', '2026-01-01 09:00:00');
-
--- ============================================================
--- Itinerary suggestions per trip category (Solo=1, Couple=2, Family=3,
--- Friends=4, Corporate=5 - see RecommendationController). Previously
--- unseeded, so GET /api/recommendations always returned [] and the Trip
--- Overview "Recommended Activities" panel never had anything to show for
--- any demo trip. Every category gets at least two ranked entries, all
--- referencing the real activities seeded above.
--- ============================================================
-INSERT INTO recommendations (recommendationid, categoryid, recommendation_type, referenceid, rank_order) VALUES
-('r1000000-0000-0000-0000-000000000001', 1, 'Activity', 'f2000000-0000-0000-0000-000000000001', 1),
-('r1000000-0000-0000-0000-000000000002', 1, 'Activity', 'f2000000-0000-0000-0000-000000000004', 2),
-('r1000000-0000-0000-0000-000000000003', 2, 'Activity', 'f2000000-0000-0000-0000-000000000007', 1),
-('r1000000-0000-0000-0000-000000000004', 2, 'Activity', 'f2000000-0000-0000-0000-000000000006', 2),
-('r1000000-0000-0000-0000-000000000005', 3, 'Activity', 'f2000000-0000-0000-0000-000000000001', 1),
-('r1000000-0000-0000-0000-000000000006', 3, 'Activity', 'f2000000-0000-0000-0000-000000000005', 2),
-('r1000000-0000-0000-0000-000000000007', 4, 'Activity', 'f2000000-0000-0000-0000-000000000002', 1),
-('r1000000-0000-0000-0000-000000000008', 4, 'Activity', 'f2000000-0000-0000-0000-000000000006', 2),
-('r1000000-0000-0000-0000-000000000009', 5, 'Activity', 'f2000000-0000-0000-0000-000000000005', 1),
-('r1000000-0000-0000-0000-000000000010', 5, 'Activity', 'f2000000-0000-0000-0000-000000000001', 2);
 
 -- activity_bookings columns (BaseEntity id override + domain columns):
 --   activity_booking_id, activity_slot_id, booked_by_user_id, participant_count,

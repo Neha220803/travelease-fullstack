@@ -59,8 +59,6 @@ export class ManageSchedules {
   protected readonly submitting = signal(false);
   protected readonly formError = signal<string | null>(null);
 
-  protected readonly todayDate = new Date().toISOString().slice(0, 10);
-
   constructor() {
     this.load();
     this.routeReferenceService.listActiveRoutes().subscribe((routes) => this.activeRoutes.set(routes));
@@ -137,35 +135,13 @@ export class ManageSchedules {
     event.preventDefault();
     this.formError.set(null);
 
-    if (!this.selectedRouteId() || !this.selectedBusId()) {
-      this.formError.set('Select a route and a bus.');
-      return;
-    }
-    if (!travelDate || travelDate < this.todayDate) {
-      this.formError.set('Travel date is required and cannot be in the past.');
-      return;
-    }
-    if (!departureTime || !arrivalTime) {
-      this.formError.set('Departure and arrival time are required.');
-      return;
-    }
-    if (arrivalTime <= departureTime) {
-      this.formError.set('Arrival time must be after departure time.');
-      return;
-    }
-    const fare = Number(fareRaw);
-    if (!fareRaw || !Number.isFinite(fare) || fare <= 0) {
-      this.formError.set('Fare is required and must be greater than 0.');
-      return;
-    }
-
     const payload: ScheduleFormPayload = {
       busId: Number(this.selectedBusId()),
       routeId: Number(this.selectedRouteId()),
       travelDate,
       departureTime,
       arrivalTime,
-      fare,
+      fare: Number(fareRaw),
     };
 
     const editing = this.editingSchedule();

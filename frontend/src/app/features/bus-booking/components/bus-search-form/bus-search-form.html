@@ -1,48 +1,24 @@
 <div hlmCard>
   <div hlmCardHeader><h3 hlmCardTitle>Search Buses</h3></div>
   <div hlmCardContent>
-    @if (routesLoading()) {
-      <p class="text-sm text-muted-foreground py-2">Loading routes…</p>
-    } @else if (routesError()) {
-      <p class="text-sm text-destructive py-2">Could not load routes. Please try again.</p>
-    } @else {
-      <div class="grid md:grid-cols-4 gap-3">
-        <div class="space-y-1.5">
-          <label hlmLabel>Source</label>
-          <hlm-select [value]="source()" (valueChange)="onSourceChange($event)">
-            <hlm-select-trigger><hlm-select-value placeholder="Select source" /></hlm-select-trigger>
-            <ng-template hlmSelectPortal>
-              <hlm-select-content>
-                @for (s of sources(); track s) {
-                  <hlm-select-item [value]="s">{{ s }}</hlm-select-item>
-                }
-              </hlm-select-content>
-            </ng-template>
-          </hlm-select>
-        </div>
-        <div class="space-y-1.5">
-          <label hlmLabel>Destination</label>
-          <hlm-select [value]="destination()" (valueChange)="onDestinationChange($event)">
-            <hlm-select-trigger><hlm-select-value placeholder="Select destination" /></hlm-select-trigger>
-            <ng-template hlmSelectPortal>
-              <hlm-select-content>
-                @for (d of destinations(); track d) {
-                  <hlm-select-item [value]="d">{{ d }}</hlm-select-item>
-                }
-              </hlm-select-content>
-            </ng-template>
-          </hlm-select>
-        </div>
-        <div class="space-y-1.5">
-          <label hlmLabel for="date">Date</label>
-          <hlm-date-picker id="date" [date]="date()" [min]="today" (dateChange)="onDateChange($event)">
-            <hlm-date-picker-input placeholder="Select date" />
-          </hlm-date-picker>
-        </div>
-        <div class="flex items-end">
-          <button hlmBtn class="w-full" [disabled]="!canSearch()" (click)="onSearchClick()">Search</button>
-        </div>
+    <div class="grid md:grid-cols-4 gap-3">
+      <div class="space-y-1.5">
+        <label hlmLabel for="source">Source</label>
+        <input hlmInput id="source" [value]="source()" (input)="onSourceInput($any($event.target).value)" />
       </div>
-    }
+      <div class="space-y-1.5">
+        <label hlmLabel for="destination">Destination</label>
+        <input hlmInput id="destination" [value]="destination()" (input)="onDestinationInput($any($event.target).value)" />
+      </div>
+      <div class="space-y-1.5">
+        <label hlmLabel for="date">Date</label>
+        <hlm-date-picker id="date" [date]="date()" (dateChange)="onDateChange($event)">
+          <hlm-date-picker-input placeholder="Select date" />
+        </hlm-date-picker>
+      </div>
+      <div class="flex items-end">
+        <button hlmBtn class="w-full" (click)="onSearchClick()">Search</button>
+      </div>
+    </div>
   </div>
 </div>

@@ -49,7 +49,7 @@
         <div class="text-3xl font-semibold tabular-nums">{{ pct() }}%</div>
         <p class="text-xs text-muted-foreground">of total budget used</p>
       </div>
-      <hlm-progress [value]="progressValue()" class="h-3"><hlm-progress-indicator /></hlm-progress>
+      <hlm-progress [value]="pct()" class="h-3"><hlm-progress-indicator /></hlm-progress>
       <div class="grid grid-cols-3 gap-2 text-center text-xs">
         <div>
           <p class="text-muted-foreground">Total</p>

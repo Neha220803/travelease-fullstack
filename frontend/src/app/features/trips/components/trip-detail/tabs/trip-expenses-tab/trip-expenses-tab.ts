@@ -15,7 +15,6 @@ import { TripExpenseService } from '@app/features/trips/services/trip-expense.se
 import { TripSettlementService } from '@app/features/trips/services/trip-settlement.service';
 import {
   CreateExpenseRequest,
-  ExpenseParticipantResponse,
   ExpenseParticipantShareRequest,
   ExpenseResponse,
   SettlementResponse,
@@ -75,11 +74,6 @@ export class TripExpensesTab {
 
   // --- Current User ---
   protected readonly currentUserId = computed(() => this.authService.currentUser()?.id ?? '');
-
-  // A split needs someone else to split with - the backend rejects creation
-  // outright on a trip with only the organizer and nobody else accepted yet.
-  protected readonly canSplitExpense = computed(() => this.members().length > 1);
-  protected readonly respondingExpenseId = signal<string | null>(null);
 
   // --- Expense Detail Popup ---
   protected readonly selectedExpense = signal<ExpenseResponse | null>(null);
@@ -196,52 +190,6 @@ export class TripExpensesTab {
 
   protected displayParticipantName(userId: string, name: string): string {
     return userId === this.currentUserId() ? 'You' : name;
-  }
-
-  protected myParticipation(expense: ExpenseResponse): ExpenseParticipantResponse | undefined {
-    return expense.participants.find((p) => p.userId === this.currentUserId());
-  }
-
-  protected needsMyApproval(expense: ExpenseResponse): boolean {
-    return expense.status === 'PENDING' && this.myParticipation(expense)?.status === 'PENDING';
-  }
-
-  protected approveExpense(expense: ExpenseResponse): void {
-    this.respondingExpenseId.set(expense.id);
-    this.expenseService.approveExpense(this.tripId(), expense.id).subscribe({
-      next: (updated) => this.onExpenseResponded(updated),
-      error: () => {
-        this.toastService.showError('Could not approve this expense. Please try again.');
-        this.respondingExpenseId.set(null);
-      },
-    });
-  }
-
-  protected rejectExpense(expense: ExpenseResponse): void {
-    this.respondingExpenseId.set(expense.id);
-    this.expenseService.rejectExpense(this.tripId(), expense.id).subscribe({
-      next: (updated) => this.onExpenseResponded(updated),
-      error: () => {
-        this.toastService.showError('Could not reject this expense. Please try again.');
-        this.respondingExpenseId.set(null);
-      },
-    });
-  }
-
-  private onExpenseResponded(updated: ExpenseResponse): void {
-    this.expenses.update((list) => list.map((e) => (e.id === updated.id ? updated : e)));
-    if (this.selectedExpense()?.id === updated.id) {
-      this.selectedExpense.set(updated);
-    }
-    this.respondingExpenseId.set(null);
-    if (updated.status === 'FINALIZED') {
-      this.toastService.showSuccess('Expense split finalized');
-      this.refreshSettlements();
-    } else if (updated.status === 'REJECTED') {
-      this.toastService.showSuccess('Expense split rejected');
-    } else {
-      this.toastService.showSuccess('Response recorded');
-    }
   }
 
   // --- Expense Detail Popup ---

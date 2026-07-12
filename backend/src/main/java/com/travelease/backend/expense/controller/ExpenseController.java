@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -66,28 +65,6 @@ public class ExpenseController {
     ) {
         ExpenseResponse response = expenseService.getTripExpense(tripId, expenseId, authentication.getName());
         return ResponseEntity.ok(ApiResponse.success(response, "Expense retrieved"));
-    }
-
-    @PatchMapping("/{expenseId}/approve")
-    @Operation(summary = "Approve my share of a split expense", description = "ACCESS: AUTHENTICATED\nSCOPE: A participant of the expense only. Once every participant has approved, the expense is finalized and each participant's TripMember.spentAmount is charged.\nIDENTITY: The current user is resolved from the JWT/email in the security context.")
-    public ResponseEntity<ApiResponse<ExpenseResponse>> approveExpense(
-            @PathVariable UUID tripId,
-            @PathVariable UUID expenseId,
-            Authentication authentication
-    ) {
-        ExpenseResponse response = expenseService.approveExpense(tripId, expenseId, authentication.getName());
-        return ResponseEntity.ok(ApiResponse.success(response, "Expense approved"));
-    }
-
-    @PatchMapping("/{expenseId}/reject")
-    @Operation(summary = "Reject my share of a split expense", description = "ACCESS: AUTHENTICATED\nSCOPE: A participant of the expense only. A single rejection terminally rejects the whole split - no charges are applied to anyone.\nIDENTITY: The current user is resolved from the JWT/email in the security context.")
-    public ResponseEntity<ApiResponse<ExpenseResponse>> rejectExpense(
-            @PathVariable UUID tripId,
-            @PathVariable UUID expenseId,
-            Authentication authentication
-    ) {
-        ExpenseResponse response = expenseService.rejectExpense(tripId, expenseId, authentication.getName());
-        return ResponseEntity.ok(ApiResponse.success(response, "Expense rejected"));
     }
 }
 

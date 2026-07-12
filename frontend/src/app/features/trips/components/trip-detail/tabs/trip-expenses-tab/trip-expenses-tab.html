@@ -7,12 +7,9 @@
           @if (totalElements() > 0) {
             <p class="text-xs text-muted-foreground mt-1">{{ totalElements() }} total</p>
           }
-          @if (!canSplitExpense()) {
-            <p class="text-xs text-muted-foreground mt-1">Invite at least one more member to split an expense.</p>
-          }
         </div>
         <hlm-dialog>
-          <button hlmDialogTrigger hlmBtn size="sm" [disabled]="!canSplitExpense()">
+          <button hlmDialogTrigger hlmBtn size="sm">
             <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Expense
           </button>
           <ng-template hlmDialogPortal let-ctx>
@@ -105,16 +102,6 @@
                   Paid by {{ displayExpensePayer(e) }} · split with {{ e.participants.length }}
                 </p>
               </div>
-              @if (needsMyApproval(e)) {
-                <div class="flex items-center gap-2" (click)="$event.stopPropagation()">
-                  <button hlmBtn size="sm" variant="outline" [disabled]="respondingExpenseId() === e.id" (click)="rejectExpense(e)">Reject</button>
-                  <button hlmBtn size="sm" [disabled]="respondingExpenseId() === e.id" (click)="approveExpense(e)">Approve</button>
-                </div>
-              } @else if (e.status === 'PENDING') {
-                <span class="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted">Awaiting approval</span>
-              } @else if (e.status === 'REJECTED') {
-                <span class="text-xs text-destructive px-2 py-1 rounded-full bg-destructive/10">Rejected</span>
-              }
               <div class="text-right">
                 <p class="font-semibold tabular-nums">₹{{ e.amount.toLocaleString() }}</p>
                 <span class="text-xs text-muted-foreground">{{ e.category }}</span>
@@ -227,12 +214,7 @@
       <hlm-dialog-content>
         <div hlmDialogHeader>
           <h3 hlmDialogTitle>{{ expense.description }}</h3>
-          <p class="text-sm text-muted-foreground">
-            Expense Details ·
-            @if (expense.status === 'PENDING') { Awaiting approval }
-            @else if (expense.status === 'FINALIZED') { Finalized }
-            @else { Rejected }
-          </p>
+          <p class="text-sm text-muted-foreground">Expense Details</p>
         </div>
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
@@ -262,26 +244,13 @@
                   <span [class.font-semibold]="p.userId === currentUserId()">
                     {{ displayParticipantName(p.userId, p.name) }}
                   </span>
-                  <div class="flex items-center gap-2">
-                    <span class="font-medium tabular-nums">₹{{ p.shareAmount.toLocaleString() }}</span>
-                    @if (p.status === 'APPROVED') {
-                      <ng-icon name="lucideCheckCircle2" class="h-4 w-4 text-success" />
-                    } @else if (p.status === 'REJECTED') {
-                      <ng-icon name="lucideX" class="h-4 w-4 text-destructive" />
-                    } @else {
-                      <span class="text-xs text-muted-foreground">Pending</span>
-                    }
-                  </div>
+                  <span class="font-medium tabular-nums">₹{{ p.shareAmount.toLocaleString() }}</span>
                 </div>
               }
             </div>
           </div>
         </div>
         <div hlmDialogFooter>
-          @if (needsMyApproval(expense)) {
-            <button hlmBtn variant="outline" [disabled]="respondingExpenseId() === expense.id" (click)="rejectExpense(expense)">Reject</button>
-            <button hlmBtn [disabled]="respondingExpenseId() === expense.id" (click)="approveExpense(expense)">Approve</button>
-          }
           <button hlmBtn variant="outline" (click)="closeExpenseDetail()">Close</button>
         </div>
       </hlm-dialog-content>

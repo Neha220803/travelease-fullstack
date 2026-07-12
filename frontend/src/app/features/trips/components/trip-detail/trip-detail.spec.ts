@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { provideIcons } from '@ng-icons/core';
 import {
   lucideAlertTriangle,
@@ -168,8 +169,24 @@ async function renderWithTripId(
   }).compileComponents();
 
   const fixture = TestBed.createComponent(TripDetail);
+  const router = TestBed.inject(Router);
+  const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   fixture.detectChanges();
-  return fixture;
+  return { fixture, navigateSpy };
+}
+
+function instance(fixture: ReturnType<typeof TestBed.createComponent<TripDetail>>) {
+  return fixture.componentInstance as unknown as {
+    deleteDialogState: () => 'open' | 'closed';
+    deleting: () => boolean;
+    deleteError: () => string | null;
+    deleteBlocked: () => boolean;
+    cancelling: () => boolean;
+    onDeleteClick: () => void;
+    onCancelDeleteDialog: () => void;
+    onConfirmDelete: () => void;
+    onCancelTripInstead: () => void;
+  };
 }
 
 function activeTab(fixture: ReturnType<typeof TestBed.createComponent<TripDetail>>): string {
@@ -179,18 +196,18 @@ function activeTab(fixture: ReturnType<typeof TestBed.createComponent<TripDetail
 describe('TripDetail', () => {
   it('shows a loading message before the trip arrives', async () => {
     const subject = new Subject<Trip>();
-    const fixture = await renderWithTripId('goa-2026', {}, { getTripById: () => subject.asObservable() });
+    const { fixture } = await renderWithTripId('goa-2026', {}, { getTripById: () => subject.asObservable() });
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Loading trip');
   });
 
   it('fetches the trip matching the route tripId and renders its name', async () => {
-    const fixture = await renderWithTripId('goa-2026');
+    const { fixture } = await renderWithTripId('goa-2026');
     expect(fixture.componentInstance.trip()).toEqual(SAMPLE_TRIP);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Goa Beach Escape');
   });
 
   it('shows an error message when loading the trip fails', async () => {
-    const fixture = await renderWithTripId(
+    const { fixture } = await renderWithTripId(
       'goa-2026',
       {},
       { getTripById: () => throwError(() => new Error('boom')) },
@@ -199,17 +216,17 @@ describe('TripDetail', () => {
   });
 
   it('resolves the destination id to a name in the hero', async () => {
-    const fixture = await renderWithTripId('goa-2026');
+    const { fixture } = await renderWithTripId('goa-2026');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Goa');
   });
 
   it('shows the member count in the hero', async () => {
-    const fixture = await renderWithTripId('goa-2026');
+    const { fixture } = await renderWithTripId('goa-2026');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('1 members');
   });
 
   it('renders all 8 tab triggers', async () => {
-    const fixture = await renderWithTripId('goa-2026');
+    const { fixture } = await renderWithTripId('goa-2026');
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     for (const label of [
       'Overview',
@@ -226,17 +243,80 @@ describe('TripDetail', () => {
   });
 
   it('defaults activeTab to overview when no tab query param is present', async () => {
-    const fixture = await renderWithTripId('goa-2026');
+    const { fixture } = await renderWithTripId('goa-2026');
     expect(activeTab(fixture)).toBe('overview');
   });
 
   it('seeds activeTab from a recognized tab query param', async () => {
-    const fixture = await renderWithTripId('goa-2026', { tab: 'members' });
+    const { fixture } = await renderWithTripId('goa-2026', { tab: 'members' });
     expect(activeTab(fixture)).toBe('members');
   });
 
   it('falls back to overview for an unrecognized tab query param value', async () => {
-    const fixture = await renderWithTripId('goa-2026', { tab: 'not-a-real-tab' });
+    const { fixture } = await renderWithTripId('goa-2026', { tab: 'not-a-real-tab' });
     expect(activeTab(fixture)).toBe('overview');
+  });
+
+  it('shows an Edit Trip and Delete Trip action for the organizer', async () => {
+    const { fixture } = await renderWithTripId('goa-2026');
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Edit Trip');
+    expect(text).toContain('Delete Trip');
+  });
+
+  it('deletes the trip and navigates back to the trips list on success', async () => {
+    const deleteTrip = vi.fn().mockReturnValue(of(undefined));
+    const { fixture, navigateSpy } = await renderWithTripId('goa-2026', {}, { deleteTrip });
+
+    instance(fixture).onDeleteClick();
+    expect(instance(fixture).deleteDialogState()).toBe('open');
+
+    instance(fixture).onConfirmDelete();
+    await fixture.whenStable();
+
+    expect(deleteTrip).toHaveBeenCalledWith('goa-2026');
+    expect(instance(fixture).deleteDialogState()).toBe('closed');
+    expect(navigateSpy).toHaveBeenCalledWith(['/trips']);
+  });
+
+  it('offers to cancel the trip instead when the hard delete is blocked', async () => {
+    const deleteTrip = vi.fn().mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            error: { success: false, data: null, error: { code: 'INVALID_REQUEST', message: 'Trip has bookings attached' } },
+          }),
+      ),
+    );
+    const { fixture, navigateSpy } = await renderWithTripId('goa-2026', {}, { deleteTrip });
+
+    instance(fixture).onDeleteClick();
+    instance(fixture).onConfirmDelete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(instance(fixture).deleteBlocked()).toBe(true);
+    expect(instance(fixture).deleteError()).toContain('Trip has bookings attached');
+    expect(navigateSpy).not.toHaveBeenCalled();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Cancel Trip Instead');
+  });
+
+  it('cancels the trip instead when the organizer confirms the fallback', async () => {
+    const deleteTrip = vi.fn().mockReturnValue(throwError(() => new Error('blocked')));
+    const cancelledTrip: Trip = { ...SAMPLE_TRIP, status: 'CANCELLED' };
+    const transitionStatus = vi.fn().mockReturnValue(of(cancelledTrip));
+    const { fixture } = await renderWithTripId('goa-2026', {}, { deleteTrip, transitionStatus });
+
+    instance(fixture).onDeleteClick();
+    instance(fixture).onConfirmDelete();
+    await fixture.whenStable();
+
+    instance(fixture).onCancelTripInstead();
+    await fixture.whenStable();
+
+    expect(transitionStatus).toHaveBeenCalledWith('goa-2026', 'CANCELLED');
+    expect(instance(fixture).deleteDialogState()).toBe('closed');
+    expect(fixture.componentInstance.trip()?.status).toBe('CANCELLED');
   });
 });

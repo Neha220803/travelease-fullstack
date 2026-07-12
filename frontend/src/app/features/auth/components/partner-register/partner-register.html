@@ -16,25 +16,16 @@
   <div class="grid grid-cols-2 gap-3">
     <div class="space-y-2">
       <label hlmLabel for="name">Business owner name</label>
-      <input hlmInput id="name" name="name" placeholder="Jane Doe" (input)="clearFieldError('name')" />
-      @if (fieldErrors().name) {
-        <p class="text-xs text-destructive">{{ fieldErrors().name }}</p>
-      }
+      <input hlmInput id="name" name="name" placeholder="Jane Doe" />
     </div>
     <div class="space-y-2">
       <label hlmLabel for="phone">Phone</label>
-      <input hlmInput id="phone" name="phone" placeholder="9876543210" (input)="clearFieldError('phone')" />
-      @if (fieldErrors().phone) {
-        <p class="text-xs text-destructive">{{ fieldErrors().phone }}</p>
-      }
+      <input hlmInput id="phone" name="phone" placeholder="+91 9876543210" />
     </div>
   </div>
   <div class="space-y-2">
     <label hlmLabel for="email">Email</label>
-    <input hlmInput id="email" name="email" type="email" maxlength="100" placeholder="you@example.com" (input)="clearFieldError('email')" />
-    @if (fieldErrors().email) {
-      <p class="text-xs text-destructive">{{ fieldErrors().email }}</p>
-    }
+    <input hlmInput id="email" name="email" type="email" placeholder="you@example.com" />
   </div>
   <div class="space-y-2">
     <label hlmLabel for="role">Partner type</label>
@@ -42,53 +33,33 @@
       id="role"
       name="role"
       class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-      (change)="clearFieldError('role')"
     >
       <option value="HOTEL_PROVIDER">Hotel Provider</option>
       <option value="PROVIDER">Bus Provider</option>
       <option value="ACTIVITY_PROVIDER">Activity Provider</option>
     </select>
-    @if (fieldErrors().role) {
-      <p class="text-xs text-destructive">{{ fieldErrors().role }}</p>
-    }
   </div>
   <div class="space-y-2">
     <label hlmLabel for="password">Password</label>
-    <input hlmInput id="password" name="password" type="password" placeholder="8+ chars: upper, lower, number & symbol" (input)="clearFieldError('password')" />
-    @if (fieldErrors().password) {
-      <p class="text-xs text-destructive">{{ fieldErrors().password }}</p>
-    }
+    <input hlmInput id="password" name="password" type="password" placeholder="At least 8 characters" />
   </div>
   <div class="space-y-2">
     <label hlmLabel for="confirmPassword">Confirm password</label>
-    <input hlmInput id="confirmPassword" name="confirmPassword" type="password" (input)="clearFieldError('confirmPassword')" />
-    @if (fieldErrors().confirmPassword) {
-      <p class="text-xs text-destructive">{{ fieldErrors().confirmPassword }}</p>
-    }
+    <input hlmInput id="confirmPassword" name="confirmPassword" type="password" />
   </div>
   <div class="space-y-2">
     <label hlmLabel for="securityQuestion">Security question</label>
-    <select
+    <input
+      hlmInput
       id="securityQuestion"
       name="securityQuestion"
-      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-      (change)="clearFieldError('securityQuestion')"
-    >
-      <option value="" selected disabled>Choose a security question</option>
-      @for (question of securityQuestions; track question) {
-        <option [value]="question">{{ question }}</option>
-      }
-    </select>
-    @if (fieldErrors().securityQuestion) {
-      <p class="text-xs text-destructive">{{ fieldErrors().securityQuestion }}</p>
-    }
+      value="What is the name of the hospital where you were born?"
+      readonly
+    />
   </div>
   <div class="space-y-2">
     <label hlmLabel for="securityAnswer">Your answer</label>
-    <input hlmInput id="securityAnswer" name="securityAnswer" placeholder="Enter your answer" (input)="clearFieldError('securityAnswer')" />
-    @if (fieldErrors().securityAnswer) {
-      <p class="text-xs text-destructive">{{ fieldErrors().securityAnswer }}</p>
-    }
+    <input hlmInput id="securityAnswer" name="securityAnswer" placeholder="Enter your answer" />
   </div>
   <button hlmBtn type="submit" class="w-full" [disabled]="submitting()">
     {{ submitting() ? 'Submitting...' : 'Submit application' }}

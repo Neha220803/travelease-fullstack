@@ -7,8 +7,6 @@ import com.travelease.backend.expense.dto.ExpenseResponse;
 import com.travelease.backend.expense.dto.ExpenseParticipantShareRequest;
 import com.travelease.backend.expense.entity.Expense;
 import com.travelease.backend.expense.entity.ExpenseParticipant;
-import com.travelease.backend.expense.entity.ExpenseParticipantStatus;
-import com.travelease.backend.expense.entity.ExpenseStatus;
 import com.travelease.backend.expense.mapper.ExpenseMapper;
 import com.travelease.backend.expense.repository.ExpenseRepository;
 import com.travelease.backend.itinerary.service.NotificationService;
@@ -64,10 +62,6 @@ public class ExpenseServiceImpl implements ExpenseService {
         if (participantIds.isEmpty()) {
             throw new InvalidRequestException("At least one participant is required");
         }
-        long acceptedMemberCount = tripMemberRepository.findByTripIdAndMemberStatus(tripId, TripMemberStatus.ACCEPTED).size();
-        if (acceptedMemberCount <= 1) {
-            throw new InvalidRequestException("Cannot split an expense on a trip with only one member");
-        }
         if (!tripMemberRepository.existsByTripIdAndUserIdAndMemberStatus(tripId, request.payerId(), TripMemberStatus.ACCEPTED)) {
             throw new InvalidRequestException("Payer must be a trip member");
         }
@@ -80,8 +74,6 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         User payer = userRepository.findById(request.payerId())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + request.payerId() + " not found"));
-        User currentUser = userRepository.findByEmail(currentUserEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Map<UUID, User> participantsById = participantMembers.stream()
                 .map(TripMember::getUser)
                 .collect(Collectors.toMap(User::getId, Function.identity()));
@@ -93,11 +85,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setCategory(request.category());
         expense.setExpenseDate(request.expenseDate() == null ? LocalDate.now() : request.expenseDate());
         expense.setDescription(request.description());
-        expense.setStatus(ExpenseStatus.PENDING);
 
-        // Submitting the request is the creator's own approval; every other
-        // participant starts PENDING and must explicitly approve before any
-        // TripMember.spentAmount charge is applied (see finalizeIfEveryoneApproved).
         List<UUID> orderedParticipantIds = new ArrayList<>(participantIds);
         Map<UUID, BigDecimal> sharesByParticipantId = resolveShares(expense.getAmount(), orderedParticipantIds, request);
         for (int i = 0; i < orderedParticipantIds.size(); i++) {
@@ -108,25 +96,21 @@ public class ExpenseServiceImpl implements ExpenseService {
             expenseParticipant.setExpense(expense);
             expenseParticipant.setUser(participant);
             expenseParticipant.setShareAmount(share);
-            expenseParticipant.setStatus(participant.getId().equals(currentUser.getId())
-                    ? ExpenseParticipantStatus.APPROVED
-                    : ExpenseParticipantStatus.PENDING);
             expense.getParticipants().add(expenseParticipant);
+
+            TripMember tripMember = participantMembers.stream()
+                    .filter(member -> member.getUser().getId().equals(participant.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new InvalidRequestException("Participant must be a trip member"));
+            tripMember.setSpentAmount(tripMember.getSpentAmount().add(share));
+            tripMemberRepository.save(tripMember);
         }
 
-        finalizeIfEveryoneApproved(expense, participantMembers);
         Expense saved = expenseRepository.save(expense);
         log.info("Shared expense {} created for trip {}", saved.getId(), tripId);
 
-        // Confirm the expense directly to whoever logged it, distinct from the
-        // "you've been included" notice the other participants get below.
-        notificationService.createNotification(
-                currentUser.getId().toString(),
-                "EXPENSE",
-                "Expense Logged",
-                "Your expense \"" + saved.getDescription() + "\" was recorded"
-                        + (saved.getStatus() == ExpenseStatus.FINALIZED ? "." : " and is awaiting approval.")
-        );
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         for (ExpenseParticipant participant : saved.getParticipants()) {
             if (!participant.getUser().getId().equals(currentUser.getId())) {
@@ -171,91 +155,6 @@ public class ExpenseServiceImpl implements ExpenseService {
                 expenseRepository.findByTripIdOrderByCreatedAtDesc(tripId, pageable)
                         .map(expenseMapper::toResponse)
         );
-    }
-
-    @Override
-    @Transactional
-    public ExpenseResponse approveExpense(UUID tripId, UUID expenseId, String currentUserEmail) {
-        return respondToExpense(tripId, expenseId, currentUserEmail, ExpenseParticipantStatus.APPROVED);
-    }
-
-    @Override
-    @Transactional
-    public ExpenseResponse rejectExpense(UUID tripId, UUID expenseId, String currentUserEmail) {
-        return respondToExpense(tripId, expenseId, currentUserEmail, ExpenseParticipantStatus.REJECTED);
-    }
-
-    private ExpenseResponse respondToExpense(
-            UUID tripId, UUID expenseId, String currentUserEmail, ExpenseParticipantStatus response
-    ) {
-        findTrip(tripId);
-        ensureCurrentUserIsMember(tripId, currentUserEmail);
-        Expense expense = expenseRepository.findByIdAndTripId(expenseId, tripId)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense with id " + expenseId + " not found"));
-        if (expense.getStatus() != ExpenseStatus.PENDING) {
-            throw new InvalidRequestException("This expense has already been " + expense.getStatus().name().toLowerCase());
-        }
-
-        User currentUser = userRepository.findByEmail(currentUserEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        ExpenseParticipant myParticipation = expense.getParticipants().stream()
-                .filter(p -> p.getUser().getId().equals(currentUser.getId()))
-                .findFirst()
-                .orElseThrow(() -> new AccessDeniedException("Current user is not a participant in this expense"));
-        if (myParticipation.getStatus() != ExpenseParticipantStatus.PENDING) {
-            throw new InvalidRequestException("You have already responded to this expense");
-        }
-
-        myParticipation.setStatus(response);
-
-        if (response == ExpenseParticipantStatus.REJECTED) {
-            expense.setStatus(ExpenseStatus.REJECTED);
-            notificationService.createNotification(
-                    expense.getPayer().getId().toString(),
-                    "EXPENSE",
-                    "Expense split rejected",
-                    currentUser.getName() + " rejected the split for: " + expense.getDescription()
-            );
-        } else {
-            List<TripMember> participantMembers = tripMemberRepository.findByTripIdAndUserIdInAndMemberStatus(
-                    tripId,
-                    expense.getParticipants().stream().map(p -> p.getUser().getId()).toList(),
-                    TripMemberStatus.ACCEPTED
-            );
-            boolean finalized = finalizeIfEveryoneApproved(expense, participantMembers);
-            if (finalized) {
-                notifyAllParticipants(expense, "Expense split finalized",
-                        "All participants approved: " + expense.getDescription());
-            }
-        }
-
-        Expense saved = expenseRepository.save(expense);
-        return expenseMapper.toResponse(saved);
-    }
-
-    /** Returns true and applies each participant's charge iff every participant is now APPROVED. */
-    private boolean finalizeIfEveryoneApproved(Expense expense, List<TripMember> participantMembers) {
-        boolean everyoneApproved = expense.getParticipants().stream()
-                .allMatch(p -> p.getStatus() == ExpenseParticipantStatus.APPROVED);
-        if (!everyoneApproved) {
-            return false;
-        }
-        for (ExpenseParticipant participant : expense.getParticipants()) {
-            TripMember tripMember = participantMembers.stream()
-                    .filter(member -> member.getUser().getId().equals(participant.getUser().getId()))
-                    .findFirst()
-                    .orElseThrow(() -> new InvalidRequestException("Participant must be a trip member"));
-            tripMember.setSpentAmount(tripMember.getSpentAmount().add(participant.getShareAmount()));
-            tripMemberRepository.save(tripMember);
-        }
-        expense.setStatus(ExpenseStatus.FINALIZED);
-        return true;
-    }
-
-    private void notifyAllParticipants(Expense expense, String title, String message) {
-        for (ExpenseParticipant participant : expense.getParticipants()) {
-            notificationService.createNotification(participant.getUser().getId().toString(), "EXPENSE", title, message);
-        }
     }
 
     private Trip findTrip(UUID tripId) {

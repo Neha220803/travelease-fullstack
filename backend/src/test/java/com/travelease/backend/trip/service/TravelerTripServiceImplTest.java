@@ -51,6 +51,24 @@ class TravelerTripServiceImplTest {
     private UserRepository userRepository;
     @Mock
     private com.travelease.backend.itinerary.service.NotificationService notificationService;
+    @Mock
+    private com.travelease.backend.trips_and_invitations.repository.InvitationRepository invitationRepository;
+    @Mock
+    private com.travelease.backend.expense.repository.ExpenseRepository expenseRepository;
+    @Mock
+    private com.travelease.backend.expense.repository.ExpenseParticipantRepository expenseParticipantRepository;
+    @Mock
+    private com.travelease.backend.settlement.repository.SettlementRepository settlementRepository;
+    @Mock
+    private com.travelease.backend.itinerary.repository.ItineraryRepository itineraryRepository;
+    @Mock
+    private com.travelease.backend.itinerary.repository.DelayRepository delayRepository;
+    @Mock
+    private com.travelease.backend.itinerary.repository.ActivityBookingRepository activityBookingRepository;
+    @Mock
+    private com.travelease.backend.accommodation.repository.HotelBookingRepository hotelBookingRepository;
+    @Mock
+    private com.travelease.backend.busbooking.repository.BookingRepository busBookingRepository;
 
     private TripAuthorizationService tripAuthorizationService;
     private TravelerTripServiceImpl tripService;
@@ -60,7 +78,9 @@ class TravelerTripServiceImplTest {
         tripAuthorizationService = new TripAuthorizationService(tripMemberRepository);
         tripService = new TravelerTripServiceImpl(
                 tripRepository, tripMemberRepository, userRepository,
-                tripAuthorizationService, new TravelerTripMapper(), notificationService);
+                tripAuthorizationService, new TravelerTripMapper(), notificationService, invitationRepository,
+                expenseRepository, expenseParticipantRepository, settlementRepository, itineraryRepository, delayRepository,
+                activityBookingRepository, hotelBookingRepository, busBookingRepository);
     }
 
     private User user(String email, Role role) {
@@ -614,5 +634,135 @@ class TravelerTripServiceImplTest {
         TripResponse response = tripService.getTripById(trip.getId(), alice.getEmail());
 
         assertThat(response.status()).isEqualTo(TravelerTripStatus.COMPLETED);
+    }
+
+    // --- deletion ---
+
+    @Test
+    void organizerCanDeleteAPlanningTripWithNoAttachedData() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(tripMemberRepository.findByTripId(trip.getId())).thenReturn(List.of());
+
+        tripService.deleteTrip(trip.getId(), alice.getEmail());
+
+        verify(tripRepository).delete(trip);
+        verify(tripRepository).flush();
+    }
+
+    @Test
+    void deletingATripPurgesItsExpensesSettlementsItineraryAndInvitations() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        String tripIdStr = trip.getId().toString();
+
+        com.travelease.backend.expense.entity.Expense expense = new com.travelease.backend.expense.entity.Expense();
+        com.travelease.backend.settlement.entity.Settlement settlement =
+                new com.travelease.backend.settlement.entity.Settlement();
+        com.travelease.backend.itinerary.entity.Itinerary itinerary =
+                new com.travelease.backend.itinerary.entity.Itinerary();
+        com.travelease.backend.itinerary.entity.Delay delay = new com.travelease.backend.itinerary.entity.Delay();
+        com.travelease.backend.trips_and_invitations.entity.Invitation invitation =
+                new com.travelease.backend.trips_and_invitations.entity.Invitation();
+
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(tripMemberRepository.findByTripId(trip.getId())).thenReturn(List.of());
+        when(expenseRepository.findByTripIdOrderByCreatedAtDesc(trip.getId())).thenReturn(List.of(expense));
+        when(settlementRepository.findByTripId(trip.getId())).thenReturn(List.of(settlement));
+        when(itineraryRepository.findByTripId(tripIdStr)).thenReturn(List.of(itinerary));
+        when(delayRepository.findByTripId(tripIdStr)).thenReturn(List.of(delay));
+        when(invitationRepository.findByTripId(trip.getId())).thenReturn(List.of(invitation));
+
+        tripService.deleteTrip(trip.getId(), alice.getEmail());
+
+        verify(expenseRepository).deleteAll(List.of(expense));
+        verify(settlementRepository).deleteAll(List.of(settlement));
+        verify(itineraryRepository).deleteAll(List.of(itinerary));
+        verify(delayRepository).deleteAll(List.of(delay));
+        verify(invitationRepository).deleteAll(List.of(invitation));
+        verify(tripRepository).delete(trip);
+        verify(tripRepository).flush();
+    }
+
+    @Test
+    void deletingATripDetachesRatherThanDeletesRealBookings() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+
+        com.travelease.backend.itinerary.entity.ActivityBooking activityBooking =
+                new com.travelease.backend.itinerary.entity.ActivityBooking();
+        activityBooking.setTripId(trip.getId());
+        com.travelease.backend.accommodation.entity.HotelBooking hotelBooking =
+                new com.travelease.backend.accommodation.entity.HotelBooking();
+        hotelBooking.setTripId(trip.getId());
+        com.travelease.backend.busbooking.entity.Booking busBooking =
+                new com.travelease.backend.busbooking.entity.Booking();
+        busBooking.setTravelerTripId(trip.getId());
+
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(tripMemberRepository.findByTripId(trip.getId())).thenReturn(List.of());
+        when(activityBookingRepository.findByTripId(trip.getId())).thenReturn(List.of(activityBooking));
+        when(hotelBookingRepository.findByTripId(trip.getId())).thenReturn(List.of(hotelBooking));
+        when(busBookingRepository.findByTravelerTripId(trip.getId())).thenReturn(List.of(busBooking));
+
+        tripService.deleteTrip(trip.getId(), alice.getEmail());
+
+        // Detached (tripId cleared), never handed to a delete/deleteAll call -
+        // these are real bookings/payments, not planning data owned by the trip.
+        assertThat(activityBooking.getTripId()).isNull();
+        assertThat(hotelBooking.getTripId()).isNull();
+        assertThat(busBooking.getTravelerTripId()).isNull();
+        verify(activityBookingRepository, never()).delete(any());
+        verify(activityBookingRepository, never()).deleteAll(any());
+        verify(hotelBookingRepository, never()).delete(any());
+        verify(hotelBookingRepository, never()).deleteAll(any());
+        verify(busBookingRepository, never()).delete(any());
+        verify(busBookingRepository, never()).deleteAll(any());
+        verify(tripRepository).delete(trip);
+    }
+
+    @Test
+    void nonOrganizerMemberCannotDeleteTrip() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        User bob = user("bob@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(bob.getEmail())).thenReturn(Optional.of(bob));
+
+        assertThatThrownBy(() -> tripService.deleteTrip(trip.getId(), bob.getEmail()))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(tripRepository, never()).delete(any());
+    }
+
+    @Test
+    void cannotDeleteACompletedTrip() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        trip.setStatus(TravelerTripStatus.COMPLETED);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+
+        assertThatThrownBy(() -> tripService.deleteTrip(trip.getId(), alice.getEmail()))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(tripRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteTripTranslatesAnUnexpectedDataConflictIntoAFriendlyMessage() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+        when(tripMemberRepository.findByTripId(trip.getId())).thenReturn(List.of());
+        org.mockito.Mockito.doThrow(new org.springframework.dao.DataIntegrityViolationException("fk violation"))
+                .when(tripRepository).flush();
+
+        assertThatThrownBy(() -> tripService.deleteTrip(trip.getId(), alice.getEmail()))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("unexpected data conflict");
     }
 }

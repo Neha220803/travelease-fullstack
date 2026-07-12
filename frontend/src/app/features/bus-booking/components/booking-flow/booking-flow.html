@@ -23,33 +23,6 @@
     <button hlmBtn class="mt-4" [disabled]="!passengersValid()" (click)="proceedToReview()">Continue to Review</button>
   }
   @case ('review') {
-    <div hlmCard class="p-4 mb-4">
-      <label hlmLabel for="coupon-code">Coupon code</label>
-      <div class="flex gap-2 mt-1.5">
-        <input
-          hlmInput
-          id="coupon-code"
-          class="flex-1"
-          placeholder="e.g. FIRST100"
-          [value]="couponInput()"
-          [disabled]="!!appliedCouponCode()"
-          (input)="couponInput.set($any($event.target).value)"
-        />
-        @if (appliedCouponCode()) {
-          <button hlmBtn variant="outline" (click)="removeCoupon()">Remove</button>
-        } @else {
-          <button hlmBtn variant="outline" [disabled]="!couponInput().trim() || applyingCoupon()" (click)="applyCoupon()">
-            @if (applyingCoupon()) { Checking… } @else { Apply }
-          </button>
-        }
-      </div>
-      @if (appliedCouponCode()) {
-        <p class="text-xs text-success mt-1.5">Coupon "{{ appliedCouponCode() }}" applied.</p>
-      }
-      @if (couponError()) {
-        <p class="text-xs text-destructive mt-1.5">{{ couponError() }}</p>
-      }
-    </div>
     <app-fare-summary [breakdown]="fareBreakdown()" />
     <button hlmBtn class="mt-4" [disabled]="submitting()" (click)="submitBooking()">
       @if (submitting()) { Processing… } @else { Confirm & Pay }

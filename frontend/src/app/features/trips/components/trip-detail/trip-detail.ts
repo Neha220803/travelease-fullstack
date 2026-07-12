@@ -1,16 +1,19 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { NgIcon } from '@ng-icons/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
+import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmTabsImports } from '@spartan-ng/helm/tabs';
 import { StatusBadge } from '@app/shared/ui/status-badge/status-badge';
 import { DestinationPill } from '@app/shared/ui/destination-pill/destination-pill';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
 import { Trip, TripMember } from '@app/features/trips/services/trip.models';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
 import { TripOverviewTab } from './tabs/trip-overview-tab/trip-overview-tab';
 import { TripMembersTab } from './tabs/trip-members-tab/trip-members-tab';
 import { TripTravelTab } from './tabs/trip-travel-tab/trip-travel-tab';
@@ -19,7 +22,6 @@ import { TripExpensesTab } from './tabs/trip-expenses-tab/trip-expenses-tab';
 import { TripItineraryTab } from './tabs/trip-itinerary-tab/trip-itinerary-tab';
 import { TripAlertsTab } from './tabs/trip-alerts-tab/trip-alerts-tab';
 import { TripReviewsTab } from './tabs/trip-reviews-tab/trip-reviews-tab';
-import { EditTripDialog } from '@app/features/trips/components/edit-trip-dialog/edit-trip-dialog';
 
 const TRAVELER_CATEGORY_LABELS: Record<number, string> = {
   1: 'Solo',
@@ -54,6 +56,7 @@ const VALID_TAB_IDS = new Set(TABS.map((t) => t.id));
     NgIcon,
     HlmButtonImports,
     HlmBadgeImports,
+    HlmDialogImports,
     HlmTabsImports,
     StatusBadge,
     DestinationPill,
@@ -65,14 +68,15 @@ const VALID_TAB_IDS = new Set(TABS.map((t) => t.id));
     TripItineraryTab,
     TripAlertsTab,
     TripReviewsTab,
-    EditTripDialog,
   ],
   templateUrl: './trip-detail.html',
 })
 export class TripDetail {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly tripsService = inject(TripsService);
   private readonly destinationsService = inject(DestinationsService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly tabs = TABS;
 
@@ -103,12 +107,11 @@ export class TripDetail {
     return trip ? (TRAVELER_CATEGORY_LABELS[trip.categoryId] ?? 'Trip') : '';
   });
 
-  protected readonly showEditDialog = signal(false);
-
-  protected readonly canEdit = computed(() => {
-    const trip = this.trip();
-    return !!trip && trip.viewerRole === 'ORGANIZER' && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED';
-  });
+  protected readonly deleteDialogState = signal<'open' | 'closed'>('closed');
+  protected readonly deleting = signal(false);
+  protected readonly deleteError = signal<string | null>(null);
+  protected readonly deleteBlocked = signal(false);
+  protected readonly cancelling = signal(false);
 
   constructor() {
     this.tripsService.getTripById(this.tripId()).subscribe({
@@ -143,8 +146,62 @@ export class TripDetail {
     return this.destinationNames().get(destinationId) ?? `Destination #${destinationId}`;
   }
 
-  protected onTripUpdated(trip: Trip): void {
-    this.trip.set(trip);
-    this.showEditDialog.set(false);
+  protected onDeleteClick(): void {
+    this.deleteError.set(null);
+    this.deleteBlocked.set(false);
+    this.deleteDialogState.set('open');
+  }
+
+  protected onCancelDeleteDialog(): void {
+    this.deleteDialogState.set('closed');
+  }
+
+  protected onConfirmDelete(): void {
+    const tripId = this.tripId();
+    this.deleting.set(true);
+    this.deleteError.set(null);
+    this.tripsService.deleteTrip(tripId).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.deleteDialogState.set('closed');
+        this.toastService.showSuccess('Trip deleted');
+        this.router.navigate(['/trips']);
+      },
+      error: (err: unknown) => {
+        this.deleting.set(false);
+        // A blocked hard-delete (trip has bookings/expenses attached) still
+        // leaves cancelling the trip as a valid next step, so offer it inline
+        // instead of just dead-ending on the error.
+        this.deleteBlocked.set(true);
+        this.deleteError.set(this.extractErrorMessage(err));
+      },
+    });
+  }
+
+  protected onCancelTripInstead(): void {
+    const tripId = this.tripId();
+    this.cancelling.set(true);
+    this.tripsService.transitionStatus(tripId, 'CANCELLED').subscribe({
+      next: (trip) => {
+        this.cancelling.set(false);
+        this.deleteDialogState.set('closed');
+        this.trip.set(trip);
+        this.toastService.showSuccess('Trip cancelled');
+      },
+      error: () => {
+        this.cancelling.set(false);
+        this.deleteError.set('Could not cancel the trip either. Please try again.');
+      },
+    });
+  }
+
+  private extractErrorMessage(err: unknown): string {
+    if (err instanceof HttpErrorResponse) {
+      const apiError = err.error?.error;
+      if (apiError?.message) {
+        return apiError.message;
+      }
+    }
+    return 'Something went wrong deleting this trip. Please try again.';
   }
 }

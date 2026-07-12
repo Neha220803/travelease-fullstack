@@ -2,8 +2,6 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
-import { HlmInputImports } from '@spartan-ng/helm/input';
-import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { BusSearchForm } from '@app/features/bus-booking/components/bus-search-form/bus-search-form';
 import { SeatGrid } from '@app/features/bus-booking/components/seat-grid/seat-grid';
 import { FareSummary } from '@app/features/bus-booking/components/fare-summary/fare-summary';
@@ -18,16 +16,7 @@ type Step = 'search' | 'seats' | 'passengers' | 'review';
 
 @Component({
   selector: 'app-booking-flow',
-  imports: [
-    BusSearchForm,
-    SeatGrid,
-    FareSummary,
-    PassengerDetailsForm,
-    HlmButtonImports,
-    HlmCardImports,
-    HlmInputImports,
-    HlmLabelImports,
-  ],
+  imports: [BusSearchForm, SeatGrid, FareSummary, PassengerDetailsForm, HlmButtonImports, HlmCardImports],
   templateUrl: './booking-flow.html',
 })
 export class BookingFlow {
@@ -47,11 +36,6 @@ export class BookingFlow {
   protected readonly passengers = signal<PassengerDetailDto[]>([]);
   protected readonly passengersValid = signal(false);
   protected readonly submitting = signal(false);
-
-  protected readonly couponInput = signal('');
-  protected readonly appliedCouponCode = signal<string | null>(null);
-  protected readonly couponError = signal<string | null>(null);
-  protected readonly applyingCoupon = signal(false);
 
   protected onSearch(criteria: { source: string; destination: string; date: string }): void {
     this.scheduleService.searchBuses(criteria.source, criteria.destination, criteria.date).subscribe({
@@ -101,49 +85,6 @@ export class BookingFlow {
     this.step.set('review');
   }
 
-  // The fare-calculation endpoint is the only signal this app has for whether
-  // a coupon is actually valid: an invalid/inapplicable code doesn't error,
-  // it just comes back with couponDiscount 0 and appliedCoupon null (same
-  // silent-fail shape the backend uses at booking-confirm time). Re-using it
-  // here as an explicit "Apply" step gives the traveler real feedback instead
-  // of silently not discounting anything.
-  protected applyCoupon(): void {
-    const code = this.couponInput().trim();
-    const bus = this.selectedBus();
-    if (!code || !bus) return;
-
-    this.applyingCoupon.set(true);
-    this.couponError.set(null);
-    this.scheduleService
-      .calculateFare({ scheduleId: bus.scheduleId, seatIds: this.selectedSeatIds(), couponCode: code })
-      .subscribe({
-        next: (price) => {
-          this.applyingCoupon.set(false);
-          if (price.breakdown.appliedCoupon) {
-            this.fareBreakdown.set(price.breakdown);
-            this.appliedCouponCode.set(price.breakdown.appliedCoupon);
-          } else {
-            this.couponError.set('This coupon code is invalid or does not apply to this booking.');
-          }
-        },
-        error: () => {
-          this.applyingCoupon.set(false);
-          this.couponError.set('Could not validate this coupon. Please try again.');
-        },
-      });
-  }
-
-  protected removeCoupon(): void {
-    this.appliedCouponCode.set(null);
-    this.couponInput.set('');
-    this.couponError.set(null);
-    const bus = this.selectedBus();
-    if (!bus) return;
-    this.scheduleService
-      .calculateFare({ scheduleId: bus.scheduleId, seatIds: this.selectedSeatIds() })
-      .subscribe((price) => this.fareBreakdown.set(price.breakdown));
-  }
-
   // NOTE: the plan's literal implementation guarded this with
   // `const bus = this.selectedBus(); if (!bus) return;`. In the real stepper
   // flow that guard is unreachable (the seat/passenger steps that precede
@@ -161,7 +102,6 @@ export class BookingFlow {
         scheduleId: bus?.scheduleId ?? 0,
         seatIds: this.selectedSeatIds(),
         passengerDetails: this.passengers(),
-        couponCode: this.appliedCouponCode() ?? undefined,
       })
       .subscribe({
         next: (booking) => {

@@ -9,6 +9,7 @@ import {
   PendingInvitation,
   Trip,
   TripMember,
+  TripStatus,
 } from '@app/features/trips/services/trip.models';
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +26,24 @@ export class TripsService {
     return this.http
       .post<ApiResponse<Trip>>(`${API_BASE_URL}/api/trips`, payload)
       .pipe(map((response) => response.data));
+  }
+
+  updateTrip(tripId: string, payload: CreateTripPayload): Observable<Trip> {
+    return this.http
+      .put<ApiResponse<Trip>>(`${API_BASE_URL}/api/trips/${tripId}`, payload)
+      .pipe(map((response) => response.data));
+  }
+
+  transitionStatus(tripId: string, status: TripStatus): Observable<Trip> {
+    return this.http
+      .patch<ApiResponse<Trip>>(`${API_BASE_URL}/api/trips/${tripId}/status`, { status })
+      .pipe(map((response) => response.data));
+  }
+
+  deleteTrip(tripId: string): Observable<void> {
+    return this.http
+      .delete<ApiResponse<void>>(`${API_BASE_URL}/api/trips/${tripId}`)
+      .pipe(map(() => undefined));
   }
 
   getPendingInvitations(): Observable<PendingInvitation[]> {
@@ -72,12 +91,6 @@ export class TripsService {
   getTripById(tripId: string): Observable<Trip> {
     return this.http
       .get<ApiResponse<Trip>>(`${API_BASE_URL}/api/trips/${tripId}`)
-      .pipe(map((response) => response.data));
-  }
-
-  updateTrip(tripId: string, payload: CreateTripPayload): Observable<Trip> {
-    return this.http
-      .put<ApiResponse<Trip>>(`${API_BASE_URL}/api/trips/${tripId}`, payload)
       .pipe(map((response) => response.data));
   }
 

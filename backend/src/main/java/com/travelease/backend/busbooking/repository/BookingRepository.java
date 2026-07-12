@@ -25,14 +25,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
 
     List<Booking> findByTravelerTripId(UUID travelerTripId);
 
-    // Net amount actually paid for this trip's bus bookings: gross fare minus any
-    // partial refund, counting only bookings that reached a paid, non-cancelled
-    // state (PENDING/RESERVED haven't been paid; FAILED/CANCELLED/EXPIRED retain
-    // no successful payment).
-    @Query("SELECT COALESCE(SUM(b.totalFare - COALESCE(b.totalRefundAmount, 0.0)), 0.0) FROM Booking b "
-            + "WHERE b.travelerTripId = :tripId AND b.status IN ('CONFIRMED', 'COMPLETED')")
-    Double sumNetSpentByTravelerTripId(@Param("tripId") UUID tripId);
-
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = :status")
     Long countByStatus(@Param("status") com.travelease.backend.busbooking.entity.enums.BookingStatus status);
 

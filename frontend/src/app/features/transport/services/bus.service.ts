@@ -4,7 +4,6 @@ import { Observable, map } from 'rxjs';
 import { API_BASE_URL } from '@app/core/api/api-config';
 import { ApiResponse } from '@app/core/api/api-response.model';
 import { BusFormPayload, BusResponse } from '@app/features/transport/services/bus.models';
-import { BusStatus } from '@app/features/transport/services/transport-enums';
 
 /**
  * BusRequest.providerId is @NotNull @Positive for Bean Validation. It is
@@ -25,11 +24,8 @@ import { BusStatus } from '@app/features/transport/services/transport-enums';
 export class BusService {
   private readonly http = inject(HttpClient);
 
-  listBuses(providerId: number, status?: BusStatus): Observable<BusResponse[]> {
-    let params = new HttpParams().set('providerId', providerId);
-    if (status != null) {
-      params = params.set('status', status);
-    }
+  listBuses(providerId: number): Observable<BusResponse[]> {
+    const params = new HttpParams().set('providerId', providerId);
     return this.http
       .get<ApiResponse<BusResponse[]>>(`${API_BASE_URL}/api/buses`, { params })
       .pipe(map((response) => response.data));

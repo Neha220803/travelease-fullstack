@@ -7,9 +7,9 @@ import {
 } from './hotel-provider.service';
 
 const HOTEL_IMAGES = [
-  'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=70',
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=70',
-  'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=70',
+  'images/placeholder.png',
+  'images/placeholder.png',
+  'images/placeholder.png',
 ];
 
 export interface HotelCardView {

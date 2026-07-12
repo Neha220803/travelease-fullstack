@@ -81,6 +81,16 @@ public class TripController {
         return ResponseEntity.ok(ApiResponse.success(response, "Trip updated successfully"));
     }
 
+    @DeleteMapping("/{tripId}")
+    @PreAuthorize("hasAnyRole('TRAVELER','ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteTrip(
+            @PathVariable UUID tripId,
+            Authentication authentication
+    ) {
+        tripService.deleteTrip(tripId, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(null, "Trip deleted successfully"));
+    }
+
     @PatchMapping("/{tripId}/status")
     @PreAuthorize("hasAnyRole('TRAVELER','ADMIN')")
     public ResponseEntity<ApiResponse<TripResponse>> transitionStatus(

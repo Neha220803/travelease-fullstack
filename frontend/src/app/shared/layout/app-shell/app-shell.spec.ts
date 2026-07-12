@@ -14,7 +14,6 @@ import {
   lucideLifeBuoy,
   lucideLogOut,
   lucideMail,
-  lucideMenu,
   lucidePlane,
   lucidePlus,
   lucideRoute,
@@ -25,7 +24,6 @@ import {
   lucideUserCheck,
   lucideUsers,
   lucideWallet,
-  lucideX,
 } from '@ng-icons/lucide';
 import { of } from 'rxjs';
 import { AppShell } from '@app/shared/layout/app-shell/app-shell';
@@ -44,7 +42,6 @@ const ALL_ICONS = {
   lucideLifeBuoy,
   lucideLogOut,
   lucideMail,
-  lucideMenu,
   lucidePlane,
   lucidePlus,
   lucideRoute,
@@ -55,7 +52,6 @@ const ALL_ICONS = {
   lucideUserCheck,
   lucideUsers,
   lucideWallet,
-  lucideX,
 };
 
 async function configureWithRole(role: string | undefined) {
@@ -71,35 +67,15 @@ async function configureWithRole(role: string | undefined) {
   }).compileComponents();
 }
 
-/** The nav sheet is portal-rendered (CDK overlay) outside fixture.nativeElement, so
- * assertions on its content read from document.body once opened. */
-async function openSidebar(fixture: ReturnType<typeof TestBed.createComponent<AppShell>>) {
-  const menuButton = (fixture.nativeElement as HTMLElement).querySelector(
-    'button[aria-label="Open navigation menu"]',
-  ) as HTMLButtonElement;
-  menuButton.click();
-  fixture.detectChanges();
-  await fixture.whenStable();
-  fixture.detectChanges();
-}
-
 describe('AppShell', () => {
-  it('does not render nav items until the menu icon is clicked', async () => {
+  it('renders traveler nav items', async () => {
     await configureWithRole('traveler');
     const fixture = TestBed.createComponent(AppShell);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(document.body.textContent).not.toContain('My Trips');
-  });
-
-  it('renders traveler nav items after the menu icon is clicked', async () => {
-    await configureWithRole('traveler');
-    const fixture = TestBed.createComponent(AppShell);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    await openSidebar(fixture);
-    expect(document.body.textContent).toContain('My Trips');
-    expect(document.body.textContent).toContain('Invitations');
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('My Trips');
+    expect(text).toContain('Invitations');
   });
 
   it('renders the Bus Booking nav entry for the traveler role', async () => {
@@ -107,8 +83,7 @@ describe('AppShell', () => {
     const fixture = TestBed.createComponent(AppShell);
     fixture.detectChanges();
     await fixture.whenStable();
-    await openSidebar(fixture);
-    expect(document.body.textContent).toContain('Bus Booking');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Bus Booking');
   });
 
   it('renders admin nav items', async () => {
@@ -116,9 +91,9 @@ describe('AppShell', () => {
     const fixture = TestBed.createComponent(AppShell);
     fixture.detectChanges();
     await fixture.whenStable();
-    await openSidebar(fixture);
-    expect(document.body.textContent).toContain('Route Analytics');
-    expect(document.body.textContent).toContain('Partner Approvals');
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Route Analytics');
+    expect(text).toContain('Partner Approvals');
   });
 
   it('shows the New Trip button for the traveler role', async () => {
@@ -142,8 +117,8 @@ describe('AppShell', () => {
     const fixture = TestBed.createComponent(AppShell);
     fixture.detectChanges();
     await fixture.whenStable();
-    await openSidebar(fixture);
-    expect(document.body.textContent).toContain('My Trips');
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('My Trips');
   });
 
   it('calls AuthService.logout() and navigates to /login when Sign out is clicked', async () => {
@@ -154,11 +129,11 @@ describe('AppShell', () => {
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     await fixture.whenStable();
-    await openSidebar(fixture);
 
-    const buttons = Array.from(document.body.querySelectorAll('button')) as HTMLButtonElement[];
-    const signOutButton = buttons.find((b) => b.textContent?.includes('Sign out'))!;
-    signOutButton.click();
+    const button = (fixture.nativeElement as HTMLElement).querySelector(
+      'button[type="button"]',
+    ) as HTMLButtonElement;
+    button.click();
 
     expect(authService.logout).toHaveBeenCalled();
     expect(navigateSpy).toHaveBeenCalledWith(['/login']);

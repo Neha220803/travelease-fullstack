@@ -27,11 +27,11 @@ public class Trip {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "driver_id")
-    private Staff driver;
+    private Driver driver;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conductor_id")
-    private Staff conductor;
+    private Conductor conductor;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -5,8 +5,6 @@ import com.travelease.backend.shared.entity.BaseEntity;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -36,8 +34,4 @@ public class ExpenseParticipant extends BaseEntity {
 
     @Column(name = "share_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal shareAmount;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private ExpenseParticipantStatus status = ExpenseParticipantStatus.PENDING;
 }

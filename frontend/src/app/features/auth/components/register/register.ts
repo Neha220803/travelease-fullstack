@@ -5,16 +5,6 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { AuthService } from '@app/core/auth/auth.service';
-import { SECURITY_QUESTIONS } from '@app/features/auth/security-questions';
-
-type RegisterField =
-  | 'name'
-  | 'phone'
-  | 'email'
-  | 'password'
-  | 'confirmPassword'
-  | 'securityQuestion'
-  | 'securityAnswer';
 
 @Component({
   selector: 'app-register',
@@ -25,12 +15,15 @@ export class Register {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
 
-  protected readonly securityQuestions = SECURITY_QUESTIONS;
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
-  protected readonly fieldErrors = signal<Partial<Record<RegisterField, string>>>({});
+  protected readonly fieldErrors = signal<
+    Partial<Record<'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'securityAnswer', string>>
+  >({});
 
-  protected clearFieldError(field: RegisterField): void {
+  protected clearFieldError(
+    field: 'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'securityAnswer',
+  ): void {
     const { [field]: _removed, ...rest } = this.fieldErrors();
     this.fieldErrors.set(rest);
   }
@@ -49,25 +42,23 @@ export class Register {
     const securityQuestion = String(data.get('securityQuestion') ?? '').trim();
     const securityAnswer = String(data.get('securityAnswer') ?? '').trim();
 
-    const errors: Partial<Record<RegisterField, string>> = {};
+    const errors: Partial<
+      Record<'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'securityAnswer', string>
+    > = {};
     if (name.length < 2) {
       errors.name = 'Name must be at least 2 characters.';
     }
-    if (!/^\d{10}$/.test(phone)) {
-      errors.phone = 'Phone number must be exactly 10 digits.';
+    if (!phone) {
+      errors.phone = 'Phone is required.';
     }
-    if (email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = 'Enter a valid email address (max 100 characters).';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Enter a valid email address.';
     }
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
-      errors.password =
-        'Password must be 8+ characters with uppercase, lowercase, a digit, and a special character.';
+    if (password.length < 8 || !/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password)) {
+      errors.password = 'Password must be at least 8 characters and contain a letter and a digit.';
     }
     if (confirmPassword !== password) {
       errors.confirmPassword = 'Passwords do not match.';
-    }
-    if (!securityQuestion) {
-      errors.securityQuestion = 'Please choose a security question.';
     }
     if (!securityAnswer) {
       errors.securityAnswer = 'Security answer is required.';

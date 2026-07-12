@@ -25,7 +25,6 @@ const STATUS_CLASS_MAP: Record<string, string> = {
   MAINTENANCE: 'bg-warning/15 text-[oklch(0.45_0.12_75)] border-warning/20',
   INACTIVE: 'bg-muted text-muted-foreground border-border',
   OPEN: 'bg-primary/10 text-primary border-primary/20',
-  SCHEDULED: 'bg-primary/10 text-primary border-primary/20',
   IN_PROGRESS: 'bg-warning/15 text-[oklch(0.45_0.12_75)] border-warning/20',
   RESOLVED: 'bg-success/10 text-success border-success/20',
   CLOSED: 'bg-muted text-muted-foreground border-border',

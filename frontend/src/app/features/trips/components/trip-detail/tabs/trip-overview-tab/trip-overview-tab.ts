@@ -57,11 +57,6 @@ export class TripOverviewTab implements OnInit {
 
   protected readonly pct = computed(() => Math.round(this.budgetSummary()?.utilizationPercentage ?? 0));
 
-  // hlm-progress throws if value exceeds its max (100) - a trip can be overspent
-  // (pct() > 100), so the meter itself must be clamped while the text label above
-  // it still shows the true, uncapped percentage.
-  protected readonly progressValue = computed(() => Math.min(this.pct(), 100));
-
   protected readonly stats = computed<StatCard[]>(() => {
     const trip = this.trip();
     const summary = this.budgetSummary();

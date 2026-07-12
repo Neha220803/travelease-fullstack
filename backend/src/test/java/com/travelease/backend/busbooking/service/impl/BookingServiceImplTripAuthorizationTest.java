@@ -69,7 +69,7 @@ class BookingServiceImplTripAuthorizationTest {
                 bookingRepository, null, null, null, null, null,
                 securityUtil, null, null, null,
                 tripRepository, tripMemberRepository, new TripAuthorizationService(tripMemberRepository),
-                notificationService, userRepository, null);
+                notificationService, userRepository);
     }
 
     private User user(UUID id) {

@@ -28,7 +28,6 @@ import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.busbooking.security.SecurityUtil;
-import com.travelease.backend.itinerary.service.ItineraryService;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
@@ -70,7 +69,6 @@ public class AccommodationServiceImpl implements AccommodationService {
     private final TripAuthorizationService tripAuthorizationService;
     private final NotificationService notificationService;
     private final SecurityUtil securityUtil;
-    private final ItineraryService itineraryService;
 
     @Override
     @Transactional(readOnly = true)
@@ -255,19 +253,6 @@ public class AccommodationServiceImpl implements AccommodationService {
         booking.setBookingStatus(CONFIRMED);
         HotelBooking savedBooking = bookingRepository.save(booking);
 
-        itineraryService.createFromPaidBooking(
-                request.tripId(), "Stay at " + savedBooking.getHotel().getHotelName(), savedBooking.getCheckInDate());
-
-        // Confirm the booking directly to whoever made it - unconditional (not
-        // dependent on a trip attachment) so a standalone booking still gets a
-        // confirmation, not just trip-attached ones.
-        notificationService.createNotification(
-                savedBooking.getBookedBy().getId().toString(),
-                "BOOKING",
-                "Hotel Booking Confirmed",
-                "Your booking at " + savedBooking.getHotel().getHotelName() + " is confirmed."
-        );
-
         // Notify Hotel Provider
         userRepository.findByProviderId(savedBooking.getHotel().getProviderId()).forEach(providerUser -> {
             notificationService.createNotification(
@@ -278,25 +263,18 @@ public class AccommodationServiceImpl implements AccommodationService {
             );
         });
 
-        // Notify the OTHER accepted trip members (the booker already got their
-        // own confirmation above), if this booking is attached to a trip -
-        // tripRepository.findById(null) throws, so this must stay guarded
-        // exactly like BookingServiceImpl.confirmBookingInternal already does
-        // for bus bookings.
-        if (request.tripId() != null) {
-            tripRepository.findById(request.tripId()).ifPresent(trip -> {
-                tripMemberRepository.findByTripIdAndMemberStatus(request.tripId(), TripMemberStatus.ACCEPTED).stream()
-                        .filter(m -> !m.getUser().getId().equals(savedBooking.getBookedBy().getId()))
-                        .forEach(m -> {
-                            notificationService.createNotification(
-                                    m.getUser().getId().toString(),
-                                    "BOOKING",
-                                    "Hotel Booked",
-                                    "Hotel " + savedBooking.getHotel().getHotelName() + " has been booked for trip " + trip.getTripName()
-                            );
-                        });
-            });
-        }
+        // Notify accepted trip members
+        tripRepository.findById(request.tripId()).ifPresent(trip -> {
+            tripMemberRepository.findByTripIdAndMemberStatus(request.tripId(), TripMemberStatus.ACCEPTED).stream()
+                    .forEach(m -> {
+                        notificationService.createNotification(
+                                m.getUser().getId().toString(),
+                                "BOOKING",
+                                "Hotel Booked",
+                                "Hotel " + savedBooking.getHotel().getHotelName() + " has been booked for trip " + trip.getTripName()
+                        );
+                    });
+        });
 
         return toBookingResponse(savedBooking);
     }

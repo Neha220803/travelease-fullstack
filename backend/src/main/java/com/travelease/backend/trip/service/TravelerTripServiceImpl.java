@@ -21,7 +21,18 @@ import com.travelease.backend.trip.mapper.TravelerTripMapper;
 import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.repository.TripRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
+import com.travelease.backend.trips_and_invitations.repository.InvitationRepository;
+import com.travelease.backend.expense.repository.ExpenseParticipantRepository;
+import com.travelease.backend.expense.repository.ExpenseRepository;
+import com.travelease.backend.settlement.repository.SettlementRepository;
+import com.travelease.backend.itinerary.repository.ItineraryRepository;
+import com.travelease.backend.itinerary.repository.DelayRepository;
+import com.travelease.backend.itinerary.repository.ActivityBookingRepository;
+import com.travelease.backend.accommodation.repository.HotelBookingRepository;
+import com.travelease.backend.busbooking.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,17 +55,32 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TravelerTripServiceImpl implements TripService {
 
+    private static final Logger log = LoggerFactory.getLogger(TravelerTripServiceImpl.class);
+
+
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
     private final UserRepository userRepository;
     private final TripAuthorizationService tripAuthorizationService;
     private final TravelerTripMapper tripMapper;
     private final NotificationService notificationService;
+    private final InvitationRepository invitationRepository;
+    private final ExpenseRepository expenseRepository;
+    private final ExpenseParticipantRepository expenseParticipantRepository;
+    private final SettlementRepository settlementRepository;
+    private final ItineraryRepository itineraryRepository;
+    private final DelayRepository delayRepository;
+    private final ActivityBookingRepository activityBookingRepository;
+    private final HotelBookingRepository hotelBookingRepository;
+    private final BookingRepository busBookingRepository;
 
     @Override
     @Transactional
     public TripResponse createTrip(CreateTripRequest request, String currentUserEmail) {
         requireValidDateRange(request.startDate(), request.endDate());
+        if (request.startDate().isBefore(LocalDate.now())) {
+            throw new InvalidRequestException("startDate must not be in the past");
+        }
         User organizer = resolveCurrentUser(currentUserEmail);
 
         Trip trip = new Trip();
@@ -115,6 +141,11 @@ public class TravelerTripServiceImpl implements TripService {
         tripAuthorizationService.requireOrganizer(trip, user.getId(), isAdmin(user));
         tripAuthorizationService.requireMutableTrip(trip);
         requireValidDateRange(request.startDate(), request.endDate());
+        if (trip.getStatus() == TravelerTripStatus.PLANNING
+                && !request.startDate().equals(trip.getStartDate())
+                && request.startDate().isBefore(LocalDate.now())) {
+            throw new InvalidRequestException("startDate must not be in the past");
+        }
 
         trip.setTripName(request.tripName());
         trip.setSourceLocation(request.sourceLocation());
@@ -136,6 +167,76 @@ public class TravelerTripServiceImpl implements TripService {
                 ));
 
         return tripMapper.toResponse(saved, viewerRole(saved, user.getId()));
+    }
+
+    @Override
+    @Transactional
+    public void deleteTrip(UUID tripId, String currentUserEmail) {
+        Trip trip = findTrip(tripId);
+        User currentUser = resolveCurrentUser(currentUserEmail);
+        tripAuthorizationService.requireOrganizer(trip, currentUser.getId(), isAdmin(currentUser));
+
+        // Deliberately narrower than requireMutableTrip: a CANCELLED trip is
+        // not "happening" but its record isn't historical fact the way a
+        // COMPLETED trip's is, so the organizer can still remove it outright.
+        // This also avoids the dead end where the delete dialog's own
+        // "Cancel Trip Instead" fallback would otherwise leave the trip
+        // permanently un-deletable afterwards.
+        if (trip.getStatus() == TravelerTripStatus.COMPLETED) {
+            throw new InvalidRequestException("Trip is COMPLETED and no longer accepts this action");
+        }
+
+        // Notify accepted members (other than the organizer) before the trip
+        // and their membership rows are gone.
+        tripMemberRepository.findByTripId(tripId).stream()
+                .filter(m -> m.getMemberStatus() == TripMemberStatus.ACCEPTED && !m.getUser().getId().equals(currentUser.getId()))
+                .forEach(m -> notificationService.createNotification(
+                        m.getUser().getId().toString(),
+                        "TRIP",
+                        "Trip Cancelled",
+                        "The trip " + trip.getTripName() + " has been deleted by the organizer."
+                ));
+
+        try {
+            // Break foreign-key chains first so the hard delete does not fail
+            // on SQLite / Hibernate flush order.
+            activityBookingRepository.findByTripId(tripId).forEach(b -> b.setTripId(null));
+            hotelBookingRepository.findByTripId(tripId).forEach(b -> b.setTripId(null));
+            busBookingRepository.findByTravelerTripId(tripId).forEach(b -> b.setTravelerTripId(null));
+
+            // Remove trip-owned records in child-first order.
+            tripMemberRepository.deleteAllInBatch(tripMemberRepository.findByTripId(tripId));
+            invitationRepository.deleteAllInBatch(invitationRepository.findByTripId(tripId));
+
+            // deleteAllInBatch issues a direct bulk SQL DELETE and does NOT honor
+            // JPA's cascade = ALL / orphanRemoval on Expense.participants, so the
+            // expense_participants rows must be removed explicitly first or the
+            // FK from expense_participants.expense_id -> expenses.expense_id
+            // blocks the batch delete of expenses below (this was the cause of
+            // the "unexpected error" on Delete Trip while Cancel Trip, which
+            // never touches these tables, worked fine).
+            expenseParticipantRepository.deleteAllInBatch(expenseParticipantRepository.findByExpenseTripId(tripId));
+            expenseRepository.deleteAllInBatch(expenseRepository.findByTripIdOrderByCreatedAtDesc(tripId));
+            settlementRepository.deleteAllInBatch(settlementRepository.findByTripId(tripId));
+
+            String tripIdStr = tripId.toString();
+            itineraryRepository.deleteAllInBatch(itineraryRepository.findByTripId(tripIdStr));
+            delayRepository.deleteAllInBatch(delayRepository.findByTripId(tripIdStr));
+
+            tripRepository.delete(trip);
+            tripRepository.flush();
+        } catch (RuntimeException ex) {
+            // Widened from DataIntegrityViolationException-only: any failure
+            // during this cleanup chain (FK violation, driver quirk, etc.)
+            // should still land the user on the friendly "cancel instead"
+            // path rather than the generic 500 message - but log the real
+            // exception here since that's the one piece of information the
+            // friendly client-facing message can't carry.
+            log.error("Failed to delete trip {}", tripId, ex);
+            throw new InvalidRequestException(
+                    "This trip could not be fully deleted because of an unexpected data conflict. "
+                            + "Please try again or contact support.");
+        }
     }
 
     private static final Map<TravelerTripStatus, Set<TravelerTripStatus>> ALLOWED_TRANSITIONS = Map.of(

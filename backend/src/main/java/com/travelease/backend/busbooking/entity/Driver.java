@@ -1,7 +1,6 @@
 package com.travelease.backend.busbooking.entity;
 
-import com.travelease.backend.busbooking.entity.enums.StaffStatus;
-import com.travelease.backend.busbooking.entity.enums.StaffType;
+import com.travelease.backend.busbooking.entity.enums.DriverStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,13 +9,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "staff")
+@Table(name = "drivers")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Staff {
+public class Driver {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,17 +27,8 @@ public class Staff {
     @Column(nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "staff_type", nullable = false)
-    private StaffType staffType;
-
-    // Required (and unique) for staffType == DRIVER; null otherwise.
-    @Column(name = "license_number", unique = true)
+    @Column(unique = true, nullable = false)
     private String licenseNumber;
-
-    // Required (and unique) for staffType != DRIVER; null otherwise.
-    @Column(name = "employee_id", unique = true)
-    private String employeeId;
 
     @Column
     private String phone;
@@ -49,13 +39,12 @@ public class Staff {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private StaffStatus status = StaffStatus.AVAILABLE;
+    private DriverStatus status = DriverStatus.AVAILABLE;
 
     @Column(name = "total_trips")
     @Builder.Default
     private Integer totalTrips = 0;
 
-    // Only meaningfully accumulated for staffType == DRIVER.
     @Column(name = "total_distance_km")
     @Builder.Default
     private Double totalDistanceKm = 0.0;

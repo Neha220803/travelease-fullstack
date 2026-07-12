@@ -7,26 +7,17 @@
     <a hlmBtn variant="ghost" size="sm" routerLink="/trips">
       <ng-icon name="lucideArrowLeft" class="h-4 w-4 mr-1" />All trips
     </a>
-    @if (canEdit()) {
-      <button hlmBtn variant="outline" size="sm" (click)="showEditDialog.set(true)">
-        <ng-icon name="lucidePencil" class="h-4 w-4 mr-1" />Edit Trip
-      </button>
+    @if (trip.viewerRole === 'ORGANIZER') {
+      <div class="flex items-center gap-2">
+        <a hlmBtn variant="outline" size="sm" [routerLink]="['/trips', trip.tripId, 'edit']">Edit Trip</a>
+        <button hlmBtn variant="destructive" size="sm" (click)="onDeleteClick()">Delete Trip</button>
+      </div>
     }
   </div>
 
-  @if (showEditDialog()) {
-    <div class="mb-6">
-      <app-edit-trip-dialog
-        [trip]="trip"
-        (updated)="onTripUpdated($event)"
-        (cancelled)="showEditDialog.set(false)"
-      />
-    </div>
-  }
-
   <div class="relative rounded-2xl overflow-hidden mb-6 h-56">
     <img
-      src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=60"
+      src="images/placeholder.png"
       alt=""
       class="absolute inset-0 h-full w-full object-cover"
     />
@@ -89,4 +80,39 @@
       <app-trip-reviews-tab />
     </div>
   </div>
+
+  <hlm-dialog [state]="deleteDialogState()" (closed)="onCancelDeleteDialog()">
+    <ng-template hlmDialogPortal>
+      <hlm-dialog-content>
+        <div hlmDialogHeader>
+          <h3 hlmDialogTitle>Delete "{{ trip.tripName }}"?</h3>
+        </div>
+        <p class="text-sm text-muted-foreground">
+          This permanently removes the trip and its member list. This can't be undone.
+        </p>
+        @if (deleteError()) {
+          <p class="text-xs text-destructive whitespace-pre-line">{{ deleteError() }}</p>
+          @if (deleteBlocked()) {
+            <p class="text-xs text-muted-foreground">
+              You can cancel the trip instead — it stays visible for the record but is closed to further
+              changes.
+            </p>
+          }
+        }
+        <div hlmDialogFooter>
+          <button hlmBtn variant="outline" [disabled]="deleting() || cancelling()" (click)="onCancelDeleteDialog()">
+            Close
+          </button>
+          @if (deleteBlocked()) {
+            <button hlmBtn variant="outline" [disabled]="cancelling()" (click)="onCancelTripInstead()">
+              {{ cancelling() ? 'Cancelling…' : 'Cancel Trip Instead' }}
+            </button>
+          }
+          <button hlmBtn variant="destructive" [disabled]="deleting()" (click)="onConfirmDelete()">
+            {{ deleting() ? 'Deleting…' : 'Delete Trip' }}
+          </button>
+        </div>
+      </hlm-dialog-content>
+    </ng-template>
+  </hlm-dialog>
 }

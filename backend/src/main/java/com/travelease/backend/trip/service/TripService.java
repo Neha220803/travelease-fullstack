@@ -21,6 +21,8 @@ public interface TripService {
 
     TripResponse updateTrip(UUID tripId, UpdateTripRequest request, String currentUserEmail);
 
+    void deleteTrip(UUID tripId, String currentUserEmail);
+
     TripResponse transitionStatus(UUID tripId, TripStatusTransitionRequest request, String currentUserEmail);
 
     List<TripMemberResponse> getTripMembers(UUID tripId, String currentUserEmail);

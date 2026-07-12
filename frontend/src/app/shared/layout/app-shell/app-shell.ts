@@ -1,18 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { map } from 'rxjs';
 import { NgIcon } from '@ng-icons/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmToasterImports } from '@spartan-ng/helm/sonner';
-import { HlmSheetImports } from '@spartan-ng/helm/sheet';
-import { BrnSheetContent } from '@spartan-ng/brain/sheet';
 import { Role, ROLE_HOME } from '@app/core/auth/auth.models';
 import { AuthService } from '@app/core/auth/auth.service';
 import { NotificationService } from '@app/features/notifications/services/notification.service';
-import { ThemeToggle } from '@app/shared/ui/theme-toggle/theme-toggle';
 
 interface NavItem {
   to: string;
@@ -92,9 +89,6 @@ const ROLE_LABEL: Record<Role, string> = {
     HlmInputImports,
     HlmAvatarImports,
     HlmToasterImports,
-    HlmSheetImports,
-    BrnSheetContent,
-    ThemeToggle,
   ],
   templateUrl: './app-shell.html',
 })
@@ -105,7 +99,6 @@ export class AppShell {
   private readonly notificationService = inject(NotificationService);
 
   protected readonly hasUnreadNotifications = signal(false);
-  protected readonly sidebarOpen = signal(false);
 
   constructor() {
     // Only fetch if authenticated (which is usually true here)
@@ -116,18 +109,6 @@ export class AppShell {
         }
       });
     }
-
-    this.router.events.pipe(filter((event) => event instanceof NavigationStart)).subscribe(() => {
-      this.sidebarOpen.set(false);
-    });
-  }
-
-  protected toggleSidebar(): void {
-    this.sidebarOpen.update((open) => !open);
-  }
-
-  protected onSidebarStateChanged(state: 'open' | 'closed'): void {
-    this.sidebarOpen.set(state === 'open');
   }
 
   protected readonly role = toSignal(
@@ -138,6 +119,18 @@ export class AppShell {
   protected readonly nav = computed(() => NAV_MAP[this.role()]);
   protected readonly roleLabel = computed(() => ROLE_LABEL[this.role()]);
   protected readonly home = computed(() => ROLE_HOME[this.role()]);
+
+  protected readonly userInitials = computed(() => {
+    const user = this.authService.currentUser();
+    const name = user?.name ?? '';
+  
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .map(part => part.charAt(0).toUpperCase())
+      .slice(0, 2)
+      .join('');
+  });
 
   protected signOut(): void {
     this.authService.logout();

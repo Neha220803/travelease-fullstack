@@ -6,17 +6,6 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="/images/logo.png">
-  <script>
-    // Applied before Angular loads so there's no flash of the wrong theme on
-    // first paint - ThemeService reads this same decision back on bootstrap.
-    (function () {
-      try {
-        var stored = localStorage.getItem('te_theme');
-        var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.classList.toggle('dark', dark);
-      } catch (e) {}
-    })();
-  </script>
 </head>
 <body>
   <app-root></app-root>

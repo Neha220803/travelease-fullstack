@@ -12,6 +12,11 @@ export const TRIPS_ROUTES: Routes = [
       import('@app/features/trips/components/new-trip/new-trip').then((m) => m.NewTrip),
   },
   {
+    path: ':tripId/edit',
+    loadComponent: () =>
+      import('@app/features/trips/components/new-trip/new-trip').then((m) => m.NewTrip),
+  },
+  {
     path: ':tripId',
     loadComponent: () =>
       import('@app/features/trips/components/trip-detail/trip-detail').then((m) => m.TripDetail),

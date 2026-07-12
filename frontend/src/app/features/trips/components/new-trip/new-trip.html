@@ -2,84 +2,117 @@
   <ng-icon name="lucideArrowLeft" class="h-4 w-4 mr-1" />Back to trips
 </a>
 <app-page-header
-  title="Create a new trip"
-  subtitle="Set the essentials. You can invite members and book everything next."
+  [title]="isEditMode() ? 'Edit trip' : 'Create a new trip'"
+  [subtitle]="
+    isEditMode()
+      ? 'Update the trip details below.'
+      : 'Set the essentials. You can invite members and book everything next.'
+  "
 />
 
-<div hlmCard class="max-w-3xl">
-  <div hlmCardContent class="pt-6">
-    <form
-      class="grid grid-cols-1 md:grid-cols-2 gap-5"
-      (submit)="onSubmit($event, nameInput.value, budgetInput.value, sourceInput.value, startDateInput.value, endDateInput.value)"
-    >
-      <div class="md:col-span-2 space-y-2">
-        <label hlmLabel for="name">Trip Name</label>
-        <input hlmInput id="name" placeholder="Goa Beach Escape" #nameInput />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel>Trip Type</label>
-        <hlm-select [value]="tripType()" (valueChange)="onTripTypeChange($event)">
-          <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
-          <ng-template hlmSelectPortal>
-            <hlm-select-content>
-              @for (t of tripTypes; track t) {
-                <hlm-select-item [value]="t">{{ t }}</hlm-select-item>
-              }
-            </hlm-select-content>
-          </ng-template>
-        </hlm-select>
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel for="budget">Budget (₹)</label>
-        <input hlmInput id="budget" type="number" min="1" step="1" placeholder="18000" #budgetInput />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel for="source">Source Location</label>
-        <input hlmInput id="source" placeholder="Bengaluru" #sourceInput />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel>Destination</label>
-        @if (destinationsLoading()) {
-          <p class="text-xs text-muted-foreground py-2">Loading destinations…</p>
-        } @else if (destinationsError()) {
-          <p class="text-xs text-destructive py-2">Could not load destinations.</p>
-        } @else {
-          <hlm-select
-            [value]="selectedDestinationId()"
-            [itemToString]="destinationIdToLabel"
-            (valueChange)="onDestinationChange($event)"
-          >
+@if (isEditMode() && loadingTrip()) {
+  <p class="text-sm text-muted-foreground py-8">Loading trip details…</p>
+} @else if (loadError()) {
+  <p class="text-sm text-destructive py-8">{{ loadError() }}</p>
+} @else {
+  <div hlmCard class="max-w-3xl">
+    <div hlmCardContent class="pt-6">
+      <form class="grid grid-cols-1 md:grid-cols-2 gap-5" (submit)="onSubmit($event, nameInput.value, budgetInput.value)">
+        <div class="md:col-span-2 space-y-2">
+          <label hlmLabel for="name">Trip Name</label>
+          <input hlmInput id="name" placeholder="Goa Beach Escape" [attr.value]="prefillName()" #nameInput />
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Trip Type</label>
+          <hlm-select [value]="tripType()" (valueChange)="onTripTypeChange($event)">
             <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
             <ng-template hlmSelectPortal>
               <hlm-select-content>
-                @for (d of destinations(); track d.destinationId) {
-                  <hlm-select-item [value]="d.destinationId.toString()">{{ destinationLabel(d) }}</hlm-select-item>
+                @for (t of tripTypes; track t) {
+                  <hlm-select-item [value]="t">{{ t }}</hlm-select-item>
                 }
               </hlm-select-content>
             </ng-template>
           </hlm-select>
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel for="budget">Budget (₹)</label>
+          <input
+            hlmInput
+            id="budget"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="18000"
+            [attr.value]="prefillBudget()"
+            #budgetInput
+          />
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel for="source">Source Location</label>
+          <input
+            hlmInput
+            id="source"
+            list="source-city-suggestions"
+            placeholder="Bengaluru"
+            [value]="source()"
+            (input)="onSourceInput($any($event.target).value)"
+            autocomplete="off"
+          />
+          <datalist id="source-city-suggestions">
+            @for (city of sourceSuggestions(); track city) {
+              <option [value]="city"></option>
+            }
+          </datalist>
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Destination</label>
+          @if (destinationsLoading()) {
+            <p class="text-xs text-muted-foreground py-2">Loading destinations…</p>
+          } @else if (destinationsError()) {
+            <p class="text-xs text-destructive py-2">Could not load destinations.</p>
+          } @else {
+            <hlm-select
+              [value]="selectedDestinationId()"
+              [itemToString]="destinationIdToLabel"
+              (valueChange)="onDestinationChange($event)"
+            >
+              <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+              <ng-template hlmSelectPortal>
+                <hlm-select-content>
+                  @for (d of destinations(); track d.destinationId) {
+                    <hlm-select-item [value]="d.destinationId.toString()">{{ destinationLabel(d) }}</hlm-select-item>
+                  }
+                </hlm-select-content>
+              </ng-template>
+            </hlm-select>
+          }
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Start Date</label>
+          <hlm-date-picker [date]="startDate()" [min]="minStartDate()" (dateChange)="onStartDateChange($event)">
+            <hlm-date-picker-input placeholder="Select start date" />
+          </hlm-date-picker>
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>End Date</label>
+          <hlm-date-picker [date]="endDate()" [min]="minEndDate()" (dateChange)="onEndDateChange($event)">
+            <hlm-date-picker-input placeholder="Select end date" />
+          </hlm-date-picker>
+        </div>
+        @if (error()) {
+          <p class="md:col-span-2 text-xs text-destructive whitespace-pre-line">{{ error() }}</p>
         }
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel for="start-date">Start Date</label>
-        <input hlmInput id="start-date" type="date" #startDateInput />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel for="end-date">End Date</label>
-        <input hlmInput id="end-date" type="date" #endDateInput />
-      </div>
-      @if (error()) {
-        <p class="md:col-span-2 text-xs text-destructive whitespace-pre-line">{{ error() }}</p>
-      }
-      <div class="md:col-span-2 flex gap-3 pt-2">
-        <button hlmBtn type="submit" [disabled]="submitting() || destinationsLoading() || destinationsError()">
-          Create Trip
-        </button>
-        <a hlmBtn variant="outline" routerLink="/trips">Cancel</a>
-      </div>
-    </form>
+        <div class="md:col-span-2 flex gap-3 pt-2">
+          <button hlmBtn type="submit" [disabled]="submitting() || destinationsLoading() || destinationsError()">
+            {{ isEditMode() ? 'Save Changes' : 'Create Trip' }}
+          </button>
+          <a hlmBtn variant="outline" [routerLink]="isEditMode() ? ['/trips', editingTripId()] : ['/trips']">Cancel</a>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
+}
 
 <hlm-dialog [state]="dialogState()" (closed)="onDialogClosed()">
   <ng-template hlmDialogPortal>

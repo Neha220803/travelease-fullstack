@@ -6,6 +6,8 @@ import com.travelease.backend.busbooking.exception.CouponException;
 import com.travelease.backend.busbooking.exception.SeatUnavailableException;
 import com.travelease.backend.shared.dto.ApiError;
 import com.travelease.backend.shared.dto.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicate(DuplicateResourceException ex) {
@@ -108,6 +112,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        // This is the catch-all fallback: anything landing here is, by
+        // definition, a case we haven't specifically classified yet. Logging
+        // the real exception (not just the generic message sent to the
+        // client) is the only way to diagnose what actually failed - without
+        // this, every unclassified failure looks identical from the outside.
+        log.error("Unhandled exception reached GlobalExceptionHandler", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("INTERNAL_SERVER_ERROR", "An unexpected error occurred. Please try again later."));
     }

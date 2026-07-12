@@ -1,8 +1,8 @@
-export type StaffStatus = 'AVAILABLE' | 'ASSIGNED' | 'ON_TRIP' | 'OFF_DUTY' | 'LEAVE';
-export const STAFF_STATUSES: StaffStatus[] = ['AVAILABLE', 'ASSIGNED', 'ON_TRIP', 'OFF_DUTY', 'LEAVE'];
+export type DriverStatus = 'AVAILABLE' | 'ASSIGNED' | 'ON_TRIP' | 'OFF_DUTY' | 'LEAVE';
+export const DRIVER_STATUSES: DriverStatus[] = ['AVAILABLE', 'ASSIGNED', 'ON_TRIP', 'OFF_DUTY', 'LEAVE'];
 
-export type StaffType = 'DRIVER' | 'CONDUCTOR' | 'BUS_CAPTAIN' | 'CLEANER';
-export const STAFF_TYPES: StaffType[] = ['DRIVER', 'CONDUCTOR', 'BUS_CAPTAIN', 'CLEANER'];
+export type ConductorStatus = DriverStatus;
+export const CONDUCTOR_STATUSES: ConductorStatus[] = DRIVER_STATUSES;
 
 export type MaintenanceStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export const MAINTENANCE_STATUSES: MaintenanceStatus[] = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];

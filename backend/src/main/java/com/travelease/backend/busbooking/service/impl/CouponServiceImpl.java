@@ -16,7 +16,6 @@ import com.travelease.backend.busbooking.repository.DiscountRepository;
 import com.travelease.backend.busbooking.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -92,17 +91,8 @@ public class CouponServiceImpl implements CouponService {
                 .toList();
     }
 
-    // REQUIRES_NEW rather than the default (shared/REQUIRED) propagation: callers
-    // like FareServiceImpl.calculateFareBreakdown and
-    // BookingServiceImpl.confirmBookingInternal deliberately try/catch an invalid
-    // coupon and continue without one. But this method is itself @Transactional -
-    // if it shared the caller's ambient transaction, the exception thrown for an
-    // invalid code would still mark that shared transaction rollback-only, and the
-    // caller's later commit would fail with UnexpectedRollbackException even
-    // though the exception was already handled. Giving this its own transaction
-    // means a failure here rolls back only this isolated lookup.
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+    @Transactional(readOnly = true)
     public CouponResponse validateCoupon(String code, Double fareAmount, Long routeId, String busType) {
         Coupon coupon = couponRepository.findByCode(code.trim().toUpperCase())
                 .orElseThrow(() -> new CouponException("Invalid coupon code: " + code));

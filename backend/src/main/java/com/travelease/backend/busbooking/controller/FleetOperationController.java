@@ -1,19 +1,21 @@
 package com.travelease.backend.busbooking.controller;
 
+import com.travelease.backend.busbooking.dto.request.ConductorRequest;
+import com.travelease.backend.busbooking.dto.request.DriverRequest;
 import com.travelease.backend.busbooking.dto.request.MaintenanceRequest;
 import com.travelease.backend.busbooking.dto.request.MaintenanceStatusTransitionRequest;
-import com.travelease.backend.busbooking.dto.request.StaffRequest;
 import com.travelease.backend.busbooking.dto.request.TripAssignmentRequest;
 import com.travelease.backend.busbooking.dto.request.TripStatusTransitionRequest;
 import com.travelease.backend.busbooking.dto.response.*;
+import com.travelease.backend.busbooking.entity.enums.ConductorStatus;
+import com.travelease.backend.busbooking.entity.enums.DriverStatus;
 import com.travelease.backend.busbooking.entity.enums.MaintenanceStatus;
-import com.travelease.backend.busbooking.entity.enums.StaffStatus;
-import com.travelease.backend.busbooking.entity.enums.StaffType;
 import com.travelease.backend.busbooking.entity.enums.TripStatus;
 import com.travelease.backend.busbooking.service.BusService;
+import com.travelease.backend.busbooking.service.ConductorService;
+import com.travelease.backend.busbooking.service.DriverService;
 import com.travelease.backend.busbooking.service.MaintenanceService;
 import com.travelease.backend.busbooking.service.ScheduleService;
-import com.travelease.backend.busbooking.service.StaffService;
 import com.travelease.backend.busbooking.service.TripService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,64 +36,116 @@ import java.util.List;
 @Tag(name = "Fleet Operations", description = "Transport provider operations: drivers, conductors, maintenance, trips")
 public class FleetOperationController {
 
-    private final StaffService staffService;
+    private final DriverService driverService;
+    private final ConductorService conductorService;
     private final MaintenanceService maintenanceService;
     private final TripService tripService;
     private final BusService busService;
     private final ScheduleService scheduleService;
     private final com.travelease.backend.busbooking.security.SecurityUtil securityUtil;
 
-    // ==================== STAFF MANAGEMENT ====================
+    // ==================== DRIVER MANAGEMENT ====================
 
-    @GetMapping("/staff")
+    @GetMapping("/drivers")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get staff with optional filters", description = "Get staff with optional filters")
-    public ResponseEntity<ApiResponse<List<StaffResponse>>> getAllStaff(
+    @Operation(summary = "Get drivers with optional filters", description = "Get drivers with optional filters")
+    public ResponseEntity<ApiResponse<List<DriverResponse>>> getAllDrivers(
             @RequestParam(required = false) Long providerId,
-            @RequestParam(required = false) StaffType staffType,
-            @RequestParam(required = false) StaffStatus status,
+            @RequestParam(required = false) DriverStatus status,
             @PageableDefault(size = 20) Pageable pageable) {
         Long effectiveProviderId = securityUtil.resolveEffectiveProviderId(providerId);
-        List<StaffResponse> response = staffService.getStaff(effectiveProviderId, staffType, status, pageable);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Staff fetched successfully", response, "/api/operations/staff"));
+        List<DriverResponse> response = driverService.getDrivers(effectiveProviderId, status, pageable);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Drivers fetched successfully", response, "/api/operations/drivers"));
     }
 
-    @GetMapping("/staff/{id}")
+    @GetMapping("/drivers/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Get staff by ID", description = "Get staff by ID")
-    public ResponseEntity<ApiResponse<StaffResponse>> getStaffById(@PathVariable Long id) {
-        assertOwnsStaff(id);
-        StaffResponse response = staffService.getStaffById(id);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Staff fetched successfully", response, "/api/operations/staff/" + id));
+    @Operation(summary = "Get driver by ID", description = "Get driver by ID")
+    public ResponseEntity<ApiResponse<DriverResponse>> getDriverById(@PathVariable Long id) {
+        assertOwnsDriver(id);
+        DriverResponse response = driverService.getDriverById(id);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Driver fetched successfully", response, "/api/operations/drivers/" + id));
     }
 
-    @PostMapping("/staff")
+    @PostMapping("/drivers")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Create staff", description = "Create staff")
-    public ResponseEntity<ApiResponse<StaffResponse>> createStaff(@Valid @RequestBody StaffRequest request) {
+    @Operation(summary = "Create driver", description = "Create driver")
+    public ResponseEntity<ApiResponse<DriverResponse>> createDriver(@Valid @RequestBody DriverRequest request) {
         request.setProviderId(securityUtil.resolveEffectiveProviderId(request.getProviderId()));
-        StaffResponse response = staffService.createStaff(request);
+        DriverResponse response = driverService.createDriver(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(), "Staff created successfully", response, "/api/operations/staff"));
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), "Driver created successfully", response, "/api/operations/drivers"));
     }
 
-    @PutMapping("/staff/{id}")
+    @PutMapping("/drivers/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Update staff", description = "Update staff")
-    public ResponseEntity<ApiResponse<StaffResponse>> updateStaff(@PathVariable Long id, @Valid @RequestBody StaffRequest request) {
-        assertOwnsStaff(id);
+    @Operation(summary = "Update driver", description = "Update driver")
+    public ResponseEntity<ApiResponse<DriverResponse>> updateDriver(@PathVariable Long id, @Valid @RequestBody DriverRequest request) {
+        assertOwnsDriver(id);
         request.setProviderId(securityUtil.resolveEffectiveProviderId(request.getProviderId()));
-        StaffResponse response = staffService.updateStaff(id, request);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Staff updated successfully", response, "/api/operations/staff/" + id));
+        DriverResponse response = driverService.updateDriver(id, request);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Driver updated successfully", response, "/api/operations/drivers/" + id));
     }
 
-    @DeleteMapping("/staff/{id}")
+    @DeleteMapping("/drivers/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    @Operation(summary = "Deactivate staff", description = "Deactivate staff")
-    public ResponseEntity<ApiResponse<MessageResponse>> deactivateStaff(@PathVariable Long id) {
-        assertOwnsStaff(id);
-        staffService.deactivateStaff(id);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Staff deactivated successfully", new MessageResponse("Staff deactivated successfully"), "/api/operations/staff/" + id));
+    @Operation(summary = "Deactivate driver", description = "Deactivate driver")
+    public ResponseEntity<ApiResponse<MessageResponse>> deactivateDriver(@PathVariable Long id) {
+        assertOwnsDriver(id);
+        driverService.deactivateDriver(id);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Driver deactivated successfully", new MessageResponse("Driver deactivated successfully"), "/api/operations/drivers/" + id));
+    }
+
+    // ==================== CONDUCTOR MANAGEMENT ====================
+
+    @GetMapping("/conductors")
+    @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
+    @Operation(summary = "Get conductors with optional filters", description = "Get conductors with optional filters")
+    public ResponseEntity<ApiResponse<List<ConductorResponse>>> getAllConductors(
+            @RequestParam(required = false) Long providerId,
+            @RequestParam(required = false) ConductorStatus status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Long effectiveProviderId = securityUtil.resolveEffectiveProviderId(providerId);
+        List<ConductorResponse> response = conductorService.getConductors(effectiveProviderId, status, pageable);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Conductors fetched successfully", response, "/api/operations/conductors"));
+    }
+
+    @GetMapping("/conductors/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
+    @Operation(summary = "Get conductor by ID", description = "Get conductor by ID")
+    public ResponseEntity<ApiResponse<ConductorResponse>> getConductorById(@PathVariable Long id) {
+        assertOwnsConductor(id);
+        ConductorResponse response = conductorService.getConductorById(id);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Conductor fetched successfully", response, "/api/operations/conductors/" + id));
+    }
+
+    @PostMapping("/conductors")
+    @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
+    @Operation(summary = "Create conductor", description = "Create conductor")
+    public ResponseEntity<ApiResponse<ConductorResponse>> createConductor(@Valid @RequestBody ConductorRequest request) {
+        request.setProviderId(securityUtil.resolveEffectiveProviderId(request.getProviderId()));
+        ConductorResponse response = conductorService.createConductor(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), "Conductor created successfully", response, "/api/operations/conductors"));
+    }
+
+    @PutMapping("/conductors/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
+    @Operation(summary = "Update conductor", description = "Update conductor")
+    public ResponseEntity<ApiResponse<ConductorResponse>> updateConductor(@PathVariable Long id, @Valid @RequestBody ConductorRequest request) {
+        assertOwnsConductor(id);
+        request.setProviderId(securityUtil.resolveEffectiveProviderId(request.getProviderId()));
+        ConductorResponse response = conductorService.updateConductor(id, request);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Conductor updated successfully", response, "/api/operations/conductors/" + id));
+    }
+
+    @DeleteMapping("/conductors/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
+    @Operation(summary = "Deactivate conductor", description = "Deactivate conductor")
+    public ResponseEntity<ApiResponse<MessageResponse>> deactivateConductor(@PathVariable Long id) {
+        assertOwnsConductor(id);
+        conductorService.deactivateConductor(id);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Conductor deactivated successfully", new MessageResponse("Conductor deactivated successfully"), "/api/operations/conductors/" + id));
     }
 
     // ==================== MAINTENANCE MANAGEMENT ====================
@@ -239,8 +293,12 @@ public class FleetOperationController {
         securityUtil.resolveEffectiveProviderId(busService.getBusById(busId).getProviderId());
     }
 
-    private void assertOwnsStaff(Long staffId) {
-        securityUtil.resolveEffectiveProviderId(staffService.getStaffById(staffId).getProviderId());
+    private void assertOwnsDriver(Long driverId) {
+        securityUtil.resolveEffectiveProviderId(driverService.getDriverById(driverId).getProviderId());
+    }
+
+    private void assertOwnsConductor(Long conductorId) {
+        securityUtil.resolveEffectiveProviderId(conductorService.getConductorById(conductorId).getProviderId());
     }
 
     private void assertOwnsMaintenance(Long maintenanceId) {

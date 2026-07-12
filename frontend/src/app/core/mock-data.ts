@@ -33,7 +33,7 @@ export const trips: Trip[] = [
     currentCost: 64200,
     status: "upcoming",
     image:
-      "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1600&q=70",
+      "images/placeholder.png",
     progress: 65,
   },
   {
@@ -50,7 +50,7 @@ export const trips: Trip[] = [
     currentCost: 18400,
     status: "planning",
     image:
-      "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1600&q=70",
+      "images/placeholder.png",
     progress: 25,
   },
   {
@@ -67,7 +67,7 @@ export const trips: Trip[] = [
     currentCost: 124500,
     status: "completed",
     image:
-      "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1600&q=70",
+      "images/placeholder.png",
     progress: 100,
   },
 ];
@@ -124,7 +124,7 @@ export const hotels = [
     price: 4800,
     rating: 4.7,
     rooms: 3,
-    image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=70",
+    image: "images/placeholder.png",
   },
   {
     id: "h2",
@@ -135,7 +135,7 @@ export const hotels = [
     price: 5400,
     rating: 4.5,
     rooms: 2,
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=70",
+    image: "images/placeholder.png",
   },
   {
     id: "h3",
@@ -146,7 +146,7 @@ export const hotels = [
     price: 3900,
     rating: 4.3,
     rooms: 4,
-    image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=70",
+    image: "images/placeholder.png",
   },
 ];
 
@@ -184,12 +184,12 @@ export const invitations = [
 ];
 
 export const activities = [
-  { id: "ac1", name: "Paragliding", destination: "Goa", duration: "1 hr", price: 2500, rating: 4.7, image: "https://images.unsplash.com/photo-1601024445121-e5b82f020549?auto=format&fit=crop&w=800&q=60" },
-  { id: "ac2", name: "Scuba Diving", destination: "Goa", duration: "3 hrs", price: 4500, rating: 4.8, image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=60" },
-  { id: "ac3", name: "Jet Ski Ride", destination: "Goa", duration: "30 min", price: 1500, rating: 4.5, image: "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=800&q=60" },
-  { id: "ac4", name: "Banana Boat Ride", destination: "Goa", duration: "20 min", price: 800, rating: 4.3, image: "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=800&q=60" },
-  { id: "ac5", name: "Spice Plantation Tour", destination: "Goa", duration: "4 hrs", price: 1200, rating: 4.4, image: "https://images.unsplash.com/photo-1532465614-6cc8d45f647f?auto=format&fit=crop&w=800&q=60" },
-  { id: "ac6", name: "Dolphin Cruise", destination: "Goa", duration: "2 hrs", price: 900, rating: 4.2, image: "https://images.unsplash.com/photo-1568430462989-44163eb1752f?auto=format&fit=crop&w=800&q=60" },
+  { id: "ac1", name: "Paragliding", destination: "Goa", duration: "1 hr", price: 2500, rating: 4.7, image: "images/placeholder.png" },
+  { id: "ac2", name: "Scuba Diving", destination: "Goa", duration: "3 hrs", price: 4500, rating: 4.8, image: "images/placeholder.png" },
+  { id: "ac3", name: "Jet Ski Ride", destination: "Goa", duration: "30 min", price: 1500, rating: 4.5, image: "images/placeholder.png" },
+  { id: "ac4", name: "Banana Boat Ride", destination: "Goa", duration: "20 min", price: 800, rating: 4.3, image: "images/placeholder.png" },
+  { id: "ac5", name: "Spice Plantation Tour", destination: "Goa", duration: "4 hrs", price: 1200, rating: 4.4, image: "images/placeholder.png" },
+  { id: "ac6", name: "Dolphin Cruise", destination: "Goa", duration: "2 hrs", price: 900, rating: 4.2, image: "images/placeholder.png" },
 ];
 
 export const routeAnalytics = [

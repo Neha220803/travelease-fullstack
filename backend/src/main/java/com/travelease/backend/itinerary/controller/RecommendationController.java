@@ -22,7 +22,7 @@ public class RecommendationController {
     // Get personalized suggestions by traveler category
     // 1=Solo 2=Couple 3=Family 4=Friends 5=Corporate
     @GetMapping
-    @Operation(summary = "Get traveler recommendations", description = "ACCESS: AUTHENTICATED\nSCOPE: Returns recommendation records for the requested traveler categoryId.\nIDENTITY: A valid JWT is required (this endpoint is not in SecurityConfig's permitAll list); the docs previously and incorrectly claimed public access.")
+    @Operation(summary = "Get traveler recommendations", description = "ACCESS: PUBLIC\nSCOPE: Returns recommendation records for the requested traveler categoryId.\nIDENTITY: No JWT is required.")
     public ResponseEntity<List<Recommendation>> getRecommendations(
             @RequestParam Integer categoryId) {
         List<Recommendation> recommendations =

@@ -22,7 +22,7 @@ import { MaintenanceService } from '@app/features/transport/services/maintenance
 import {
   MaintenanceFormPayload, MaintenanceResponse, MaintenanceTransitionPayload, SUGGESTED_MAINTENANCE_TYPES,
 } from '@app/features/transport/services/maintenance.models';
-import { BusStatus, BUS_STATUSES, MaintenanceStatus, MAINTENANCE_STATUSES } from '@app/features/transport/services/transport-enums';
+import { MaintenanceStatus } from '@app/features/transport/services/transport-enums';
 
 @Component({
   selector: 'app-manage-vehicles',
@@ -51,11 +51,9 @@ export class ManageVehicles {
   private readonly toastService = inject(ToastService);
 
   public readonly busTypes = BUS_TYPES;
-  public readonly busStatuses = BUS_STATUSES;
   public readonly buses = signal<BusResponse[]>([]);
   public readonly loading = signal(true);
   public readonly error = signal<string | null>(null);
-  protected readonly fleetStatusFilter = signal<BusStatus | 'ALL'>('ALL');
 
   protected readonly activeTab = signal('fleet');
 
@@ -69,19 +67,15 @@ export class ManageVehicles {
   protected readonly deleting = signal(false);
 
   public readonly suggestedMaintenanceTypes = SUGGESTED_MAINTENANCE_TYPES;
-  public readonly maintenanceStatuses = MAINTENANCE_STATUSES;
   public readonly maintenanceRecords = signal<MaintenanceResponse[]>([]);
   public readonly maintenanceLoading = signal(true);
   public readonly maintenanceError = signal<string | null>(null);
-  protected readonly maintenanceStatusFilter = signal<MaintenanceStatus | 'ALL'>('ALL');
   public readonly maintenanceSheetOpen = signal(false);
   protected readonly selectedMaintenanceBusId = signal<string>('');
   protected readonly maintenanceSubmitting = signal(false);
   protected readonly maintenanceFormError = signal<string | null>(null);
   public readonly completeTarget = signal<MaintenanceResponse | null>(null);
   protected readonly completing = signal(false);
-
-  protected readonly todayDate = new Date().toISOString().slice(0, 10);
 
   constructor() {
     this.load();
@@ -97,9 +91,7 @@ export class ManageVehicles {
     }
     this.loading.set(true);
     this.error.set(null);
-    const status = this.fleetStatusFilter();
-    const buses$ = status === 'ALL' ? this.busService.listBuses(providerId) : this.busService.listBuses(providerId, status);
-    buses$.subscribe({
+    this.busService.listBuses(providerId).subscribe({
       next: (buses) => {
         this.buses.set(buses);
         this.loading.set(false);
@@ -109,11 +101,6 @@ export class ManageVehicles {
         this.loading.set(false);
       },
     });
-  }
-
-  protected onFleetStatusFilterChange(value: string | null | undefined): void {
-    this.fleetStatusFilter.set((value as BusStatus | 'ALL') ?? 'ALL');
-    this.load();
   }
 
   protected openCreate(): void {
@@ -244,11 +231,7 @@ export class ManageVehicles {
   protected loadMaintenance(): void {
     this.maintenanceLoading.set(true);
     this.maintenanceError.set(null);
-    const status = this.maintenanceStatusFilter();
-    const maintenance$ = status === 'ALL'
-      ? this.maintenanceService.listMaintenance()
-      : this.maintenanceService.listMaintenance(undefined, status);
-    maintenance$.subscribe({
+    this.maintenanceService.listMaintenance().subscribe({
       next: (records) => {
         this.maintenanceRecords.set(records);
         this.maintenanceLoading.set(false);
@@ -258,11 +241,6 @@ export class ManageVehicles {
         this.maintenanceLoading.set(false);
       },
     });
-  }
-
-  protected onMaintenanceStatusFilterChange(value: string | null | undefined): void {
-    this.maintenanceStatusFilter.set((value as MaintenanceStatus | 'ALL') ?? 'ALL');
-    this.loadMaintenance();
   }
 
   validActions(status: MaintenanceStatus): ('START' | 'COMPLETE' | 'CANCEL')[] {
@@ -303,15 +281,6 @@ export class ManageVehicles {
   ): void {
     event.preventDefault();
     this.maintenanceFormError.set(null);
-
-    if (!maintenanceType.trim()) {
-      this.maintenanceFormError.set('Maintenance type is required.');
-      return;
-    }
-    if (!scheduledDate || scheduledDate < this.todayDate) {
-      this.maintenanceFormError.set('Scheduled date is required and cannot be in the past.');
-      return;
-    }
 
     const payload: MaintenanceFormPayload = {
       busId: Number(this.selectedMaintenanceBusId()),

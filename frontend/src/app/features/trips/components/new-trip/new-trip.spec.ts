@@ -67,12 +67,23 @@ async function setup(
   return { fixture, navigateSpy };
 }
 
-function fillAndSubmit(el: HTMLElement) {
+function fillAndSubmit(fixture: ReturnType<typeof TestBed.createComponent<NewTrip>>) {
+  const el = fixture.nativeElement as HTMLElement;
   (el.querySelector('#name') as HTMLInputElement).value = 'Goa Beach Escape';
   (el.querySelector('#budget') as HTMLInputElement).value = '18000';
-  (el.querySelector('#source') as HTMLInputElement).value = 'Bengaluru';
-  (el.querySelector('#start-date') as HTMLInputElement).value = '2026-08-01';
-  (el.querySelector('#end-date') as HTMLInputElement).value = '2026-08-05';
+
+  const sourceInput = el.querySelector('#source') as HTMLInputElement;
+  sourceInput.value = 'Bengaluru';
+  sourceInput.dispatchEvent(new Event('input'));
+
+  // Start/End Date are now hlm-date-picker components (calendar popovers),
+  // not plain <input type="date">, so tests drive them via the component's
+  // own change handlers rather than querying/DOM-typing into a popover.
+  const cmp = instance(fixture);
+  cmp.onStartDateChange(new Date('2026-08-01T00:00:00'));
+  cmp.onEndDateChange(new Date('2026-08-05T00:00:00'));
+  fixture.detectChanges();
+
   const form = el.querySelector('form')!;
   form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
 }
@@ -86,6 +97,8 @@ function instance(fixture: ReturnType<typeof TestBed.createComponent<NewTrip>>) 
     onCloseDialog: () => void;
     onMemberPicked: (t: TravelerSearchResult) => void;
     onDialogClosed: () => void;
+    onStartDateChange: (date: Date | undefined) => void;
+    onEndDateChange: (date: Date | undefined) => void;
   };
 }
 
@@ -95,7 +108,7 @@ describe('NewTrip', () => {
     const { fixture, navigateSpy } = await setup({ createTrip });
     const el = fixture.nativeElement as HTMLElement;
 
-    fillAndSubmit(el);
+    fillAndSubmit(fixture);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -131,7 +144,7 @@ describe('NewTrip', () => {
     const { fixture, navigateSpy } = await setup({ createTrip });
     const el = fixture.nativeElement as HTMLElement;
 
-    fillAndSubmit(el);
+    fillAndSubmit(fixture);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -157,7 +170,7 @@ describe('NewTrip', () => {
     const createTrip = vi.fn().mockReturnValue(of(CREATED_TRIP));
     const { fixture, navigateSpy } = await setup({ createTrip });
     const el = fixture.nativeElement as HTMLElement;
-    fillAndSubmit(el);
+    fillAndSubmit(fixture);
     await fixture.whenStable();
 
     // The dialog's overlay content renders via a CDK Overlay attached to
@@ -178,7 +191,7 @@ describe('NewTrip', () => {
     const inviteMember = vi.fn().mockReturnValue(of(CARA_MEMBER));
     const { fixture, navigateSpy } = await setup({ createTrip, inviteMember });
     const el = fixture.nativeElement as HTMLElement;
-    fillAndSubmit(el);
+    fillAndSubmit(fixture);
     await fixture.whenStable();
 
     instance(fixture).onAddMembers();
@@ -202,7 +215,7 @@ describe('NewTrip', () => {
     const inviteMember = vi.fn().mockReturnValue(throwError(() => new Error('boom')));
     const { fixture } = await setup({ createTrip, inviteMember });
     const el = fixture.nativeElement as HTMLElement;
-    fillAndSubmit(el);
+    fillAndSubmit(fixture);
     await fixture.whenStable();
 
     instance(fixture).onAddMembers();
