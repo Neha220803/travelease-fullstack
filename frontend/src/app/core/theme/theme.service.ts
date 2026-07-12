@@ -19,6 +19,7 @@ export class ThemeService {
       }
       if (typeof document !== 'undefined') {
         document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
       }
       if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
         localStorage.setItem(THEME_KEY, theme);

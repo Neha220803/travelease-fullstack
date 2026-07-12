@@ -13,6 +13,13 @@ import {
   bookingBarHeight,
   buildBookingsBarOption,
 } from '@app/features/admin/components/admin-dashboard/admin-dashboard';
+import { NotificationService } from '@app/features/notifications/services/notification.service';
+import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+
+const notificationServiceStub: Partial<NotificationService> = {
+  getNotifications: () => of([]),
+};
 
 describe('bookingBarHeight', () => {
   it('matches the sine-based formula from the React source', () => {
@@ -42,6 +49,8 @@ describe('AdminDashboard', () => {
     await TestBed.configureTestingModule({
       imports: [AdminDashboard],
       providers: [
+        provideRouter([]),
+        { provide: NotificationService, useValue: notificationServiceStub },
         provideIcons({
           lucideBus,
           lucideHotel,
@@ -106,5 +115,11 @@ describe('AdminDashboard', () => {
       expect(idx).toBeGreaterThanOrEqual(0);
       expect(series.data[idx]).toBe(d.pct);
     }
+  });
+
+  it('starts with an empty notifications list', () => {
+    const fixture = TestBed.createComponent(AdminDashboard);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.notifications()).toEqual([]);
   });
 });

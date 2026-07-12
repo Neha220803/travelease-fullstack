@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { filter, startWith } from 'rxjs';
 import { NgIcon } from '@ng-icons/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
@@ -130,7 +130,18 @@ export class AppShell {
     this.sidebarOpen.set(state === 'open');
   }
 
-  protected readonly role = computed(() => this.authService.role() ?? 'traveler');
+  // Use route data as primary source of truth — it is set synchronously from
+  // the route config so there is never a frame where it defaults to 'traveler'.
+  private readonly routeData = toSignal(
+    this.route.data.pipe(startWith(this.route.snapshot.data)),
+  );
+
+  protected readonly role = computed(
+    () =>
+      (this.routeData()?.['role'] as Role | undefined) ??
+      this.authService.role() ??
+      'traveler',
+  );
 
   protected readonly nav = computed(() => NAV_MAP[this.role()]);
   protected readonly roleLabel = computed(() => ROLE_LABEL[this.role()]);

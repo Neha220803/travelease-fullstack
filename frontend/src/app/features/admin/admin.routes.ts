@@ -85,6 +85,13 @@ export const ADMIN_ROUTES: Routes = [
             (m) => m.AdminReports,
           ),
       },
+      {
+        path: 'notifications',
+        loadChildren: () =>
+          import('@app/features/notifications/notifications.routes').then(
+            (m) => m.NOTIFICATIONS_ROUTES,
+          ),
+      },
     ],
   },
 ];

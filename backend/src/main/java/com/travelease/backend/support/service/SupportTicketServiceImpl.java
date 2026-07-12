@@ -1,7 +1,9 @@
 package com.travelease.backend.support.service;
 
+import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
+import com.travelease.backend.itinerary.service.NotificationService;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.support.dto.CreateTicketRequest;
 import com.travelease.backend.support.dto.ReplyRequest;
@@ -30,17 +32,31 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     private final SupportTicketRepository ticketRepository;
     private final SupportTicketReplyRepository replyRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
     public TicketResponse createTicket(CreateTicketRequest request, String currentUserEmail) {
+        User submitter = getCurrentUser(currentUserEmail);
         SupportTicket ticket = new SupportTicket();
-        ticket.setUser(getCurrentUser(currentUserEmail));
+        ticket.setUser(submitter);
         ticket.setCategory(request.category());
         ticket.setSubject(request.subject());
         ticket.setDescription(request.description());
         ticket.setStatus(TicketStatus.OPEN);
-        return toTicketResponse(ticketRepository.save(ticket));
+        TicketResponse saved = toTicketResponse(ticketRepository.save(ticket));
+
+        // Notify all admins about the new support ticket
+        userRepository.findByRole(Role.ROLE_ADMIN).forEach(admin ->
+            notificationService.createNotification(
+                    admin.getId().toString(),
+                    "SUPPORT_TICKET",
+                    "New Support Ticket",
+                    submitter.getName() + " opened a new ticket: \"" + request.subject() + "\""
+            )
+        );
+
+        return saved;
     }
 
     @Override

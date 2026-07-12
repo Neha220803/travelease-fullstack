@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal, DestroyRef } from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
@@ -6,6 +6,11 @@ import { EChart } from '@app/shared/ui/echart/echart';
 import { CHART_COLORS } from '@app/shared/ui/echart/echart-theme';
 import { buildRankingBarOption } from '@app/shared/ui/echart/ranking-bar-chart';
 import type { EChartsCoreOption } from 'echarts/core';
+import { NotificationService } from '@app/features/notifications/services/notification.service';
+import { NotificationResponse } from '@app/features/notifications/services/notification.models';
+import { RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface StatCard {
   label: string;
@@ -66,13 +71,17 @@ export function buildBookingsBarOption(bars: number[]): EChartsCoreOption {
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [NgIcon, HlmCardImports, PageHeader, EChart],
+  imports: [NgIcon, HlmCardImports, PageHeader, EChart, RouterLink, DatePipe],
   templateUrl: './admin-dashboard.html',
 })
 export class AdminDashboard {
+  private readonly notificationService = inject(NotificationService);
+  private readonly destroyRef = inject(DestroyRef);
+
   public readonly stats = STATS;
   public readonly destinations = POPULAR_DESTINATIONS;
   public readonly bars = Array.from({ length: 30 }, (_, i) => bookingBarHeight(i));
+  public readonly notifications = signal<NotificationResponse[]>([]);
 
   public readonly bookingsChartOptions: EChartsCoreOption = buildBookingsBarOption(this.bars);
   public readonly destinationsChartOptions: EChartsCoreOption = buildRankingBarOption(
@@ -80,4 +89,16 @@ export class AdminDashboard {
     CHART_COLORS.primary,
     '%',
   );
+
+  constructor() {
+    this.fetchNotifications();
+  }
+
+  private fetchNotifications(): void {
+    this.notificationService.getNotifications()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((notifs) => {
+        this.notifications.set(notifs.slice(0, 5));
+      });
+  }
 }

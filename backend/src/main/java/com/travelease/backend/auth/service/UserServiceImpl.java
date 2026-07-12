@@ -2,6 +2,7 @@ package com.travelease.backend.auth.service;
 
 import com.travelease.backend.auth.SecurityQuestions;
 import com.travelease.backend.auth.dto.AdminCreateUserRequest;
+import com.travelease.backend.auth.dto.AllPartnerResponse;
 import com.travelease.backend.auth.dto.PartnerRegisterRequest;
 import com.travelease.backend.auth.dto.PendingPartnerResponse;
 import com.travelease.backend.auth.dto.RegisterRequest;
@@ -132,6 +133,18 @@ public class UserServiceImpl implements UserService {
         user.setStatus(ApprovalStatus.PENDING);
 
         User saved = userRepository.save(user);
+
+        // Notify all admins about the new partner application
+        String roleLabel = request.role().replace("_PROVIDER", "").replace("_", " ");
+        userRepository.findByRole(Role.ROLE_ADMIN).forEach(admin ->
+            notificationService.createNotification(
+                    admin.getId().toString(),
+                    "PARTNER_APPLICATION",
+                    "New Partner Application",
+                    saved.getName() + " (" + saved.getEmail() + ") applied as " + roleLabel + ". Review in Partner Approvals."
+            )
+        );
+
         return toResponse(saved);
     }
 
@@ -147,10 +160,10 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse approvePartner(UUID id) {
         User user = findPendingPartnerOrThrow(id);
-        
+
         Long providerId = getNextProviderId(user.getRole());
         user.setProviderId(providerId);
-        
+
         user.setStatus(ApprovalStatus.APPROVED);
         if (user.getProviderId() == null) {
             Provider provider = new Provider();
@@ -158,15 +171,64 @@ public class UserServiceImpl implements UserService {
             provider.setType(user.getRole());
             user.setProviderId(providerRepository.save(provider).getId());
         }
-        return toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+
+        // Notify the partner that their application was approved
+        notificationService.createNotification(
+                saved.getId().toString(),
+                "PARTNER_APPROVAL",
+                "Application Approved",
+                "Your partner application has been approved. You can now log in to your dashboard."
+        );
+
+        return toResponse(saved);
     }
 
     @Override
     @Transactional
     public UserResponse rejectPartner(UUID id) {
+        return rejectPartner(id, null);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse rejectPartner(UUID id, String reason) {
         User user = findPendingPartnerOrThrow(id);
         user.setStatus(ApprovalStatus.REJECTED);
-        return toResponse(userRepository.save(user));
+        if (reason != null && !reason.isBlank()) {
+            user.setRejectionReason(reason.trim());
+        }
+        User saved = userRepository.save(user);
+
+        // Notify the partner that their application was rejected
+        String reasonSuffix = (reason != null && !reason.isBlank())
+                ? " Reason: " + reason.trim()
+                : "";
+        notificationService.createNotification(
+                saved.getId().toString(),
+                "PARTNER_REJECTION",
+                "Application Rejected",
+                "Unfortunately, your partner application was not approved at this time." + reasonSuffix
+        );
+
+        return toResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AllPartnerResponse> listAllPartners() {
+        return userRepository.findByRoleIn(PROVIDER_ROLES).stream()
+                .sorted(Comparator.comparing(User::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(u -> new AllPartnerResponse(
+                        u.getId(),
+                        u.getName(),
+                        u.getEmail(),
+                        u.getRole().name(),
+                        u.getStatus().name(),
+                        u.getRejectionReason(),
+                        u.getCreatedAt()
+                ))
+                .toList();
     }
 
     private User findPendingPartnerOrThrow(UUID id) {

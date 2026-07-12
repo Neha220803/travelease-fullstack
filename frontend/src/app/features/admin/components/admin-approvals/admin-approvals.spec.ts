@@ -5,6 +5,7 @@ import { provideIcons } from '@ng-icons/core';
 import { lucideActivity, lucideBus, lucideCheck, lucideHotel, lucideX } from '@ng-icons/lucide';
 import { API_BASE_URL } from '@app/core/api/api-config';
 import { AdminApprovals, iconForApprovalType } from '@app/features/admin/components/admin-approvals/admin-approvals';
+import { ToastService } from '@app/shared/ui/toast/toast.service';
 
 describe('iconForApprovalType', () => {
   it('maps Hotel, Transport, and Activity to their icons', () => {
@@ -22,6 +23,7 @@ describe('AdminApprovals', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideIcons({ lucideActivity, lucideBus, lucideCheck, lucideHotel, lucideX }),
+        { provide: ToastService, useValue: { showSuccess: () => {}, showError: () => {} } },
       ],
     }).compileComponents();
 
@@ -30,30 +32,43 @@ describe('AdminApprovals', () => {
     return { fixture, http };
   }
 
-  const pendingResponse = {
+  const allResponse = {
     success: true,
-    message: 'Pending partners retrieved',
+    message: 'All partners retrieved',
     error: null,
     data: [
-      { id: 'p1', name: 'Coral Reef Resort', email: 'coral@example.com', role: 'ROLE_HOTEL_PROVIDER', createdAt: '2026-06-08T09:00:00' },
-      { id: 'p2', name: 'MountainLine Buses', email: 'mountainline@example.com', role: 'ROLE_PROVIDER', createdAt: '2026-06-10T09:00:00' },
+      { id: 'p1', name: 'Coral Reef Resort', email: 'coral@example.com', role: 'ROLE_HOTEL_PROVIDER', status: 'PENDING', rejectionReason: null, createdAt: '2026-06-08T09:00:00' },
+      { id: 'p2', name: 'MountainLine Buses', email: 'mountainline@example.com', role: 'ROLE_PROVIDER', status: 'PENDING', rejectionReason: null, createdAt: '2026-06-10T09:00:00' },
+      { id: 'p3', name: 'Approved Hotel', email: 'approved@example.com', role: 'ROLE_HOTEL_PROVIDER', status: 'APPROVED', rejectionReason: null, createdAt: '2026-06-01T09:00:00' },
+      { id: 'p4', name: 'Rejected Transport', email: 'rejected@example.com', role: 'ROLE_PROVIDER', status: 'REJECTED', rejectionReason: 'Incomplete docs', createdAt: '2026-05-20T09:00:00' },
     ],
   };
 
-  it('loads pending partners and renders the stat counts and rows', async () => {
+  it('loads all partners and computes tab counts', async () => {
     const { fixture, http } = await setup();
     fixture.detectChanges();
 
-    http.expectOne(`${API_BASE_URL}/api/admin/partners/pending`).flush(pendingResponse);
+    http.expectOne(`${API_BASE_URL}/api/admin/partners/all`).flush(allResponse);
     await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
 
     const c = fixture.componentInstance;
     expect(c.pendingCount()).toBe(2);
-    expect(c.hotelCount()).toBe(1);
-    expect(c.transportCount()).toBe(1);
-    expect(c.activityCount()).toBe(0);
+    expect(c.approvedCount()).toBe(1);
+    expect(c.rejectedCount()).toBe(1);
 
+    http.verify();
+  });
+
+  it('defaults to the pending tab with pending partners visible', async () => {
+    const { fixture, http } = await setup();
+    fixture.detectChanges();
+
+    http.expectOne(`${API_BASE_URL}/api/admin/partners/all`).flush(allResponse);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.activeTab()).toBe('pending');
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Coral Reef Resort');
     expect(text).toContain('MountainLine Buses');
@@ -61,26 +76,22 @@ describe('AdminApprovals', () => {
     http.verify();
   });
 
-  it('approves a partner and removes it from the pending list', async () => {
+  it('opens rejection dialog and requires a reason', async () => {
     const { fixture, http } = await setup();
     fixture.detectChanges();
-    http.expectOne(`${API_BASE_URL}/api/admin/partners/pending`).flush(pendingResponse);
+
+    http.expectOne(`${API_BASE_URL}/api/admin/partners/all`).flush(allResponse);
     await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
 
-    const approveButtons = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
-    ).filter((b) => b.textContent?.includes('Approve'));
-    approveButtons[0].dispatchEvent(new Event('click'));
+    const c = fixture.componentInstance;
+    c.openRejectDialog('p1');
+    expect(c.rejectDialogOpen()).toBe(true);
+    expect(c.rejectTargetId()).toBe('p1');
 
-    const approveReq = http.expectOne(`${API_BASE_URL}/api/admin/partners/p1/approve`);
-    expect(approveReq.request.method).toBe('PUT');
-    approveReq.flush({ success: true, data: null, message: 'Partner approved', error: null });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.approvals()).toHaveLength(1);
-    expect(fixture.componentInstance.approvals()[0].id).toBe('p2');
+    // Try to confirm without a reason
+    await c.confirmReject();
+    expect(c.rejectReasonError()).toBe('Please provide a reason for rejection.');
 
     http.verify();
   });

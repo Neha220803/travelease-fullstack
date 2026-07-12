@@ -22,6 +22,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findByProviderId(Long providerId);
     List<User> findByStatusAndRoleIn(ApprovalStatus status, List<Role> roles);
+    List<User> findByRoleIn(List<Role> roles);
 
     @Query("SELECT u FROM User u WHERE u.role = :role "
             + "AND (LOWER(u.name) LIKE LOWER(CONCAT('%', :query, '%')) "

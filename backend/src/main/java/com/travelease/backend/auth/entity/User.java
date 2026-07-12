@@ -54,4 +54,8 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ApprovalStatus status = ApprovalStatus.APPROVED;
+
+    /** Reason provided by admin when rejecting a partner application. */
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
 }

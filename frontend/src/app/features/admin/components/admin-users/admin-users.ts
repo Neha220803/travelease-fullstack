@@ -12,6 +12,17 @@ import { API_BASE_URL } from '@app/core/api/api-config';
 import { ApiResponse } from '@app/core/api/api-response.model';
 import { ToastService } from '@app/shared/ui/toast/toast.service';
 
+const SECURITY_QUESTIONS = [
+  'What is the name of the hospital where you were born?',
+  'What is your birth hospital?',
+  'What was the name of your first pet?',
+  "What is your mother's maiden name?",
+  'What was the name of your first school?',
+  'What is your favorite book?',
+];
+
+type FormField = 'name' | 'email' | 'phone' | 'password' | 'confirmPassword' | 'securityAnswer';
+
 interface AdminUserRow {
   id: string;
   name: string;
@@ -39,28 +50,40 @@ export class AdminUsers implements OnInit {
   private readonly toastService = inject(ToastService);
 
   public readonly rows = signal<AdminUserRow[]>([]);
+  public readonly securityQuestions = SECURITY_QUESTIONS;
 
   readonly form = signal({
     name: '',
     email: '',
     phone: '',
     password: '',
+    confirmPassword: '',
     role: 'TRAVELER',
-    securityQuestion: 'What is your birth hospital?',
+    securityQuestion: SECURITY_QUESTIONS[0],
     securityAnswer: '',
   });
 
   readonly submitting = signal(false);
   readonly loading = signal(false);
-  readonly fieldErrors = signal<Partial<Record<'name' | 'email' | 'phone' | 'password' | 'securityAnswer', string>>>({});
+  readonly passwordVisible = signal(false);
+  readonly confirmPasswordVisible = signal(false);
+  readonly fieldErrors = signal<Partial<Record<FormField, string>>>({});
 
   ngOnInit(): void {
     void this.loadUsers();
   }
 
-  updateField(field: 'name' | 'email' | 'phone' | 'password' | 'securityQuestion' | 'securityAnswer', value: string): void {
+  togglePasswordVisibility(): void {
+    this.passwordVisible.update(v => !v);
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.confirmPasswordVisible.update(v => !v);
+  }
+
+  updateField(field: FormField | 'securityQuestion', value: string): void {
     this.form.set({ ...this.form(), [field]: value });
-    if (field === 'name' || field === 'email' || field === 'phone' || field === 'password' || field === 'securityAnswer') {
+    if (field !== 'securityQuestion') {
       const { [field]: _removed, ...rest } = this.fieldErrors();
       this.fieldErrors.set(rest);
     }
@@ -82,13 +105,13 @@ export class AdminUsers implements OnInit {
     try {
       const response = await firstValueFrom(
         this.http.post<ApiResponse<unknown>>(`${API_BASE_URL}/api/admin/users`, {
-          name: this.form().name,
-          email: this.form().email,
-          phone: this.form().phone,
+          name: this.form().name.trim(),
+          email: this.form().email.trim(),
+          phone: this.form().phone.trim(),
           password: this.form().password,
           role: this.form().role,
           securityQuestion: this.form().securityQuestion,
-          securityAnswer: this.form().securityAnswer,
+          securityAnswer: this.form().securityAnswer.trim(),
         }),
       );
 
@@ -98,10 +121,13 @@ export class AdminUsers implements OnInit {
         email: '',
         phone: '',
         password: '',
+        confirmPassword: '',
         role: 'TRAVELER',
-        securityQuestion: 'What is your birth hospital?',
+        securityQuestion: SECURITY_QUESTIONS[0],
         securityAnswer: '',
       });
+      this.passwordVisible.set(false);
+      this.confirmPasswordVisible.set(false);
       await this.loadUsers();
     } catch (error) {
       this.toastService.showError('Unable to create user right now.');
@@ -110,22 +136,48 @@ export class AdminUsers implements OnInit {
     }
   }
 
-  private validateForm(): Partial<Record<'name' | 'email' | 'phone' | 'password' | 'securityAnswer', string>> {
-    const { name, email, phone, password, securityAnswer } = this.form();
-    const errors: Partial<Record<'name' | 'email' | 'phone' | 'password' | 'securityAnswer', string>> = {};
+  private validateForm(): Partial<Record<FormField, string>> {
+    const { name, email, phone, password, confirmPassword, securityAnswer } = this.form();
+    const errors: Partial<Record<FormField, string>> = {};
 
-    if (!name.trim()) {
+    // Name: min 2 chars, letters and spaces only
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       errors.name = 'Name is required.';
+    } else if (trimmedName.length < 2) {
+      errors.name = 'Name must be at least 2 characters.';
+    } else if (!/^[A-Za-z\s]+$/.test(trimmedName)) {
+      errors.name = 'Name can only contain letters and spaces.';
     }
+
+    // Email
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = 'Enter a valid email address.';
     }
-    if (!phone.trim()) {
+
+    // Phone: exactly 10 digits
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
       errors.phone = 'Phone is required.';
+    } else if (!/^\d{10}$/.test(trimmedPhone)) {
+      errors.phone = 'Phone must be exactly 10 digits.';
     }
-    if (password.length < 8 || !/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password)) {
-      errors.password = 'Password must be at least 8 characters and contain a letter and a digit.';
+
+    // Password: 8+ chars, letter + digit
+    if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters.';
+    } else if (!/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password)) {
+      errors.password = 'Password must contain at least one letter and one digit.';
     }
+
+    // Confirm password
+    if (!confirmPassword) {
+      errors.confirmPassword = 'Please confirm the password.';
+    } else if (confirmPassword !== password) {
+      errors.confirmPassword = 'Passwords do not match.';
+    }
+
+    // Security answer
     if (!securityAnswer.trim()) {
       errors.securityAnswer = 'Security answer is required.';
     }

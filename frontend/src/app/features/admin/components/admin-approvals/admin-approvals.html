@@ -1,12 +1,6 @@
-<app-page-header title="Partner Approvals" subtitle="Review and approve new hotel, transport and activity partner registrations." />
+<app-page-header title="Partner Approvals" subtitle="Review partner registrations and track approval history." />
 
-@if (message()) {
-  <div class="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive mb-4">
-    {{ message() }}
-  </div>
-}
-
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-3 gap-4 mb-6">
   <div hlmCard>
     <div hlmCardContent class="pt-5">
       <p class="text-xs text-muted-foreground">Pending</p>
@@ -15,30 +9,56 @@
   </div>
   <div hlmCard>
     <div hlmCardContent class="pt-5">
-      <p class="text-xs text-muted-foreground">Hotels</p>
-      <p class="text-2xl font-semibold mt-1 tabular-nums">{{ hotelCount() }}</p>
+      <p class="text-xs text-muted-foreground">Approved</p>
+      <p class="text-2xl font-semibold mt-1 tabular-nums text-success">{{ approvedCount() }}</p>
     </div>
   </div>
   <div hlmCard>
     <div hlmCardContent class="pt-5">
-      <p class="text-xs text-muted-foreground">Transport</p>
-      <p class="text-2xl font-semibold mt-1 tabular-nums">{{ transportCount() }}</p>
-    </div>
-  </div>
-  <div hlmCard>
-    <div hlmCardContent class="pt-5">
-      <p class="text-xs text-muted-foreground">Activity</p>
-      <p class="text-2xl font-semibold mt-1 tabular-nums">{{ activityCount() }}</p>
+      <p class="text-xs text-muted-foreground">Rejected</p>
+      <p class="text-2xl font-semibold mt-1 tabular-nums text-destructive">{{ rejectedCount() }}</p>
     </div>
   </div>
 </div>
 
+<!-- Tabs -->
+<div class="flex gap-1 mb-4 border-b">
+  <button
+    class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
+    [class.border-primary]="activeTab() === 'pending'"
+    [class.text-primary]="activeTab() === 'pending'"
+    [class.border-transparent]="activeTab() !== 'pending'"
+    [class.text-muted-foreground]="activeTab() !== 'pending'"
+    (click)="setTab('pending')"
+  >
+    Pending ({{ pendingCount() }})
+  </button>
+  <button
+    class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
+    [class.border-primary]="activeTab() === 'approved'"
+    [class.text-primary]="activeTab() === 'approved'"
+    [class.border-transparent]="activeTab() !== 'approved'"
+    [class.text-muted-foreground]="activeTab() !== 'approved'"
+    (click)="setTab('approved')"
+  >
+    Approved ({{ approvedCount() }})
+  </button>
+  <button
+    class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
+    [class.border-primary]="activeTab() === 'rejected'"
+    [class.text-primary]="activeTab() === 'rejected'"
+    [class.border-transparent]="activeTab() !== 'rejected'"
+    [class.text-muted-foreground]="activeTab() !== 'rejected'"
+    (click)="setTab('rejected')"
+  >
+    Rejected ({{ rejectedCount() }})
+  </button>
+</div>
+
+<!-- Partner list -->
 <div hlmCard>
-  <div hlmCardHeader>
-    <h3 hlmCardTitle>Awaiting Review</h3>
-  </div>
-  <div hlmCardContent class="space-y-3">
-    @for (p of approvals(); track p.id) {
+  <div hlmCardContent class="pt-5 space-y-3">
+    @for (p of activeList(); track p.id) {
       <div class="flex items-center gap-4 p-4 rounded-lg border bg-card">
         <div class="h-11 w-11 rounded-md bg-primary/10 text-primary grid place-items-center">
           <ng-icon [name]="p.icon" class="h-5 w-5" />
@@ -47,24 +67,81 @@
           <div class="flex items-center gap-2">
             <p class="font-medium">{{ p.name }}</p>
             <span hlmBadge variant="outline">{{ p.type }}</span>
+            @if (activeTab() !== 'pending') {
+              <app-status-badge [status]="p.status" />
+            }
           </div>
           <p class="text-xs text-muted-foreground mt-0.5">{{ p.email }} · Registered {{ p.registered }}</p>
+          @if (p.status === 'REJECTED' && p.rejectionReason) {
+            <p class="text-xs text-destructive mt-1">
+              <span class="font-medium">Reason:</span> {{ p.rejectionReason }}
+            </p>
+          }
         </div>
-        <button
-          hlmBtn
-          variant="outline"
-          size="sm"
-          class="text-destructive border-destructive/30 hover:bg-destructive/10"
-          (click)="reject(p.id)"
-        >
-          <ng-icon name="lucideX" class="h-4 w-4 mr-1" />Reject
-        </button>
-        <button hlmBtn size="sm" class="bg-success text-success-foreground hover:bg-success/90" (click)="approve(p.id)">
-          <ng-icon name="lucideCheck" class="h-4 w-4 mr-1" />Approve
-        </button>
+        @if (activeTab() === 'pending') {
+          <button
+            hlmBtn
+            variant="outline"
+            size="sm"
+            class="text-destructive border-destructive/30 hover:bg-destructive/10"
+            (click)="openRejectDialog(p.id)"
+          >
+            <ng-icon name="lucideX" class="h-4 w-4 mr-1" />Reject
+          </button>
+          <button hlmBtn size="sm" class="bg-success text-success-foreground hover:bg-success/90" (click)="approve(p.id)">
+            <ng-icon name="lucideCheck" class="h-4 w-4 mr-1" />Approve
+          </button>
+        }
       </div>
     } @empty {
-      <p class="text-sm text-muted-foreground py-4">No pending partner applications.</p>
+      <p class="text-sm text-muted-foreground py-4">
+        @if (activeTab() === 'pending') {
+          No pending partner applications.
+        } @else if (activeTab() === 'approved') {
+          No approved partners yet.
+        } @else {
+          No rejected partners.
+        }
+      </p>
     }
   </div>
 </div>
+
+<!-- Rejection Reason Dialog -->
+@if (rejectDialogOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center">
+    <div class="fixed inset-0 bg-black/50" (click)="closeRejectDialog()"></div>
+    <div class="relative z-10 w-full max-w-md bg-card border rounded-2xl shadow-xl p-6">
+      <h3 class="text-lg font-semibold mb-1">Reject Partner Application</h3>
+      <p class="text-sm text-muted-foreground mb-4">Please provide a reason for this rejection. The partner will be notified.</p>
+
+      <div class="space-y-2 mb-4">
+        <label class="text-sm font-medium">Reason for rejection <span class="text-destructive">*</span></label>
+        <textarea
+          hlmInput
+          rows="3"
+          class="w-full resize-none"
+          placeholder="e.g. Incomplete business documentation…"
+          [value]="rejectReason()"
+          (input)="updateRejectReason($any($event.target).value)"
+        ></textarea>
+        @if (rejectReasonError()) {
+          <p class="text-xs text-destructive">{{ rejectReasonError() }}</p>
+        }
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button hlmBtn variant="outline" size="sm" (click)="closeRejectDialog()">Cancel</button>
+        <button
+          hlmBtn
+          size="sm"
+          class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          [disabled]="rejecting()"
+          (click)="confirmReject()"
+        >
+          {{ rejecting() ? 'Rejecting…' : 'Confirm Reject' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

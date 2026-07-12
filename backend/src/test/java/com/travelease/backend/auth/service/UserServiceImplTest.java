@@ -10,6 +10,7 @@ import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.ProviderRepository;
 import com.travelease.backend.auth.repository.UserRepository;
+import com.travelease.backend.itinerary.service.NotificationService;
 import com.travelease.backend.shared.exception.DuplicateResourceException;
 import com.travelease.backend.shared.exception.InvalidRequestException;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
@@ -47,6 +48,9 @@ class UserServiceImplTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -232,22 +236,20 @@ class UserServiceImplTest {
         pending.setRole(Role.ROLE_HOTEL_PROVIDER);
         pending.setStatus(ApprovalStatus.PENDING);
         when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
+        // getNextProviderId() calls findByRole for HOTEL_PROVIDER; base is 100, no existing → returns 101
         when(userRepository.findByRole(Role.ROLE_HOTEL_PROVIDER)).thenReturn(List.of());
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(providerRepository.save(any(Provider.class))).thenAnswer(invocation -> {
-            Provider provider = invocation.getArgument(0);
-            provider.setId(42L);
-            return provider;
-        });
 
         UserResponse response = userService.approvePartner(pending.getId());
 
         assertThat(response.role()).isEqualTo(Role.ROLE_HOTEL_PROVIDER.name());
+        // providerId = 101 (base 100 + 1) assigned by getNextProviderId(), so the
+        // "if (providerId == null)" branch is skipped and providerRepository is not used.
         assertThat(response.providerId()).isEqualTo(101L);
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(ApprovalStatus.APPROVED);
-        assertThat(captor.getValue().getProviderId()).isEqualTo(42L);
+        assertThat(captor.getValue().getProviderId()).isEqualTo(101L);
     }
 
     @Test

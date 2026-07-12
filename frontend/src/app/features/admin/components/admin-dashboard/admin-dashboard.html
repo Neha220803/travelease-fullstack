@@ -13,7 +13,7 @@
   }
 </div>
 
-<div class="grid lg:grid-cols-3 gap-6">
+<div class="grid lg:grid-cols-3 gap-6 mb-6">
   <div hlmCard class="lg:col-span-2">
     <div hlmCardHeader>
       <h3 hlmCardTitle>Bookings (last 30 days)</h3>
@@ -28,6 +28,35 @@
     </div>
     <div hlmCardContent>
       <app-echart [options]="destinationsChartOptions" height="200px" />
+    </div>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+  <div hlmCard class="lg:col-span-2">
+    <div hlmCardHeader>
+      <h3 hlmCardTitle>Recent Activity</h3>
+    </div>
+    <div hlmCardContent class="text-sm text-muted-foreground">
+      <p>Partner approvals, user registrations, and support ticket updates will appear here as notifications.</p>
+    </div>
+  </div>
+
+  <div hlmCard>
+    <div hlmCardHeader class="flex flex-row items-center justify-between">
+      <h3 hlmCardTitle>Notifications</h3>
+      <a hlmBtn variant="ghost" size="sm" routerLink="/admin/notifications">All</a>
+    </div>
+    <div hlmCardContent class="space-y-2">
+      @if (notifications().length === 0) {
+        <p class="text-xs text-muted-foreground py-2 text-center">No notifications yet.</p>
+      }
+      @for (n of notifications(); track n.notificationId) {
+        <div class="text-sm py-2 border-b last:border-0">
+          <p class="font-medium text-xs">{{ n.title }}</p>
+          <p class="text-[11px] text-muted-foreground mt-0.5">{{ n.message }} &middot; {{ n.createdDate | date:'short' }}</p>
+        </div>
+      }
     </div>
   </div>
 </div>

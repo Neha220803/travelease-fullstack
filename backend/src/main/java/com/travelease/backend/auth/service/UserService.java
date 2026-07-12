@@ -1,6 +1,7 @@
 package com.travelease.backend.auth.service;
 
 import com.travelease.backend.auth.dto.AdminCreateUserRequest;
+import com.travelease.backend.auth.dto.AllPartnerResponse;
 import com.travelease.backend.auth.dto.PartnerRegisterRequest;
 import com.travelease.backend.auth.dto.PendingPartnerResponse;
 import com.travelease.backend.auth.dto.RegisterRequest;
@@ -25,6 +26,10 @@ public interface UserService {
     UserResponse approvePartner(UUID id);
 
     UserResponse rejectPartner(UUID id);
+
+    UserResponse rejectPartner(UUID id, String reason);
+
+    List<AllPartnerResponse> listAllPartners();
 
     boolean verifySecurityAnswer(String email, String answer);
 
