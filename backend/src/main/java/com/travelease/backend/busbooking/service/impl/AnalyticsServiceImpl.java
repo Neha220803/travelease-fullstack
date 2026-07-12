@@ -26,8 +26,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final BusRepository busRepository;
     private final BusScheduleRepository scheduleRepository;
     private final RouteRepository routeRepository;
-    private final DriverRepository driverRepository;
-    private final ConductorRepository conductorRepository;
+    private final StaffRepository staffRepository;
     private final TripRepository tripRepository;
     private final MaintenanceRepository maintenanceRepository;
 
@@ -195,8 +194,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .build();
 
         ProviderDashboardResponse.StaffSummary staffSummary = ProviderDashboardResponse.StaffSummary.builder()
-                .activeDrivers(driverRepository.countActiveByProvider(providerId))
-                .activeConductors(conductorRepository.countActiveByProvider(providerId))
+                .activeDrivers(staffRepository.countActiveByProvider(providerId, StaffType.DRIVER))
+                .activeConductors(staffRepository.countActiveByProvider(providerId, StaffType.CONDUCTOR)
+                        + staffRepository.countActiveByProvider(providerId, StaffType.BUS_CAPTAIN))
                 .build();
 
         List<Maintenance> providerMaintenanceForSummary = maintenanceRepository.findByProviderId(providerId);
@@ -265,7 +265,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public List<DriverAnalyticsResponse> getDriverAnalytics(Long providerId) {
-        List<Driver> drivers = driverRepository.findByProviderIdAndActiveTrue(providerId);
+        List<Staff> drivers = staffRepository.findByProviderIdAndStaffTypeAndActiveTrue(providerId, StaffType.DRIVER);
         return drivers.stream()
                 .map(this::buildDriverAnalytics)
                 .collect(Collectors.toList());
@@ -273,7 +273,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public List<ConductorAnalyticsResponse> getConductorAnalytics(Long providerId) {
-        List<Conductor> conductors = conductorRepository.findByProviderIdAndActiveTrue(providerId);
+        List<Staff> conductors = staffRepository.findByProviderIdAndStaffTypeAndActiveTrue(providerId, StaffType.CONDUCTOR);
         return conductors.stream()
                 .map(this::buildConductorAnalytics)
                 .collect(Collectors.toList());
@@ -511,7 +511,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .build();
     }
 
-    private DriverAnalyticsResponse buildDriverAnalytics(Driver driver) {
+    private DriverAnalyticsResponse buildDriverAnalytics(Staff driver) {
         Long completedTrips = tripRepository.countCompletedTripsByDriver(driver.getId());
         Double distance = tripRepository.sumDistanceByDriver(driver.getId());
 
@@ -536,7 +536,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .build();
     }
 
-    private ConductorAnalyticsResponse buildConductorAnalytics(Conductor conductor) {
+    private ConductorAnalyticsResponse buildConductorAnalytics(Staff conductor) {
         Long completedTrips = tripRepository.countCompletedTripsByConductor(conductor.getId());
 
         String category = conductor.getRating() >= 4.5 ? "TOP" : conductor.getRating() >= 3.5 ? "GOOD" : conductor.getRating() >= 2.5 ? "AVERAGE" : "NEEDS_IMPROVEMENT";

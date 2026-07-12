@@ -1,13 +1,15 @@
-import { ConductorStatus, DriverStatus } from '@app/features/transport/services/transport-enums';
+import { StaffStatus, StaffType } from '@app/features/transport/services/transport-enums';
 
-export interface DriverResponse {
+export interface StaffResponse {
   id: number;
   providerId: number;
   name: string;
-  licenseNumber: string;
+  staffType: StaffType;
+  licenseNumber: string | null;
+  employeeId: string | null;
   phone: string | null;
   email: string | null;
-  status: DriverStatus;
+  status: StaffStatus;
   totalTrips: number;
   totalDistanceKm: number;
   rating: number;
@@ -15,46 +17,20 @@ export interface DriverResponse {
   createdAt: string;
 }
 
-export interface ConductorResponse {
-  id: number;
-  providerId: number;
-  name: string;
-  employeeId: string;
-  phone: string | null;
-  email: string | null;
-  status: ConductorStatus;
-  totalTrips: number;
-  rating: number;
-  active: boolean;
-  createdAt: string;
-}
-
 /** Create form: no status field — the backend never maps it on create. */
-export interface DriverCreatePayload {
+export interface StaffCreatePayload {
   name: string;
-  licenseNumber: string;
+  staffType: StaffType;
+  licenseNumber?: string;
+  employeeId?: string;
   phone?: string;
   email?: string;
 }
 
-/** Edit form: no licenseNumber — updateDriver never touches it. */
-export interface DriverEditPayload {
+/** Edit form: no staffType/licenseNumber/employeeId — updateStaff never touches them. */
+export interface StaffEditPayload {
   name: string;
   phone?: string;
   email?: string;
-  status: DriverStatus;
-}
-
-export interface ConductorCreatePayload {
-  name: string;
-  employeeId: string;
-  phone?: string;
-  email?: string;
-}
-
-export interface ConductorEditPayload {
-  name: string;
-  phone?: string;
-  email?: string;
-  status: ConductorStatus;
+  status: StaffStatus;
 }

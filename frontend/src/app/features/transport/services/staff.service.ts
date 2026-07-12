@@ -1,14 +1,13 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { API_BASE_URL } from '@app/core/api/api-config';
 import { ApiResponse } from '@app/core/api/api-response.model';
-import {
-  DriverCreatePayload, DriverEditPayload, DriverResponse,
-} from '@app/features/transport/services/staff.models';
+import { StaffCreatePayload, StaffEditPayload, StaffResponse } from '@app/features/transport/services/staff.models';
+import { StaffType } from '@app/features/transport/services/transport-enums';
 
 /**
- * DriverRequest.providerId is @NotNull. It is NOT unconditionally discarded
+ * StaffRequest.providerId is @NotNull. It is NOT unconditionally discarded
  * server-side: FleetOperationController calls
  * securityUtil.resolveEffectiveProviderId(request.getProviderId()), which
  * throws AccessDeniedException("Providers may only access their own
@@ -19,36 +18,40 @@ import {
  */
 
 @Injectable({ providedIn: 'root' })
-export class DriverService {
+export class StaffService {
   private readonly http = inject(HttpClient);
 
-  listDrivers(): Observable<DriverResponse[]> {
+  listStaff(staffType?: StaffType): Observable<StaffResponse[]> {
+    let params = new HttpParams();
+    if (staffType != null) {
+      params = params.set('staffType', staffType);
+    }
     return this.http
-      .get<ApiResponse<DriverResponse[]>>(`${API_BASE_URL}/api/operations/drivers`)
+      .get<ApiResponse<StaffResponse[]>>(`${API_BASE_URL}/api/operations/staff`, { params })
       .pipe(map((response) => response.data));
   }
 
-  createDriver(payload: DriverCreatePayload, providerId: number): Observable<DriverResponse> {
+  createStaff(payload: StaffCreatePayload, providerId: number): Observable<StaffResponse> {
     return this.http
-      .post<ApiResponse<DriverResponse>>(`${API_BASE_URL}/api/operations/drivers`, {
+      .post<ApiResponse<StaffResponse>>(`${API_BASE_URL}/api/operations/staff`, {
         ...payload,
         providerId,
       })
       .pipe(map((response) => response.data));
   }
 
-  updateDriver(id: number, payload: DriverEditPayload, providerId: number): Observable<DriverResponse> {
+  updateStaff(id: number, payload: StaffEditPayload, providerId: number): Observable<StaffResponse> {
     return this.http
-      .put<ApiResponse<DriverResponse>>(`${API_BASE_URL}/api/operations/drivers/${id}`, {
+      .put<ApiResponse<StaffResponse>>(`${API_BASE_URL}/api/operations/staff/${id}`, {
         ...payload,
         providerId,
       })
       .pipe(map((response) => response.data));
   }
 
-  deactivateDriver(id: number): Observable<void> {
+  deactivateStaff(id: number): Observable<void> {
     return this.http
-      .delete<ApiResponse<{ message: string }>>(`${API_BASE_URL}/api/operations/drivers/${id}`)
+      .delete<ApiResponse<{ message: string }>>(`${API_BASE_URL}/api/operations/staff/${id}`)
       .pipe(map(() => undefined));
   }
 }

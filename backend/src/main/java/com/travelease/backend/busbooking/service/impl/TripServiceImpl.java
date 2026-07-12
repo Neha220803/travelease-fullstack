@@ -29,8 +29,7 @@ public class TripServiceImpl implements TripService {
 
     private final TripRepository tripRepository;
     private final BusScheduleRepository scheduleRepository;
-    private final DriverRepository driverRepository;
-    private final ConductorRepository conductorRepository;
+    private final StaffRepository staffRepository;
     private final BusRepository busRepository;
     private final TripMapper tripMapper;
     private final com.travelease.backend.busbooking.service.BookingService bookingService;
@@ -58,36 +57,42 @@ public class TripServiceImpl implements TripService {
         // providers even though admin can reach any individual resource.
         Long scheduleProviderId = bus.getProviderId();
 
-        Driver driver = null;
+        Staff driver = null;
         if (request.getDriverId() != null) {
-            driver = driverRepository.findById(request.getDriverId())
+            driver = staffRepository.findById(request.getDriverId())
                     .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + request.getDriverId()));
 
+            if (driver.getStaffType() != StaffType.DRIVER) {
+                throw new IllegalArgumentException("Staff member " + request.getDriverId() + " is not a driver");
+            }
             if (!driver.getProviderId().equals(scheduleProviderId)) {
                 throw new AccessDeniedException("Driver does not belong to the schedule's provider");
             }
-            if (driver.getStatus() != DriverStatus.AVAILABLE) {
+            if (driver.getStatus() != StaffStatus.AVAILABLE) {
                 throw new IllegalStateException("Driver is not available");
             }
 
-            driver.setStatus(DriverStatus.ASSIGNED);
-            driverRepository.save(driver);
+            driver.setStatus(StaffStatus.ASSIGNED);
+            staffRepository.save(driver);
         }
 
-        Conductor conductor = null;
+        Staff conductor = null;
         if (request.getConductorId() != null) {
-            conductor = conductorRepository.findById(request.getConductorId())
+            conductor = staffRepository.findById(request.getConductorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Conductor not found with id: " + request.getConductorId()));
 
+            if (conductor.getStaffType() != StaffType.CONDUCTOR && conductor.getStaffType() != StaffType.BUS_CAPTAIN) {
+                throw new IllegalArgumentException("Staff member " + request.getConductorId() + " is not a conductor");
+            }
             if (!conductor.getProviderId().equals(scheduleProviderId)) {
                 throw new AccessDeniedException("Conductor does not belong to the schedule's provider");
             }
-            if (conductor.getStatus() != ConductorStatus.AVAILABLE) {
+            if (conductor.getStatus() != StaffStatus.AVAILABLE) {
                 throw new IllegalStateException("Conductor is not available");
             }
 
-            conductor.setStatus(ConductorStatus.ASSIGNED);
-            conductorRepository.save(conductor);
+            conductor.setStatus(StaffStatus.ASSIGNED);
+            staffRepository.save(conductor);
         }
 
         Trip trip = Trip.builder()
@@ -146,14 +151,14 @@ public class TripServiceImpl implements TripService {
                 }
                 trip.setStatus(TripStatus.BOARDING);
                 if (trip.getDriver() != null) {
-                    Driver driver = trip.getDriver();
-                    driver.setStatus(DriverStatus.ON_TRIP);
-                    driverRepository.save(driver);
+                    Staff driver = trip.getDriver();
+                    driver.setStatus(StaffStatus.ON_TRIP);
+                    staffRepository.save(driver);
                 }
                 if (trip.getConductor() != null) {
-                    Conductor conductor = trip.getConductor();
-                    conductor.setStatus(ConductorStatus.ON_TRIP);
-                    conductorRepository.save(conductor);
+                    Staff conductor = trip.getConductor();
+                    conductor.setStatus(StaffStatus.ON_TRIP);
+                    staffRepository.save(conductor);
                 }
                 break;
 
@@ -195,17 +200,17 @@ public class TripServiceImpl implements TripService {
                 trip.setStatus(TripStatus.COMPLETED);
                 trip.setDistanceCoveredKm(request.getDistanceCoveredKm() != null ? request.getDistanceCoveredKm() : 0.0);
                 if (trip.getDriver() != null) {
-                    Driver driver = trip.getDriver();
+                    Staff driver = trip.getDriver();
                     driver.setTotalTrips(driver.getTotalTrips() + 1);
                     driver.setTotalDistanceKm(driver.getTotalDistanceKm() + trip.getDistanceCoveredKm());
-                    driver.setStatus(DriverStatus.AVAILABLE);
-                    driverRepository.save(driver);
+                    driver.setStatus(StaffStatus.AVAILABLE);
+                    staffRepository.save(driver);
                 }
                 if (trip.getConductor() != null) {
-                    Conductor conductor = trip.getConductor();
+                    Staff conductor = trip.getConductor();
                     conductor.setTotalTrips(conductor.getTotalTrips() + 1);
-                    conductor.setStatus(ConductorStatus.AVAILABLE);
-                    conductorRepository.save(conductor);
+                    conductor.setStatus(StaffStatus.AVAILABLE);
+                    staffRepository.save(conductor);
                 }
                 bookingService.completeBookingsForSchedule(trip.getSchedule().getId());
                 break;
@@ -219,14 +224,14 @@ public class TripServiceImpl implements TripService {
                     trip.setNotes(request.getReason());
                 }
                 if (trip.getDriver() != null) {
-                    Driver driver = trip.getDriver();
-                    driver.setStatus(DriverStatus.AVAILABLE);
-                    driverRepository.save(driver);
+                    Staff driver = trip.getDriver();
+                    driver.setStatus(StaffStatus.AVAILABLE);
+                    staffRepository.save(driver);
                 }
                 if (trip.getConductor() != null) {
-                    Conductor conductor = trip.getConductor();
-                    conductor.setStatus(ConductorStatus.AVAILABLE);
-                    conductorRepository.save(conductor);
+                    Staff conductor = trip.getConductor();
+                    conductor.setStatus(StaffStatus.AVAILABLE);
+                    staffRepository.save(conductor);
                 }
                 break;
 
@@ -247,8 +252,9 @@ public class TripServiceImpl implements TripService {
         long maintenanceBuses = buses.stream().filter(b -> b.getStatus() == BusStatus.MAINTENANCE).count();
         long inactiveBuses = buses.stream().filter(b -> b.getStatus() == BusStatus.INACTIVE).count();
 
-        long availableDrivers = driverRepository.countActiveByProvider(providerId);
-        long availableConductors = conductorRepository.countActiveByProvider(providerId);
+        long availableDrivers = staffRepository.countActiveByProvider(providerId, StaffType.DRIVER);
+        long availableConductors = staffRepository.countActiveByProvider(providerId, StaffType.CONDUCTOR)
+                + staffRepository.countActiveByProvider(providerId, StaffType.BUS_CAPTAIN);
 
         List<Trip> allTrips = tripRepository.findAll();
         long activeTrips = allTrips.stream()

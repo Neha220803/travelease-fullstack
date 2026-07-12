@@ -1,250 +1,148 @@
-<app-page-header title="Staff" subtitle="Drivers and conductors for your fleet." />
+<app-page-header title="Staff" subtitle="Drivers, conductors, and other crew for your fleet.">
+  <button hlmBtn action (click)="openCreateStaff()">
+    <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Staff
+  </button>
+</app-page-header>
 
-<div hlmTabs [tab]="activeTab()" (tabActivated)="activeTab.set($event)" class="w-full">
-  <div hlmTabsList aria-label="Staff sections" class="bg-muted/50 p-1">
-    <button [hlmTabsTrigger]="'drivers'">Drivers</button>
-    <button [hlmTabsTrigger]="'conductors'">Conductors</button>
+@if (staffLoading()) {
+  <p class="text-muted-foreground">Loading staff…</p>
+} @else if (staffError()) {
+  <div hlmCard class="p-6 text-center">
+    <p class="text-destructive mb-4">{{ staffError() }}</p>
+    <button class="text-sm underline text-primary" (click)="loadStaff()">Retry</button>
   </div>
-
-  <div [hlmTabsContent]="'drivers'" class="mt-6">
-    <div class="flex justify-end mb-4">
-      <button hlmBtn (click)="openCreateDriver()">
-        <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Driver
-      </button>
-    </div>
-    @if (driversLoading()) {
-      <p class="text-muted-foreground">Loading drivers…</p>
-    } @else if (driversError()) {
-      <div hlmCard class="p-6 text-center">
-        <p class="text-destructive mb-4">{{ driversError() }}</p>
-        <button class="text-sm underline text-primary" (click)="loadDrivers()">Retry</button>
-      </div>
-    } @else if (drivers().length === 0) {
-      <p class="text-muted-foreground">No drivers yet. Add your first driver to get started.</p>
-    } @else {
-      <div hlmCard>
-        <table hlmTable>
-          <thead hlmTHead>
-            <tr hlmTr>
-              <th hlmTh>Name</th>
-              <th hlmTh>License</th>
-              <th hlmTh>Status</th>
-              <th hlmTh>Trips</th>
-              <th hlmTh>Rating</th>
-              <th hlmTh>Active</th>
-              <th hlmTh></th>
-            </tr>
-          </thead>
-          <tbody hlmTBody>
-            @for (d of drivers(); track d.id) {
-              <tr hlmTr>
-                <td hlmTd>{{ d.name }}</td>
-                <td hlmTd>{{ d.licenseNumber }}</td>
-                <td hlmTd>{{ d.status }}</td>
-                <td hlmTd>{{ d.totalTrips }}</td>
-                <td hlmTd>{{ d.rating }}</td>
-                <td hlmTd><app-status-badge [status]="d.active ? 'Active' : 'Inactive'" /></td>
-                <td hlmTd class="text-right space-x-2">
-                  <button hlmBtn variant="ghost" size="sm" (click)="openEditDriver(d)">Edit</button>
-                  <button
-                    hlmBtn
-                    variant="ghost"
-                    size="sm"
-                    class="text-destructive"
-                    [disabled]="!canDeactivate(d)"
-                    (click)="deactivateDriver(d.id)"
-                  >
-                    Deactivate
-                  </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-  </div>
-
-  <div [hlmTabsContent]="'conductors'" class="mt-6">
-    <div class="flex justify-end mb-4">
-      <button hlmBtn (click)="openCreateConductor()">
-        <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Conductor
-      </button>
-    </div>
-    @if (conductorsLoading()) {
-      <p class="text-muted-foreground">Loading conductors…</p>
-    } @else if (conductorsError()) {
-      <div hlmCard class="p-6 text-center">
-        <p class="text-destructive mb-4">{{ conductorsError() }}</p>
-        <button class="text-sm underline text-primary" (click)="loadConductors()">Retry</button>
-      </div>
-    } @else if (conductors().length === 0) {
-      <p class="text-muted-foreground">No conductors yet. Add your first conductor to get started.</p>
-    } @else {
-      <div hlmCard>
-        <table hlmTable>
-          <thead hlmTHead>
-            <tr hlmTr>
-              <th hlmTh>Name</th>
-              <th hlmTh>Employee ID</th>
-              <th hlmTh>Status</th>
-              <th hlmTh>Trips</th>
-              <th hlmTh>Rating</th>
-              <th hlmTh>Active</th>
-              <th hlmTh></th>
-            </tr>
-          </thead>
-          <tbody hlmTBody>
-            @for (c of conductors(); track c.id) {
-              <tr hlmTr>
-                <td hlmTd>{{ c.name }}</td>
-                <td hlmTd>{{ c.employeeId }}</td>
-                <td hlmTd>{{ c.status }}</td>
-                <td hlmTd>{{ c.totalTrips }}</td>
-                <td hlmTd>{{ c.rating }}</td>
-                <td hlmTd><app-status-badge [status]="c.active ? 'Active' : 'Inactive'" /></td>
-                <td hlmTd class="text-right space-x-2">
-                  <button hlmBtn variant="ghost" size="sm" (click)="openEditConductor(c)">Edit</button>
-                  <button
-                    hlmBtn
-                    variant="ghost"
-                    size="sm"
-                    class="text-destructive"
-                    [disabled]="!canDeactivate(c)"
-                    (click)="deactivateConductor(c.id)"
-                  >
-                    Deactivate
-                  </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-  </div>
-</div>
-
-<hlm-sheet [state]="driverSheetOpen() ? 'open' : 'closed'" (stateChanged)="onDriverSheetStateChanged($event)">
-  <hlm-sheet-content *brnSheetContent="let ctx" class="flex flex-col gap-0">
-    <div hlmSheetHeader>
-      <h3 hlmSheetTitle>{{ editingDriver() ? 'Edit Driver' : 'Add Driver' }}</h3>
-      <p hlmSheetDescription>
-        {{ editingDriver() ? 'Update this driver\'s details.' : 'Add a new driver to your fleet.' }}
-      </p>
-    </div>
-    <form
-      class="flex-1 overflow-y-auto px-4 space-y-4"
-      (submit)="onDriverSubmit($event, driverNameInput.value, driverLicenseInput.value, driverPhoneInput.value, driverEmailInput.value)"
-    >
-      <div class="space-y-2">
-        <label hlmLabel for="driver-name">Name</label>
-        <input hlmInput id="driver-name" placeholder="Ravi Kumar" [value]="editingDriver()?.name ?? ''" #driverNameInput />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel for="driver-license">License Number</label>
-        <input
-          hlmInput
-          id="driver-license"
-          placeholder="KA-DL-001"
-          [value]="editingDriver()?.licenseNumber ?? ''"
-          [disabled]="!!editingDriver()"
-          #driverLicenseInput
-        />
-        @if (editingDriver()) {
-          <p class="text-xs text-muted-foreground">License number cannot be changed after creation.</p>
+} @else if (staff().length === 0) {
+  <p class="text-muted-foreground">No staff yet. Add your first staff member to get started.</p>
+} @else {
+  <div hlmCard>
+    <table hlmTable>
+      <thead hlmTHead>
+        <tr hlmTr>
+          <th hlmTh>Name</th>
+          <th hlmTh>Type</th>
+          <th hlmTh>License / Employee ID</th>
+          <th hlmTh>Status</th>
+          <th hlmTh>Trips</th>
+          <th hlmTh>Rating</th>
+          <th hlmTh>Active</th>
+          <th hlmTh></th>
+        </tr>
+      </thead>
+      <tbody hlmTBody>
+        @for (s of staff(); track s.id) {
+          <tr hlmTr>
+            <td hlmTd>{{ s.name }}</td>
+            <td hlmTd>{{ s.staffType }}</td>
+            <td hlmTd>{{ identifier(s) }}</td>
+            <td hlmTd>{{ s.status }}</td>
+            <td hlmTd>{{ s.totalTrips }}</td>
+            <td hlmTd>{{ s.rating }}</td>
+            <td hlmTd><app-status-badge [status]="s.active ? 'Active' : 'Inactive'" /></td>
+            <td hlmTd class="text-right space-x-2">
+              <button hlmBtn variant="ghost" size="sm" (click)="openEditStaff(s)">Edit</button>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="sm"
+                class="text-destructive"
+                [disabled]="!canDeactivate(s)"
+                (click)="deactivateStaff(s.id)"
+              >
+                Deactivate
+              </button>
+            </td>
+          </tr>
         }
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel for="driver-phone">Phone</label>
-        <input hlmInput id="driver-phone" placeholder="Optional" [value]="editingDriver()?.phone ?? ''" #driverPhoneInput />
-      </div>
-      <div class="space-y-2">
-        <label hlmLabel for="driver-email">Email</label>
-        <input hlmInput id="driver-email" placeholder="Optional" [value]="editingDriver()?.email ?? ''" #driverEmailInput />
-      </div>
-      @if (editingDriver()) {
-        <div class="space-y-2">
-          <label hlmLabel>Status</label>
-          <hlm-select [value]="selectedDriverStatus()" (valueChange)="onDriverStatusChange($event)">
-            <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
-            <ng-template hlmSelectPortal>
-              <hlm-select-content>
-                @for (s of driverStatuses; track s) {
-                  <hlm-select-item [value]="s">{{ s }}</hlm-select-item>
-                }
-              </hlm-select-content>
-            </ng-template>
-          </hlm-select>
-        </div>
-      }
-      @if (driverFormError()) {
-        <p class="text-xs text-destructive whitespace-pre-line">{{ driverFormError() }}</p>
-      }
-      <div hlmSheetFooter>
-        <button hlmBtn type="submit" [disabled]="driverSubmitting()">
-          {{ editingDriver() ? 'Save Changes' : 'Add Driver' }}
-        </button>
-        <button hlmBtn variant="outline" type="button" hlmSheetClose>Cancel</button>
-      </div>
-    </form>
-  </hlm-sheet-content>
-</hlm-sheet>
+      </tbody>
+    </table>
+  </div>
+}
 
-<hlm-sheet [state]="conductorSheetOpen() ? 'open' : 'closed'" (stateChanged)="onConductorSheetStateChanged($event)">
+<hlm-sheet [state]="staffSheetOpen() ? 'open' : 'closed'" (stateChanged)="onStaffSheetStateChanged($event)">
   <hlm-sheet-content *brnSheetContent="let ctx" class="flex flex-col gap-0">
     <div hlmSheetHeader>
-      <h3 hlmSheetTitle>{{ editingConductor() ? 'Edit Conductor' : 'Add Conductor' }}</h3>
+      <h3 hlmSheetTitle>{{ editingStaff() ? 'Edit Staff' : 'Add Staff' }}</h3>
       <p hlmSheetDescription>
-        {{ editingConductor() ? 'Update this conductor\'s details.' : 'Add a new conductor to your fleet.' }}
+        {{ editingStaff() ? 'Update this staff member\'s details.' : 'Add a new staff member to your fleet.' }}
       </p>
     </div>
     <form
       class="flex-1 overflow-y-auto px-4 space-y-4"
       (submit)="
-        onConductorSubmit(
+        onStaffSubmit(
           $event,
-          conductorNameInput.value,
-          conductorEmployeeIdInput.value,
-          conductorPhoneInput.value,
-          conductorEmailInput.value
+          staffNameInput.value,
+          staffLicenseInput.value,
+          staffEmployeeIdInput.value,
+          staffPhoneInput.value,
+          staffEmailInput.value
         )
       "
     >
       <div class="space-y-2">
-        <label hlmLabel for="conductor-name">Name</label>
-        <input hlmInput id="conductor-name" placeholder="Suresh Rao" [value]="editingConductor()?.name ?? ''" #conductorNameInput />
+        <label hlmLabel>Type</label>
+        <hlm-select [value]="selectedStaffType()" (valueChange)="onStaffTypeChange($event)" [disabled]="!!editingStaff()">
+          <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
+          <ng-template hlmSelectPortal>
+            <hlm-select-content>
+              @for (t of staffTypes; track t) {
+                <hlm-select-item [value]="t">{{ t }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </ng-template>
+        </hlm-select>
+        @if (editingStaff()) {
+          <p class="text-xs text-muted-foreground">Staff type cannot be changed after creation.</p>
+        }
       </div>
       <div class="space-y-2">
-        <label hlmLabel for="conductor-employee-id">Employee ID</label>
+        <label hlmLabel for="staff-name">Name</label>
+        <input hlmInput id="staff-name" placeholder="Ravi Kumar" [value]="editingStaff()?.name ?? ''" #staffNameInput />
+      </div>
+      <div class="space-y-2" [class.hidden]="selectedStaffType() !== 'DRIVER'">
+        <label hlmLabel for="staff-license">License Number</label>
         <input
           hlmInput
-          id="conductor-employee-id"
-          placeholder="EMP-001"
-          [value]="editingConductor()?.employeeId ?? ''"
-          [disabled]="!!editingConductor()"
-          #conductorEmployeeIdInput
+          id="staff-license"
+          placeholder="KA-DL-001"
+          [value]="editingStaff()?.licenseNumber ?? ''"
+          [disabled]="!!editingStaff()"
+          #staffLicenseInput
         />
-        @if (editingConductor()) {
+        @if (editingStaff()) {
+          <p class="text-xs text-muted-foreground">License number cannot be changed after creation.</p>
+        }
+      </div>
+      <div class="space-y-2" [class.hidden]="selectedStaffType() === 'DRIVER'">
+        <label hlmLabel for="staff-employee-id">Employee ID</label>
+        <input
+          hlmInput
+          id="staff-employee-id"
+          placeholder="EMP-001"
+          [value]="editingStaff()?.employeeId ?? ''"
+          [disabled]="!!editingStaff()"
+          #staffEmployeeIdInput
+        />
+        @if (editingStaff()) {
           <p class="text-xs text-muted-foreground">Employee ID cannot be changed after creation.</p>
         }
       </div>
       <div class="space-y-2">
-        <label hlmLabel for="conductor-phone">Phone</label>
-        <input hlmInput id="conductor-phone" placeholder="Optional" [value]="editingConductor()?.phone ?? ''" #conductorPhoneInput />
+        <label hlmLabel for="staff-phone">Phone</label>
+        <input hlmInput id="staff-phone" placeholder="Optional" [value]="editingStaff()?.phone ?? ''" #staffPhoneInput />
       </div>
       <div class="space-y-2">
-        <label hlmLabel for="conductor-email">Email</label>
-        <input hlmInput id="conductor-email" placeholder="Optional" [value]="editingConductor()?.email ?? ''" #conductorEmailInput />
+        <label hlmLabel for="staff-email">Email</label>
+        <input hlmInput id="staff-email" placeholder="Optional" [value]="editingStaff()?.email ?? ''" #staffEmailInput />
       </div>
-      @if (editingConductor()) {
+      @if (editingStaff()) {
         <div class="space-y-2">
           <label hlmLabel>Status</label>
-          <hlm-select [value]="selectedConductorStatus()" (valueChange)="onConductorStatusChange($event)">
+          <hlm-select [value]="selectedStaffStatus()" (valueChange)="onStaffStatusChange($event)">
             <hlm-select-trigger class="w-full"><hlm-select-value /></hlm-select-trigger>
             <ng-template hlmSelectPortal>
               <hlm-select-content>
-                @for (s of conductorStatuses; track s) {
+                @for (s of staffStatuses; track s) {
                   <hlm-select-item [value]="s">{{ s }}</hlm-select-item>
                 }
               </hlm-select-content>
@@ -252,12 +150,12 @@
           </hlm-select>
         </div>
       }
-      @if (conductorFormError()) {
-        <p class="text-xs text-destructive whitespace-pre-line">{{ conductorFormError() }}</p>
+      @if (staffFormError()) {
+        <p class="text-xs text-destructive whitespace-pre-line">{{ staffFormError() }}</p>
       }
       <div hlmSheetFooter>
-        <button hlmBtn type="submit" [disabled]="conductorSubmitting()">
-          {{ editingConductor() ? 'Save Changes' : 'Add Conductor' }}
+        <button hlmBtn type="submit" [disabled]="staffSubmitting()">
+          {{ editingStaff() ? 'Save Changes' : 'Add Staff' }}
         </button>
         <button hlmBtn variant="outline" type="button" hlmSheetClose>Cancel</button>
       </div>

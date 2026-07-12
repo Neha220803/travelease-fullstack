@@ -4,13 +4,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { BusTrips } from '@app/features/transport/components/bus-trips/bus-trips';
 import { TripService } from '@app/features/transport/services/trip.service';
 import { ScheduleService } from '@app/features/transport/services/schedule.service';
-import { DriverService } from '@app/features/transport/services/driver.service';
-import { ConductorService } from '@app/features/transport/services/conductor.service';
+import { StaffService } from '@app/features/transport/services/staff.service';
 import { AuthService } from '@app/core/auth/auth.service';
 import { ToastService } from '@app/core/toast/toast.service';
 import { TripAssignmentPayload, TripResponse } from '@app/features/transport/services/trip.models';
 import { ScheduleResponse } from '@app/features/transport/services/schedule.models';
-import { ConductorResponse, DriverResponse } from '@app/features/transport/services/staff.models';
+import { StaffResponse } from '@app/features/transport/services/staff.models';
 
 const TRIP: TripResponse = {
   id: 1, scheduleId: 1, routeId: 1, providerId: 101, busId: 1, busNumber: 'KA-01-AB-1234', busName: 'Volvo',
@@ -27,17 +26,19 @@ const SCHEDULE_SCHEDULED: ScheduleResponse = {
 };
 const SCHEDULE_CANCELLED: ScheduleResponse = { ...SCHEDULE_SCHEDULED, id: 2, status: 'CANCELLED' };
 
-const DRIVER_AVAILABLE: DriverResponse = {
-  id: 1, providerId: 101, name: 'Ravi Kumar', licenseNumber: 'KA-DL-001', phone: null, email: null,
-  status: 'AVAILABLE', totalTrips: 12, totalDistanceKm: 4300, rating: 4.6, active: true, createdAt: '2026-01-01T00:00:00',
+const DRIVER_AVAILABLE: StaffResponse = {
+  id: 1, providerId: 101, name: 'Ravi Kumar', staffType: 'DRIVER', licenseNumber: 'KA-DL-001', employeeId: null,
+  phone: null, email: null, status: 'AVAILABLE', totalTrips: 12, totalDistanceKm: 4300, rating: 4.6, active: true,
+  createdAt: '2026-01-01T00:00:00',
 };
-const DRIVER_OFF_DUTY: DriverResponse = { ...DRIVER_AVAILABLE, id: 2, status: 'OFF_DUTY' };
+const DRIVER_OFF_DUTY: StaffResponse = { ...DRIVER_AVAILABLE, id: 2, status: 'OFF_DUTY' };
 
-const CONDUCTOR_AVAILABLE: ConductorResponse = {
-  id: 1, providerId: 101, name: 'Suresh Rao', employeeId: 'EMP-001', phone: null, email: null,
-  status: 'AVAILABLE', totalTrips: 8, rating: 4.2, active: true, createdAt: '2026-01-01T00:00:00',
+const CONDUCTOR_AVAILABLE: StaffResponse = {
+  id: 3, providerId: 101, name: 'Suresh Rao', staffType: 'CONDUCTOR', licenseNumber: null, employeeId: 'EMP-001',
+  phone: null, email: null, status: 'AVAILABLE', totalTrips: 8, totalDistanceKm: 0, rating: 4.2, active: true,
+  createdAt: '2026-01-01T00:00:00',
 };
-const CONDUCTOR_OFF_DUTY: ConductorResponse = { ...CONDUCTOR_AVAILABLE, id: 2, status: 'OFF_DUTY' };
+const CONDUCTOR_OFF_DUTY: StaffResponse = { ...CONDUCTOR_AVAILABLE, id: 4, status: 'OFF_DUTY' };
 
 type BusTripsInternal = {
   onScheduleChange: (value: string | null | undefined) => void;
@@ -56,8 +57,7 @@ async function setup(
   tripService: Partial<TripService>,
   overrides: {
     scheduleService?: Partial<ScheduleService>;
-    driverService?: Partial<DriverService>;
-    conductorService?: Partial<ConductorService>;
+    staffService?: Partial<StaffService>;
     toastService?: Partial<ToastService>;
   } = {},
 ) {
@@ -67,8 +67,7 @@ async function setup(
     providers: [
       { provide: TripService, useValue: { getFleetAvailability: () => of({ providerId: 101, totalBuses: 8, activeBuses: 6, maintenanceBuses: 2, inactiveBuses: 0, availableDrivers: 4, availableConductors: 4, activeTrips: 1, scheduledTrips: 1 }), ...tripService } },
       { provide: ScheduleService, useValue: overrides.scheduleService ?? { listMySchedules: () => of([]) } },
-      { provide: DriverService, useValue: overrides.driverService ?? { listDrivers: () => of([]) } },
-      { provide: ConductorService, useValue: overrides.conductorService ?? { listConductors: () => of([]) } },
+      { provide: StaffService, useValue: overrides.staffService ?? { listStaff: () => of([]) } },
       { provide: AuthService, useValue: { currentUser: () => ({ providerId: 101 }) } },
       { provide: ToastService, useValue: toastService },
     ],
@@ -105,8 +104,7 @@ describe('BusTrips', () => {
       { listTrips: () => of([]) },
       {
         scheduleService: { listMySchedules: () => of([SCHEDULE_SCHEDULED, SCHEDULE_CANCELLED]) },
-        driverService: { listDrivers: () => of([DRIVER_AVAILABLE, DRIVER_OFF_DUTY]) },
-        conductorService: { listConductors: () => of([CONDUCTOR_AVAILABLE, CONDUCTOR_OFF_DUTY]) },
+        staffService: { listStaff: () => of([DRIVER_AVAILABLE, DRIVER_OFF_DUTY, CONDUCTOR_AVAILABLE, CONDUCTOR_OFF_DUTY]) },
       },
     );
 
