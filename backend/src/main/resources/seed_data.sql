@@ -603,7 +603,10 @@ INSERT INTO users (user_id, name, email, phone, password_hash, role, provider_id
 -- real Provider-B resource to be denied against, and so the Activity Provider
 -- dashboard/reports demo shows two visibly different tenants rather than
 -- mirrored data:
---   Provider 201 -> Heritage Walking Tour, Elephanta Caves Tour, Bollywood Studio Experience
+--   Provider 201 -> Elephanta Caves Tour, Bollywood Studio Experience (the original
+--   Mumbai Heritage Walking Tour listing was removed per DEFECT 3 - along with the
+--   slots/recommendations/bookings that referenced it, to keep this file's inserts
+--   FK-consistent under spring.sql.init.continue-on-error=true)
 --   Provider 202 -> Jet Ski Experience, Scuba Diving Adventure, Sunset Dolphin Cruise
 -- Each activity has 1-2 slots split across the past (already-elapsed, for
 -- ATTENDED/NO_SHOW/CANCELLED history) and the future (bookable/upcoming, for
@@ -612,7 +615,6 @@ INSERT INTO users (user_id, name, email, phone, password_hash, role, provider_id
 -- have real demo content instead of all-empty states out of the box.
 -- ============================================================
 INSERT INTO activities (activityid, provider_id, destinationid, activity_name, duration_hours, start_time, end_time, description) VALUES
-('f2000000-0000-0000-0000-000000000001', 201, 1, 'Mumbai Heritage Walking Tour', 2.5, '09:00', '11:30', 'Guided walking tour of South Mumbai heritage sites'),
 ('f2000000-0000-0000-0000-000000000004', 201, 1, 'Elephanta Caves Boat & Heritage Tour', 3.5, '08:00', '11:30', 'Boat ride to Elephanta Island with a guided tour of the rock-cut caves'),
 ('f2000000-0000-0000-0000-000000000005', 201, 1, 'Bollywood Studio Experience', 2.0, '15:00', '17:00', 'Behind-the-scenes tour of a working Bollywood film studio'),
 ('f2000000-0000-0000-0000-000000000002', 202, 2, 'Goa Jet Ski Experience', 1.0, '10:00', '11:00', 'Guided jet ski session along Candolim beach'),
@@ -620,10 +622,6 @@ INSERT INTO activities (activityid, provider_id, destinationid, activity_name, d
 ('f2000000-0000-0000-0000-000000000007', 202, 2, 'Sunset Dolphin Cruise', 1.5, '17:30', '19:00', 'Evening boat cruise to spot dolphins along the Goan coastline');
 
 INSERT INTO activity_slots (activity_slot_id, activity_id, activity_date, start_time, end_time, price, capacity, created_at, updated_at) VALUES
-('f3000000-0000-0000-0000-000000000001', 'f2000000-0000-0000-0000-000000000001', '2026-09-05', '09:00:00', '11:30:00', 800.00, 15, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('f3000000-0000-0000-0000-000000000002', 'f2000000-0000-0000-0000-000000000001', '2026-09-06', '14:00:00', '16:30:00', 900.00, 10, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('f3000000-0000-0000-0000-000000000005', 'f2000000-0000-0000-0000-000000000001', '2026-06-20', '09:00:00', '11:30:00', 800.00, 15, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
-('f3000000-0000-0000-0000-000000000006', 'f2000000-0000-0000-0000-000000000001', '2026-07-05', '09:00:00', '11:30:00', 800.00, 15, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000007', 'f2000000-0000-0000-0000-000000000004', '2026-06-25', '08:00:00', '11:30:00', 1200.00, 20, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000008', 'f2000000-0000-0000-0000-000000000004', '2026-08-10', '08:00:00', '11:30:00', 1200.00, 20, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000009', 'f2000000-0000-0000-0000-000000000005', '2026-07-20', '15:00:00', '17:00:00', 1800.00, 12, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
@@ -644,16 +642,65 @@ INSERT INTO activity_slots (activity_slot_id, activity_id, activity_date, start_
 -- referencing the real activities seeded above.
 -- ============================================================
 INSERT INTO recommendations (recommendationid, categoryid, recommendation_type, referenceid, rank_order) VALUES
-('r1000000-0000-0000-0000-000000000001', 1, 'Activity', 'f2000000-0000-0000-0000-000000000001', 1),
 ('r1000000-0000-0000-0000-000000000002', 1, 'Activity', 'f2000000-0000-0000-0000-000000000004', 2),
 ('r1000000-0000-0000-0000-000000000003', 2, 'Activity', 'f2000000-0000-0000-0000-000000000007', 1),
 ('r1000000-0000-0000-0000-000000000004', 2, 'Activity', 'f2000000-0000-0000-0000-000000000006', 2),
-('r1000000-0000-0000-0000-000000000005', 3, 'Activity', 'f2000000-0000-0000-0000-000000000001', 1),
 ('r1000000-0000-0000-0000-000000000006', 3, 'Activity', 'f2000000-0000-0000-0000-000000000005', 2),
 ('r1000000-0000-0000-0000-000000000007', 4, 'Activity', 'f2000000-0000-0000-0000-000000000002', 1),
 ('r1000000-0000-0000-0000-000000000008', 4, 'Activity', 'f2000000-0000-0000-0000-000000000006', 2),
-('r1000000-0000-0000-0000-000000000009', 5, 'Activity', 'f2000000-0000-0000-0000-000000000005', 1),
-('r1000000-0000-0000-0000-000000000010', 5, 'Activity', 'f2000000-0000-0000-0000-000000000001', 2);
+('r1000000-0000-0000-0000-000000000009', 5, 'Activity', 'f2000000-0000-0000-0000-000000000005', 1);
+
+-- ============================================================
+-- DEFECT 3 (Activity Provider dashboard) — 6 additional Provider-201
+-- activities plus their category/rank recommendations.
+--
+-- Owner: all 6 rows use provider_id 201 (activityprovider1@travelease.com /
+-- "Mumbai Adventures Owner", the only Activity Provider login this ticket's
+-- verification steps use) so they actually show up in that account's Manage
+-- Activities list. The traveler-facing itinerary/booking flow (see the
+-- "ITINERARY BOOKING FLOW" block further below) needs these grouped under
+-- three distinct, human-readable provider names though, so provider_name is
+-- set explicitly per row below rather than left to resolve dynamically from
+-- the single owning user account (which would collapse all six into one
+-- "Mumbai Adventures Owner" provider).
+--
+-- destinationId correction: the ticket's parenthetical place names (Goa,
+-- Manali, Kerala, Rajasthan) are the real intent; the numeric ids next to
+-- them don't match this codebase's actual seeded order (DemoDataInitializer.
+-- seedDestinations(): 1=Mumbai, 2=Goa, 3=Manali, 4=Jaipur/Rajasthan,
+-- 5=Alleppey/Kerala - the SQL "dummy destinations" INSERT near the bottom of
+-- this file targets a non-existent is_active column and is silently dropped
+-- by continue-on-error, so that Java seeder is what actually runs). Ids
+-- below are corrected to match the place names: Goa=2, Manali=3 (already
+-- correct), Kerala=5, Rajasthan=4.
+--
+-- categoryId matches RecommendationController: Solo=1, Couple=2, Family=3,
+-- Friends=4, Corporate=5.
+-- ============================================================
+INSERT INTO activities (activityid, provider_id, destinationid, activity_name, duration_hours, start_time, end_time, description, price, provider_name) VALUES
+-- Provider: Skyline Adventures
+('f2000000-0000-0000-0000-000000000008', 201, 2, 'Sunset Beach Bonfire', 3, '18:00', '21:00', 'Enjoy a beachside bonfire with music and snacks as the sun sets over the Arabian Sea', 1500.00, 'Skyline Adventures'),
+('f2000000-0000-0000-0000-000000000009', 201, 3, 'Waterfall Rappelling', 4, '09:00', '13:00', 'Thrilling rappelling adventure down scenic Himalayan waterfalls with certified guides', 2500.00, 'Skyline Adventures'),
+-- Provider: WanderNest Travels
+('f2000000-0000-0000-0000-000000000010', 201, 5, 'Couples Spa Retreat', 3, '10:00', '13:00', 'Relaxing Ayurvedic spa experience for couples with traditional Kerala treatments and herbal oils', 3500.00, 'WanderNest Travels'),
+('f2000000-0000-0000-0000-000000000011', 201, 5, 'Backwater Houseboat Cruise', 4, '09:00', '13:00', 'Scenic houseboat journey through Kerala backwaters with meals and local culture experience', 4000.00, 'WanderNest Travels'),
+-- Provider: PeakPath Experiences
+('f2000000-0000-0000-0000-000000000012', 201, 4, 'Family Elephant Safari', 2, '07:00', '09:00', 'Magical elephant safari through Rajasthan forests perfect for families with children', 2000.00, 'PeakPath Experiences'),
+('f2000000-0000-0000-0000-000000000013', 201, 3, 'Snow Trek to Rohtang', 6, '06:00', '12:00', 'High altitude snow trek to Rohtang Pass with breathtaking Himalayan views', 3000.00, 'PeakPath Experiences');
+
+INSERT INTO recommendations (recommendationid, categoryid, recommendation_type, referenceid, rank_order) VALUES
+('r1000000-0000-0000-0000-000000000011', 4, 'Activity', 'f2000000-0000-0000-0000-000000000008', 3),
+('r1000000-0000-0000-0000-000000000012', 4, 'Activity', 'f2000000-0000-0000-0000-000000000009', 4),
+('r1000000-0000-0000-0000-000000000013', 2, 'Activity', 'f2000000-0000-0000-0000-000000000010', 3),
+('r1000000-0000-0000-0000-000000000014', 3, 'Activity', 'f2000000-0000-0000-0000-000000000011', 3),
+('r1000000-0000-0000-0000-000000000015', 3, 'Activity', 'f2000000-0000-0000-0000-000000000012', 4),
+('r1000000-0000-0000-0000-000000000016', 4, 'Activity', 'f2000000-0000-0000-0000-000000000013', 5),
+-- DEFECT (Itinerary tab booking flow) — categoryId=1 (Solo) coverage for
+-- Sunset Beach Bonfire (destinationId=2/Goa) so the seeded demo trip
+-- (DemoDataInitializer's "Demo Goa Trip": organizer alice@travelease.test,
+-- categoryId=1, destinationId=2 - not touched here per instructions) has a
+-- real recommended activity to book from Skyline Adventures out of the box.
+('r1000000-0000-0000-0000-000000000017', 1, 'Activity', 'f2000000-0000-0000-0000-000000000008', 3);
 
 -- activity_bookings columns (BaseEntity id override + domain columns):
 --   activity_booking_id, activity_slot_id, booked_by_user_id, participant_count,
@@ -666,13 +713,8 @@ INSERT INTO recommendations (recommendationid, categoryid, recommendation_type, 
 -- box. f3...0006 and f3...0011 are deliberately elapsed-but-still-CONFIRMED
 -- so the "Mark Attended / No-show" actions have a real target to demo live.
 INSERT INTO activity_bookings (activity_booking_id, activity_slot_id, booked_by_user_id, participant_count, price_per_participant, total_amount, status, booked_at, cancelled_at, attendance_marked_at, trip_id, created_at, updated_at) VALUES
-('f4000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000005', '55555555-5555-5555-5555-555555555555', 4, 800.00, 3200.00, 'ATTENDED', '2026-06-10 10:15:00', NULL, '2026-06-20 12:00:00', NULL, '2026-06-10 10:15:00', '2026-06-20 12:00:00'),
-('f4000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-000000000005', '55555555-5555-5555-5555-555555555555', 2, 800.00, 1600.00, 'NO_SHOW', '2026-06-12 09:00:00', NULL, '2026-06-20 12:05:00', NULL, '2026-06-12 09:00:00', '2026-06-20 12:05:00'),
-('f4000000-0000-0000-0000-000000000003', 'f3000000-0000-0000-0000-000000000006', '55555555-5555-5555-5555-555555555555', 3, 800.00, 2400.00, 'CONFIRMED', '2026-07-01 11:00:00', NULL, NULL, NULL, '2026-07-01 11:00:00', '2026-07-01 11:00:00'),
-('f4000000-0000-0000-0000-000000000004', 'f3000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 5, 800.00, 4000.00, 'CONFIRMED', '2026-07-03 16:20:00', NULL, NULL, NULL, '2026-07-03 16:20:00', '2026-07-03 16:20:00'),
 ('f4000000-0000-0000-0000-000000000005', 'f3000000-0000-0000-0000-000000000007', '55555555-5555-5555-5555-555555555555', 6, 1200.00, 7200.00, 'ATTENDED', '2026-06-15 09:00:00', NULL, '2026-06-25 13:00:00', NULL, '2026-06-15 09:00:00', '2026-06-25 13:00:00'),
 ('f4000000-0000-0000-0000-000000000006', 'f3000000-0000-0000-0000-000000000008', '55555555-5555-5555-5555-555555555555', 2, 1200.00, 2400.00, 'CONFIRMED', '2026-07-04 14:00:00', NULL, NULL, NULL, '2026-07-04 14:00:00', '2026-07-04 14:00:00'),
-('f4000000-0000-0000-0000-000000000007', 'f3000000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', 2, 900.00, 1800.00, 'CANCELLED', '2026-07-02 08:30:00', '2026-07-06 10:00:00', NULL, NULL, '2026-07-02 08:30:00', '2026-07-06 10:00:00'),
 ('f4000000-0000-0000-0000-000000000008', 'f3000000-0000-0000-0000-000000000010', '55555555-5555-5555-5555-555555555555', 2, 1500.00, 3000.00, 'ATTENDED', '2026-06-05 12:00:00', NULL, '2026-06-15 12:30:00', NULL, '2026-06-05 12:00:00', '2026-06-15 12:30:00'),
 ('f4000000-0000-0000-0000-000000000009', 'f3000000-0000-0000-0000-000000000010', '55555555-5555-5555-5555-555555555555', 1, 1500.00, 1500.00, 'NO_SHOW', '2026-06-06 15:00:00', NULL, '2026-06-15 12:35:00', NULL, '2026-06-06 15:00:00', '2026-06-15 12:35:00'),
 ('f4000000-0000-0000-0000-000000000010', 'f3000000-0000-0000-0000-000000000011', '55555555-5555-5555-5555-555555555555', 2, 1500.00, 3000.00, 'CONFIRMED', '2026-07-02 09:45:00', NULL, NULL, NULL, '2026-07-02 09:45:00', '2026-07-02 09:45:00'),
@@ -682,6 +724,17 @@ INSERT INTO activity_bookings (activity_booking_id, activity_slot_id, booked_by_
 ('f4000000-0000-0000-0000-000000000014', 'f3000000-0000-0000-0000-000000000014', '55555555-5555-5555-5555-555555555555', 6, 1000.00, 6000.00, 'CONFIRMED', '2026-07-07 08:00:00', NULL, NULL, NULL, '2026-07-07 08:00:00', '2026-07-07 08:00:00'),
 ('f4000000-0000-0000-0000-000000000015', 'f3000000-0000-0000-0000-000000000014', '55555555-5555-5555-5555-555555555555', 8, 1000.00, 8000.00, 'CONFIRMED', '2026-07-07 09:15:00', NULL, NULL, NULL, '2026-07-07 09:15:00', '2026-07-07 09:15:00'),
 ('f4000000-0000-0000-0000-000000000016', 'f3000000-0000-0000-0000-000000000014', '55555555-5555-5555-5555-555555555555', 4, 1000.00, 4000.00, 'CANCELLED', '2026-07-04 14:00:00', '2026-07-08 09:00:00', NULL, NULL, '2026-07-04 14:00:00', '2026-07-08 09:00:00');
+
+-- ============================================================
+-- DEFECT 4 (Activity Provider dashboard) — unread notifications for
+-- activityprovider1@travelease.com (f1000000-...0001) so the Notifications
+-- tab has real, clickable content to demo instead of an empty state.
+-- Entity columns: notificationid, userid, notification_type, title, message,
+-- is_read, created_date.
+-- ============================================================
+INSERT INTO notifications (notificationid, userid, notification_type, title, message, is_read, created_date) VALUES
+('f5000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-000000000001', 'BOOKING', 'New activity booking', 'A traveler booked 4 spots on Sunset Beach Bonfire for 2026-07-20.', 0, '2026-07-10 09:30:00'),
+('f5000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-000000000001', 'ACTIVITY_REMINDER', 'Upcoming slot reminder', 'Waterfall Rappelling has a slot starting soon — confirm your guide assignment.', 0, '2026-07-11 08:00:00');
 
 -- ============================================================
 -- 22. HOTELS / ROOMS / HOTEL_BOOKINGS / HOTEL_REVIEWS (Hotel Provider tenant isolation)

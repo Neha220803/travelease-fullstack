@@ -140,7 +140,10 @@ async function renderWithTripId(
         },
       },
       { provide: ActivitiesService, useValue: { getActivities: () => of([]), getProviders: () => of([]) } },
-      { provide: RecommendationsService, useValue: { getRecommendations: () => of([]) } },
+      {
+        provide: RecommendationsService,
+        useValue: { getRecommendations: () => of([]), getActivityRecommendations: () => of([]) },
+      },
       { provide: HotelsService, useValue: { searchHotels: () => of([]) } },
       {
         provide: AccommodationService,

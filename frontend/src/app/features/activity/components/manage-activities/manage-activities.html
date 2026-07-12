@@ -1,5 +1,5 @@
 <app-page-header title="Manage Activities" subtitle="Listings, pricing and availability.">
-  <hlm-dialog action>
+  <hlm-dialog [state]="addActivityDialogState()" (stateChanged)="setAddActivityDialogState($event)" action>
     <button hlmDialogTrigger hlmBtn>
       <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Activity
     </button>
@@ -24,7 +24,18 @@
         >
           <div class="space-y-2 col-span-2">
             <label hlmLabel for="activity-name">Activity Name</label>
-            <input hlmInput id="activity-name" placeholder="Scuba Diving" #nameInput />
+            <input
+              hlmInput
+              id="activity-name"
+              placeholder="Scuba Diving"
+              #nameInput
+              [value]="newActivityDraft().name"
+              (input)="updateNewActivityField('name', nameInput.value)"
+              (blur)="markNewActivityTouched('name')"
+            />
+            @if (newActivityTouched().name && newActivityErrors().name) {
+              <p class="text-xs text-destructive">{{ newActivityErrors().name }}</p>
+            }
           </div>
           <div class="space-y-2">
             <label hlmLabel>Destination</label>
@@ -38,7 +49,7 @@
                 [itemToString]="destinationIdToLabel"
                 (valueChange)="onNewDestinationChange($event)"
               >
-                <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+                <hlm-select-trigger (blur)="markNewActivityTouched('destinationId')"><hlm-select-value /></hlm-select-trigger>
                 <ng-template hlmSelectPortal>
                   <hlm-select-content>
                     @for (d of destinations(); track d.destinationId) {
@@ -48,28 +59,83 @@
                 </ng-template>
               </hlm-select>
             }
+            @if (newActivityTouched().destinationId && newActivityErrors().destinationId) {
+              <p class="text-xs text-destructive">{{ newActivityErrors().destinationId }}</p>
+            }
           </div>
           <div class="space-y-2">
             <label hlmLabel for="activity-duration">Duration (hours)</label>
-            <input hlmInput id="activity-duration" type="number" min="0.1" step="0.1" #durationInput />
+            <input
+              hlmInput
+              id="activity-duration"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="3"
+              #durationInput
+              [value]="newActivityDraft().durationHours"
+              (keydown)="onDurationKeydown($event)"
+              (input)="updateNewActivityField('durationHours', durationInput.value)"
+              (blur)="markNewActivityTouched('durationHours')"
+            />
+            @if (newActivityTouched().durationHours && newActivityErrors().durationHours) {
+              <p class="text-xs text-destructive">{{ newActivityErrors().durationHours }}</p>
+            }
           </div>
           <div class="space-y-2">
             <label hlmLabel for="activity-start">Start Time</label>
-            <input hlmInput id="activity-start" type="time" #startInput />
+            <input
+              hlmInput
+              id="activity-start"
+              type="time"
+              #startInput
+              [value]="newActivityDraft().startTime"
+              (input)="updateNewActivityField('startTime', startInput.value)"
+              (blur)="markNewActivityTouched('startTime')"
+            />
+            @if (newActivityTouched().startTime && newActivityErrors().startTime) {
+              <p class="text-xs text-destructive">{{ newActivityErrors().startTime }}</p>
+            }
           </div>
           <div class="space-y-2">
             <label hlmLabel for="activity-end">End Time</label>
-            <input hlmInput id="activity-end" type="time" #endInput />
+            <input
+              hlmInput
+              id="activity-end"
+              type="time"
+              #endInput
+              [value]="newActivityDraft().endTime"
+              (input)="updateNewActivityField('endTime', endInput.value)"
+              (blur)="markNewActivityTouched('endTime')"
+            />
+            @if (newActivityTouched().endTime && newActivityErrors().endTime) {
+              <p class="text-xs text-destructive">{{ newActivityErrors().endTime }}</p>
+            }
           </div>
           <div class="space-y-2 col-span-2">
             <label hlmLabel for="activity-description">Description</label>
-            <textarea hlmTextarea id="activity-description" class="w-full min-h-20" #descInput></textarea>
+            <textarea
+              hlmTextarea
+              id="activity-description"
+              class="w-full min-h-20"
+              #descInput
+              [value]="newActivityDraft().description"
+              (input)="updateNewActivityField('description', descInput.value)"
+              (blur)="markNewActivityTouched('description')"
+            ></textarea>
+            @if (newActivityTouched().description && newActivityErrors().description) {
+              <p class="text-xs text-destructive">{{ newActivityErrors().description }}</p>
+            }
           </div>
           @if (createError()) {
             <p class="text-xs text-destructive col-span-2">{{ createError() }}</p>
           }
           <div hlmDialogFooter class="col-span-2">
-            <button hlmBtn type="submit" [disabled]="creating() || destinationsLoading() || destinationsError()">
+            <button
+              hlmBtn
+              type="submit"
+              [disabled]="creating() || destinationsLoading() || destinationsError() || !newActivityValid()"
+            >
               {{ creating() ? 'Saving…' : 'Save Activity' }}
             </button>
           </div>
@@ -121,6 +187,9 @@
           </div>
           @if (a.description) {
             <p class="text-xs text-muted-foreground line-clamp-2">{{ a.description }}</p>
+          }
+          @if (a.price !== null) {
+            <p class="text-sm font-semibold">₹{{ a.price.toLocaleString() }}</p>
           }
           <div class="flex justify-between items-center pt-2 border-t text-xs text-muted-foreground">
             <span>{{ slotsFor(a.activityId).length }} slot(s)</span>

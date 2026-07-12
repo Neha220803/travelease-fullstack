@@ -42,7 +42,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     // { to: '/admin/hotels', label: 'Hotel Management', icon: 'lucideHotel' },
     { to: '/admin/support-tickets', label: 'Support Tickets', icon: 'lucideLifeBuoy' },
     { to: '/admin/reports', label: 'Reports', icon: 'lucideBarChart3' },
-    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
+    { to: '/admin/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   hotel: [
     { to: '/hotel', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -51,7 +51,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/hotel/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/hotel/reviews', label: 'Reviews', icon: 'lucideStar' },
     { to: '/hotel/reports', label: 'Reports', icon: 'lucideBarChart3' },
-    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
+    { to: '/hotel/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   transport: [
     { to: '/transport', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -61,7 +61,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/transport/trips', label: 'Bus Trips', icon: 'lucideNavigation' },
     { to: '/transport/bookings', label: 'Booking Analytics', icon: 'lucideChartLine' },
     { to: '/transport/reports', label: 'Reports', icon: 'lucideBarChart3' },
-    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
+    { to: '/transport/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   activity: [
     { to: '/activity', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -69,8 +69,16 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/activity/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/activity/capacity', label: 'Capacity', icon: 'lucideUsers' },
     { to: '/activity/reports', label: 'Reports', icon: 'lucideBarChart3' },
-    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
+    { to: '/activity/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
+};
+
+const ROLE_PATH_PREFIX: Record<Role, string> = {
+  traveler: '',
+  admin: '/admin',
+  hotel: '/hotel',
+  transport: '/transport',
+  activity: '/activity',
 };
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -104,17 +112,14 @@ export class AppShell {
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
 
-  protected readonly hasUnreadNotifications = signal(false);
+  protected readonly unreadCount = this.notificationService.unreadCount;
+  protected readonly hasUnreadNotifications = computed(() => this.unreadCount() > 0);
   protected readonly sidebarOpen = signal(false);
 
   constructor() {
     // Only fetch if authenticated (which is usually true here)
     if (this.authService.isAuthenticated()) {
-      this.notificationService.getNotifications(false).subscribe({
-        next: (notifications) => {
-          this.hasUnreadNotifications.set(notifications.length > 0);
-        }
-      });
+      this.notificationService.refreshUnreadCount();
     }
 
     this.router.events.pipe(filter((event) => event instanceof NavigationStart)).subscribe(() => {
@@ -138,6 +143,7 @@ export class AppShell {
   protected readonly nav = computed(() => NAV_MAP[this.role()]);
   protected readonly roleLabel = computed(() => ROLE_LABEL[this.role()]);
   protected readonly home = computed(() => ROLE_HOME[this.role()]);
+  protected readonly notificationsPath = computed(() => `${ROLE_PATH_PREFIX[this.role()]}/notifications`);
 
   protected signOut(): void {
     this.authService.logout();

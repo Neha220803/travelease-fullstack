@@ -19,6 +19,7 @@ const SAMPLE_ACTIVITY: Activity = {
   startTime: '09:00',
   endTime: '10:00',
   description: 'Coastal paragliding session',
+  price: 2500,
 };
 
 const SAMPLE_SLOT: ActivitySlot = {

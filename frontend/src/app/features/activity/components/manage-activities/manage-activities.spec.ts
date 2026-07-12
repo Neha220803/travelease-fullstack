@@ -2,7 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideIcons } from '@ng-icons/core';
 import { lucidePlus } from '@ng-icons/lucide';
 import { Subject, of, throwError } from 'rxjs';
-import { ManageActivities } from '@app/features/activity/components/manage-activities/manage-activities';
+import {
+  ManageActivities,
+  validateNewActivityDraft,
+  NewActivityDraft,
+} from '@app/features/activity/components/manage-activities/manage-activities';
 import { ActivityService } from '@app/features/activity/services/activity.service';
 import { Activity, ActivityOverview, ActivitySlot } from '@app/features/activity/services/activity.models';
 import { DestinationsService } from '@app/core/destinations/destinations.service';
@@ -17,6 +21,7 @@ const SAMPLE_ACTIVITY: Activity = {
   startTime: '09:00',
   endTime: '10:00',
   description: 'Coastal paragliding',
+  price: 2500,
 };
 
 const SAMPLE_DESTINATIONS: Destination[] = [
@@ -37,6 +42,15 @@ const SAMPLE_SLOT: ActivitySlot = {
 
 const OVERVIEW: ActivityOverview[] = [{ activity: SAMPLE_ACTIVITY, slots: [SAMPLE_SLOT], bookings: [] }];
 
+const VALID_DRAFT: NewActivityDraft = {
+  name: 'Scuba Diving',
+  destinationId: '3',
+  durationHours: '2',
+  startTime: '08:00',
+  endTime: '10:00',
+  description: 'Deep sea diving experience',
+};
+
 async function setup(
   activityService: Partial<ActivityService>,
   destinationsService: Partial<DestinationsService> = {
@@ -55,6 +69,58 @@ async function setup(
   fixture.detectChanges();
   return fixture;
 }
+
+describe('validateNewActivityDraft', () => {
+  it('accepts a fully valid draft', () => {
+    expect(validateNewActivityDraft(VALID_DRAFT)).toEqual({});
+  });
+
+  it('requires a name of at least 3 characters', () => {
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, name: '' }).name).toBe('Activity name is required');
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, name: 'AB' }).name).toBe(
+      'Activity name must be at least 3 characters',
+    );
+  });
+
+  it('requires a destination to be selected', () => {
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, destinationId: '' }).destinationId).toBe(
+      'Please select a destination',
+    );
+  });
+
+  it('requires duration to be a whole number between 1 and 99', () => {
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, durationHours: '' }).durationHours).toBe(
+      'Duration is required',
+    );
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, durationHours: 'abc' }).durationHours).toBe(
+      'Duration must be a number',
+    );
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, durationHours: '2.5' }).durationHours).toBe(
+      'Duration must be a whole number',
+    );
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, durationHours: '0' }).durationHours).toBe(
+      'Duration must be greater than 0',
+    );
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, durationHours: '100' }).durationHours).toBe(
+      'Duration must be between 1 and 99 hours',
+    );
+  });
+
+  it('requires end time to be after start time', () => {
+    expect(
+      validateNewActivityDraft({ ...VALID_DRAFT, startTime: '10:00', endTime: '09:00' }).endTime,
+    ).toBe('End time must be after start time');
+  });
+
+  it('requires a description of at least 10 characters', () => {
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, description: '' }).description).toBe(
+      'Description is required',
+    );
+    expect(validateNewActivityDraft({ ...VALID_DRAFT, description: 'too short' }).description).toBe(
+      'Description must be at least 10 characters',
+    );
+  });
+});
 
 describe('ManageActivities', () => {
   it('shows a loading state before activities arrive', async () => {
@@ -92,7 +158,15 @@ describe('ManageActivities', () => {
     const fixture = await setup({ getProviderOverview: () => of(OVERVIEW), createActivity });
 
     const fakeEvent = { preventDefault: () => {} } as Event;
-    fixture.componentInstance.onCreateActivity(fakeEvent, 'Scuba Diving', '3', '2', '08:00', '10:00', 'Deep dive');
+    fixture.componentInstance.onCreateActivity(
+      fakeEvent,
+      VALID_DRAFT.name,
+      VALID_DRAFT.destinationId,
+      VALID_DRAFT.durationHours,
+      VALID_DRAFT.startTime,
+      VALID_DRAFT.endTime,
+      VALID_DRAFT.description,
+    );
     fixture.detectChanges();
 
     expect(createActivity).toHaveBeenCalledWith({
@@ -101,21 +175,79 @@ describe('ManageActivities', () => {
       durationHours: 2,
       startTime: '08:00',
       endTime: '10:00',
-      description: 'Deep dive',
+      description: 'Deep sea diving experience',
     });
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Scuba Diving');
   });
 
-  it('rejects creating an activity with missing required fields', async () => {
-    const createActivity = vi.fn();
+  it('closes the Add Activity dialog after a successful create', async () => {
+    const newActivity: Activity = { ...SAMPLE_ACTIVITY, activityId: 'act-2', activityName: 'Scuba Diving' };
+    const createActivity = vi.fn().mockReturnValue(of(newActivity));
     const fixture = await setup({ getProviderOverview: () => of(OVERVIEW), createActivity });
+    const component = fixture.componentInstance;
+
+    component.setAddActivityDialogState('open');
+    expect(component.addActivityDialogState()).toBe('open');
 
     const fakeEvent = { preventDefault: () => {} } as Event;
-    fixture.componentInstance.onCreateActivity(fakeEvent, '', '3', '2', '08:00', '10:00', '');
+    component.onCreateActivity(
+      fakeEvent,
+      VALID_DRAFT.name,
+      VALID_DRAFT.destinationId,
+      VALID_DRAFT.durationHours,
+      VALID_DRAFT.startTime,
+      VALID_DRAFT.endTime,
+      VALID_DRAFT.description,
+    );
+    fixture.detectChanges();
+
+    expect(component.addActivityDialogState()).toBe('closed');
+  });
+
+  it('rejects creating an activity with invalid fields and marks every field touched', async () => {
+    const createActivity = vi.fn();
+    const fixture = await setup({ getProviderOverview: () => of(OVERVIEW), createActivity });
+    const component = fixture.componentInstance;
+
+    const fakeEvent = { preventDefault: () => {} } as Event;
+    component.onCreateActivity(fakeEvent, '', '3', '2', '08:00', '10:00', '');
 
     expect(createActivity).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.createError()).toBe('Please fill in all required fields.');
+    expect(component.createError()).toBe('Please fix the highlighted fields before saving.');
+    expect(component.newActivityTouched().name).toBe(true);
+    expect(component.newActivityTouched().description).toBe(true);
+  });
+
+  it('keeps field errors hidden until the field is touched, then shows and clears them', async () => {
+    const fixture = await setup({ getProviderOverview: () => of(OVERVIEW) });
+    const component = fixture.componentInstance;
+
+    component.updateNewActivityField('name', '');
+    expect(component.newActivityErrors().name).toBe('Activity name is required');
+    expect(component.newActivityTouched().name).toBe(false);
+
+    component.markNewActivityTouched('name');
+    expect(component.newActivityTouched().name).toBe(true);
+
+    component.updateNewActivityField('name', 'Scuba Diving');
+    expect(component.newActivityErrors().name).toBeUndefined();
+  });
+
+  it('keeps Save Activity disabled until the whole draft is valid', async () => {
+    const fixture = await setup({ getProviderOverview: () => of(OVERVIEW) });
+    const component = fixture.componentInstance;
+
+    component.setAddActivityDialogState('open');
+    expect(component.newActivityValid()).toBe(false);
+
+    component.updateNewActivityField('name', VALID_DRAFT.name);
+    component.updateNewActivityField('durationHours', VALID_DRAFT.durationHours);
+    component.updateNewActivityField('startTime', VALID_DRAFT.startTime);
+    component.updateNewActivityField('endTime', VALID_DRAFT.endTime);
+    component.updateNewActivityField('description', VALID_DRAFT.description);
+
+    expect(component.newActivityValid()).toBe(true);
   });
 
   it('updates an activity in place', async () => {

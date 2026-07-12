@@ -50,6 +50,13 @@ export const HOTEL_ROUTES: Routes = [
             (m) => m.HotelReports,
           ),
       },
+      {
+        path: 'notifications',
+        loadChildren: () =>
+          import('@app/features/notifications/notifications.routes').then(
+            (m) => m.NOTIFICATIONS_ROUTES,
+          ),
+      },
     ],
   },
 ];

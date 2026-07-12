@@ -43,12 +43,12 @@ describe('computeRevenueByActivity', () => {
   it('gives the highest-revenue activity a full-width bar and scales the rest proportionally', () => {
     const overview: ActivityOverview[] = [
       {
-        activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '' },
+        activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '', price: null },
         slots: [],
         bookings: [booking({ totalAmount: 10000 }), booking({ bookingId: 'b2', totalAmount: 5000, status: 'CANCELLED' })],
       },
       {
-        activity: { activityId: 'act-2', providerId: 1, destinationId: 3, activityName: 'Scuba Diving', durationHours: 2, startTime: '08:00', endTime: '10:00', description: '' },
+        activity: { activityId: 'act-2', providerId: 1, destinationId: 3, activityName: 'Scuba Diving', durationHours: 2, startTime: '08:00', endTime: '10:00', description: '', price: null },
         slots: [],
         bookings: [booking({ bookingId: 'b3', activityId: 'act-2', totalAmount: 4000 })],
       },
@@ -64,7 +64,7 @@ describe('computeRevenueByActivity', () => {
   it('does not divide by zero when there is no revenue at all', () => {
     const overview: ActivityOverview[] = [
       {
-        activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '' },
+        activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '', price: null },
         slots: [],
         bookings: [],
       },
@@ -77,7 +77,7 @@ describe('computeRevenueByActivity', () => {
 
 const OVERVIEW: ActivityOverview[] = [
   {
-    activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '' },
+    activity: { activityId: 'act-1', providerId: 1, destinationId: 3, activityName: 'Paragliding', durationHours: 1, startTime: '09:00', endTime: '10:00', description: '', price: null },
     slots: [],
     bookings: [
       booking({ totalAmount: 10000 }),

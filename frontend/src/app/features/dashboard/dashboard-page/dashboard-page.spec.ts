@@ -11,7 +11,6 @@ import {
   lucideUsers,
   lucideWallet,
 } from '@ng-icons/lucide';
-import { of } from 'rxjs';
 import { DashboardPage } from '@app/features/dashboard/dashboard-page/dashboard-page';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { NotificationService } from '@app/features/notifications/services/notification.service';
@@ -132,8 +131,6 @@ describe('DashboardPage', () => {
   it('renders every pending invitation', async () => {
     const fixture = await render();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    for (const inv of INVITATIONS) {
-      expect(text).toContain(inv.tripName);
     for (const inv of INVITATIONS) {
       expect(text).toContain(inv.tripName);
     }

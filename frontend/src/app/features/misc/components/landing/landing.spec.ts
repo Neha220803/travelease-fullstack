@@ -37,16 +37,16 @@ describe('Landing', () => {
     expect(text).toContain('Invite & coordinate');
     expect(text).toContain('Book together');
     expect(text).toContain('Split expenses');
-    expect(text).toContain('Disruption handled');
+    expect(text).toContain('Disruptions handled');
   });
 
-  it('links Sign in, Get started, Open dashboard, and Admin console to the correct routes', () => {
+  it('links Sign in, Get started, and Open dashboard to the correct routes, and offers a way to preview the admin console', () => {
     const fixture = TestBed.createComponent(Landing);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('a[href="/login"]')).not.toBeNull();
     expect(el.querySelector('a[href="/register"]')).not.toBeNull();
     expect(el.querySelector('a[href="/dashboard"]')).not.toBeNull();
-    expect(el.querySelector('a[href="/admin"]')).not.toBeNull();
+    expect(el.textContent).toContain('See admin console');
   });
 });

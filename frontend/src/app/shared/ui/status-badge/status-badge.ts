@@ -4,6 +4,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 const STATUS_CLASS_MAP: Record<string, string> = {
   Accepted: 'bg-success/15 text-success border-success/20',
   Pending: 'bg-warning/15 text-[oklch(0.45_0.12_75)] border-warning/20',
+  Completed: 'bg-success/15 text-success border-success/20',
   Rejected: 'bg-destructive/15 text-destructive border-destructive/20',
   Paid: 'bg-success/15 text-success border-success/20',
   Confirmed: 'bg-success/10 text-success border-success/20',
