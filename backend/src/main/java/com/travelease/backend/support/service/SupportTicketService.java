@@ -24,7 +24,11 @@ public interface SupportTicketService {
 
     TicketDetailResponse getTicketForAdmin(UUID ticketId);
 
-    ReplyResponse addReply(UUID ticketId, ReplyRequest request);
+    ReplyResponse addReply(UUID ticketId, ReplyRequest request, String currentUserEmail);
 
-    TicketResponse updateStatus(UUID ticketId, UpdateTicketStatusRequest request);
+    TicketResponse updateStatus(UUID ticketId, UpdateTicketStatusRequest request, String currentUserEmail);
+
+    List<TicketResponse> getTicketsAssignedToProvider(String currentUserEmail);
+
+    TicketDetailResponse getAssignedTicket(UUID ticketId, String currentUserEmail);
 }

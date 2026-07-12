@@ -6,5 +6,9 @@
   [attr.aria-label]="themeService.theme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
   (click)="toggle()"
 >
-  <ng-icon [name]="themeService.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" class="h-5 w-5" />
+  @if (isMounted()) {
+    <ng-icon [name]="themeService.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" class="h-5 w-5" />
+  } @else {
+    <div class="h-5 w-5"></div>
+  }
 </button>

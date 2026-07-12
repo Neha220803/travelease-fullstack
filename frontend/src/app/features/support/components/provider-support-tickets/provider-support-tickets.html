@@ -1,0 +1,157 @@
+<app-page-header
+  title="Provider Support Tickets"
+  subtitle="Manage support tickets assigned to you or create a new ticket for platform issues."
+>
+  <div action>
+    <button hlmBtn size="sm" (click)="toggleRaiseForm()">
+      {{ showRaiseForm() ? 'Cancel' : 'Contact Admin Support' }}
+    </button>
+  </div>
+</app-page-header>
+
+@if (showRaiseForm()) {
+  <div hlmCard class="mt-6 border-primary/20 bg-primary/5">
+    <div hlmCardHeader>
+      <h3 class="text-lg font-semibold">Report a Platform Issue</h3>
+      <p class="text-sm text-muted-foreground">Describe the issue you're facing with the platform.</p>
+    </div>
+    <div hlmCardContent>
+      <form class="space-y-4" (submit)="submitPlatformTicket($event)">
+        <div class="space-y-2">
+          <label hlmLabel>Category <span class="text-destructive">*</span></label>
+          <hlm-select [value]="$any(raiseCategory() || '')" (valueChange)="raiseCategory.set($any($event))">
+            <hlm-select-trigger class="w-full">
+              <hlm-select-value placeholder="Select a category" />
+            </hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                <hlm-select-item value="PLATFORM">Platform / App Issue</hlm-select-item>
+                <hlm-select-item value="OTHER">Other</hlm-select-item>
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Subject <span class="text-destructive">*</span></label>
+          <input hlmInput [value]="raiseSubject()" (input)="raiseSubject.set($any($event.target).value)" placeholder="e.g. Cannot update hotel availability" />
+        </div>
+        <div class="space-y-2">
+          <label hlmLabel>Description <span class="text-destructive">*</span></label>
+          <textarea hlmTextarea class="w-full min-h-24" [value]="raiseDescription()" (input)="raiseDescription.set($any($event.target).value)" placeholder="Please provide details..."></textarea>
+        </div>
+        @if (raiseError()) {
+          <p class="text-xs text-destructive">{{ raiseError() }}</p>
+        }
+        <div class="flex justify-end gap-3 pt-2">
+          <button hlmBtn variant="outline" type="button" (click)="toggleRaiseForm()">Cancel</button>
+          <button hlmBtn type="submit" [disabled]="raiseSubmitting()">Submit Ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+  <div>
+    <div class="flex items-center gap-2 mb-4">
+      <button hlmBtn [variant]="viewMode() === 'ASSIGNED' ? 'default' : 'outline'" size="sm" (click)="setViewMode('ASSIGNED')">
+        Assigned to Us
+      </button>
+      <button hlmBtn [variant]="viewMode() === 'RAISED' ? 'default' : 'outline'" size="sm" (click)="setViewMode('RAISED')">
+        Raised by Us
+      </button>
+    </div>
+
+    @if (loading()) {
+      <p class="text-sm text-muted-foreground py-6">Loading tickets...</p>
+    } @else if (error()) {
+      <p class="text-sm text-destructive py-6">Failed to load tickets.</p>
+    } @else if (tickets().length === 0) {
+      <div hlmCard class="mt-4">
+        <div hlmCardContent class="pt-6 text-center text-sm text-muted-foreground">
+          No tickets found in this view.
+        </div>
+      </div>
+    } @else {
+      <div class="space-y-2">
+        @for (ticket of tickets(); track ticket.ticketId) {
+          <button
+            type="button"
+            hlmCard
+            class="w-full text-left p-4 hover:bg-accent/5 transition-colors"
+            (click)="selectTicket(ticket.ticketId)"
+          >
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="font-medium">{{ ticket.subject }}</p>
+                <p class="text-xs text-muted-foreground mt-1">
+                  Raised by {{ ticket.userName }} · {{ ticket.createdAt | date: 'mediumDate' }}
+                </p>
+              </div>
+              <app-status-badge [status]="ticket.status" />
+            </div>
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <div>
+    @if (detailLoading()) {
+      <p class="text-sm text-muted-foreground py-6">Loading ticket...</p>
+    } @else if (selectedDetail(); as detail) {
+      <div hlmCard class="p-4">
+        <div class="flex items-center justify-between gap-4">
+          <h3 class="font-semibold">{{ detail.ticket.subject }}</h3>
+          <hlm-select [value]="detail.ticket.status" (valueChange)="onStatusChange($event)">
+            <hlm-select-trigger class="w-40"><hlm-select-value /></hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                @for (status of statusOptions; track status) {
+                  <hlm-select-item [value]="status">{{ status }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">
+          Raised by {{ detail.ticket.userName }} · {{ detail.ticket.createdAt | date: 'medium' }}
+        </p>
+        <p class="text-sm mt-3 whitespace-pre-line">{{ detail.ticket.description }}</p>
+
+        <h2 class="text-sm font-semibold mt-6 mb-2">Replies</h2>
+        <div class="space-y-4 mb-6">
+          @if (detail.replies.length === 0) {
+            <p class="text-sm text-muted-foreground">No replies yet.</p>
+          } @else {
+            @for (reply of detail.replies; track reply.id) {
+              <div hlmCard class="p-4" [class.bg-muted]="reply.senderRole !== 'ROLE_TRAVELER'">
+                <div class="flex justify-between items-start mb-2">
+                  <span class="text-sm font-medium">{{ reply.senderRole === 'ROLE_TRAVELER' ? detail.ticket.userName : (reply.senderName || 'Us') }}</span>
+                  <span class="text-xs text-muted-foreground">{{ reply.createdAt | date: 'medium' }}</span>
+                </div>
+                <p class="text-sm">{{ reply.message }}</p>
+              </div>
+            }
+          }
+        </div>
+
+        @if (detail.ticket.status !== 'CLOSED' && detail.ticket.status !== 'RESOLVED') {
+          <form class="mt-4 space-y-2" (submit)="onSubmitReply($event, replyInput.value, replyInput)">
+            <textarea hlmTextarea class="w-full min-h-20" placeholder="Write a reply..." #replyInput></textarea>
+            @if (replyError()) {
+              <p class="text-xs text-destructive">{{ replyError() }}</p>
+            }
+            <button hlmBtn size="sm" type="submit" [disabled]="replySubmitting()">Post Reply</button>
+          </form>
+        } @else {
+          <div class="mt-4 p-4 border rounded-md bg-muted/30 text-center">
+            <p class="text-sm text-muted-foreground">This ticket is marked as <strong>{{ detail.ticket.status }}</strong>. You can no longer reply.</p>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="text-sm text-muted-foreground py-6 lg:pl-6">Select a ticket to view details.</p>
+    }
+  </div>
+</div>

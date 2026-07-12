@@ -6,10 +6,13 @@
   <p class="text-sm text-muted-foreground py-6">Loading ticket…</p>
 } @else if (notFound()) {
   <p class="text-sm text-destructive py-6">Ticket not found.</p>
-} @else if (detail(); as d) {
+} @if (detail(); as d) {
   <app-page-header [title]="d.ticket.subject" [subtitle]="d.ticket.category + ' · Raised ' + (d.ticket.createdAt | date: 'medium')" />
   <div class="flex items-center gap-2 mt-2">
     <app-status-badge [status]="d.ticket.status" />
+    @if (d.ticket.assignedProviderName) {
+      <span class="text-sm text-muted-foreground ml-2">Assigned to: {{ d.ticket.assignedProviderName }}</span>
+    }
   </div>
 
   <div hlmCard class="mt-4">
@@ -22,13 +25,29 @@
   @if (d.replies.length === 0) {
     <p class="text-sm text-muted-foreground">No replies yet.</p>
   } @else {
-    <div class="space-y-3">
-      @for (reply of d.replies; track reply.replyId) {
-        <div hlmCard class="p-4">
+    <div class="space-y-4 mb-6">
+      @for (reply of d.replies; track reply.id) {
+        <div hlmCard class="p-4" [class.bg-muted]="reply.senderRole === 'ROLE_TRAVELER'">
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-medium">{{ reply.senderRole === 'ROLE_TRAVELER' ? 'Me' : (reply.senderName || 'Support') }}</span>
+            <span class="text-xs text-muted-foreground">{{ reply.createdAt | date: 'medium' }}</span>
+          </div>
           <p class="text-sm">{{ reply.message }}</p>
-          <p class="text-xs text-muted-foreground mt-2">{{ reply.createdAt | date: 'medium' }}</p>
         </div>
       }
     </div>
+  }
+
+  @if (d.ticket.status !== 'CLOSED' && d.ticket.status !== 'RESOLVED') {
+    <form class="space-y-3 mt-4" (submit)="onSubmitReply($event, replyInput.value, replyInput)">
+      <div class="space-y-2">
+        <label hlmLabel>Add a reply</label>
+        <textarea hlmTextarea class="w-full min-h-24" placeholder="Type your response..." #replyInput></textarea>
+      </div>
+      @if (replyError()) {
+        <p class="text-xs text-destructive">{{ replyError() }}</p>
+      }
+      <button hlmBtn type="submit" [disabled]="replySubmitting()">Post Reply</button>
+    </form>
   }
 }

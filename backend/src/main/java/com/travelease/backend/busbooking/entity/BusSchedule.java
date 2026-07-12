@@ -36,6 +36,9 @@ public class BusSchedule {
     @Column(name = "departure_time", nullable = false)
     private LocalTime departureTime;
 
+    @Column(name = "arrival_date", nullable = false)
+    private LocalDate arrivalDate;
+
     @Column(name = "arrival_time", nullable = false)
     private LocalTime arrivalTime;
 

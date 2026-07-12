@@ -14,6 +14,8 @@ public record TicketResponse(
         String subject,
         String description,
         TicketStatus status,
+        Long assignedProviderId,
+        String assignedProviderName,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

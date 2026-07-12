@@ -20,6 +20,7 @@ public class ScheduleResponse {
     private RouteResponse route;
     private LocalDate travelDate;
     private LocalTime departureTime;
+    private LocalDate arrivalDate;
     private LocalTime arrivalTime;
     private Double fare;
     private Integer availableSeats;

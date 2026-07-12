@@ -33,14 +33,49 @@
   </div>
   <div class="space-y-2">
     <label hlmLabel for="password">Password</label>
-    <input hlmInput id="password" name="password" type="password" placeholder="8+ chars: upper, lower, number & symbol" (input)="clearFieldError('password')" />
+    <div class="relative">
+      <input
+        hlmInput
+        id="password"
+        name="password"
+        class="pr-12"
+        [type]="passwordVisible() ? 'text' : 'password'"
+        placeholder="8+ chars: upper, lower, number & symbol"
+        (input)="clearFieldError('password')"
+      />
+      <button
+        type="button"
+        class="absolute inset-y-0 right-3 inline-flex items-center justify-center rounded-full bg-surface px-2 text-muted-foreground hover:text-foreground"
+        aria-label="Toggle password visibility"
+        (click)="togglePasswordVisibility()"
+      >
+        <ng-icon [name]="passwordVisible() ? 'lucideEyeOff' : 'lucideEye'" class="h-4 w-4" />
+      </button>
+    </div>
     @if (fieldErrors().password) {
       <p class="text-xs text-destructive">{{ fieldErrors().password }}</p>
     }
   </div>
   <div class="space-y-2">
     <label hlmLabel for="confirmPassword">Confirm password</label>
-    <input hlmInput id="confirmPassword" name="confirmPassword" type="password" (input)="clearFieldError('confirmPassword')" />
+    <div class="relative">
+      <input
+        hlmInput
+        id="confirmPassword"
+        name="confirmPassword"
+        class="pr-12"
+        [type]="confirmPasswordVisible() ? 'text' : 'password'"
+        (input)="clearFieldError('confirmPassword')"
+      />
+      <button
+        type="button"
+        class="absolute inset-y-0 right-3 inline-flex items-center justify-center rounded-full bg-surface px-2 text-muted-foreground hover:text-foreground"
+        aria-label="Toggle confirm password visibility"
+        (click)="toggleConfirmPasswordVisibility()"
+      >
+        <ng-icon [name]="confirmPasswordVisible() ? 'lucideEyeOff' : 'lucideEye'" class="h-4 w-4" />
+      </button>
+    </div>
     @if (fieldErrors().confirmPassword) {
       <p class="text-xs text-destructive">{{ fieldErrors().confirmPassword }}</p>
     }

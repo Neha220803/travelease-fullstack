@@ -24,7 +24,6 @@ const CATEGORY_FILTERS: FilterOption<TicketCategory>[] = [
   { value: 'BUS', label: 'Bus' },
   { value: 'HOTEL', label: 'Hotel' },
   { value: 'ACTIVITY', label: 'Activity' },
-  { value: 'TRIP', label: 'Trip / General' },
   { value: 'OTHER', label: 'Other' },
 ];
 
@@ -98,7 +97,7 @@ export class AdminSupportTickets {
     if (!value || !detail) {
       return;
     }
-    this.supportTicketService.updateStatus(detail.ticket.ticketId, value as TicketStatus).subscribe((updated) => {
+    this.supportTicketService.updateStatusAdmin(detail.ticket.ticketId, value as TicketStatus).subscribe((updated) => {
       this.selectedDetail.set({ ...detail, ticket: updated });
       this.loadTickets();
     });
@@ -112,7 +111,7 @@ export class AdminSupportTickets {
     }
     this.replyError.set(null);
     this.replySubmitting.set(true);
-    this.supportTicketService.addReply(detail.ticket.ticketId, message).subscribe({
+    this.supportTicketService.addReplyAdmin(detail.ticket.ticketId, message).subscribe({
       next: (reply) => {
         this.replySubmitting.set(false);
         this.selectedDetail.set({ ...detail, replies: [...detail.replies, reply] });

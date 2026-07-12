@@ -4,6 +4,6 @@ public enum TicketCategory {
     BUS,
     HOTEL,
     ACTIVITY,
-    TRIP,
+    PLATFORM,
     OTHER
 }

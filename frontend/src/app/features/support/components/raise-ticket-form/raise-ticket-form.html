@@ -12,7 +12,7 @@
       <div class="space-y-2">
         <label hlmLabel>What is this about?</label>
         <hlm-select [value]="category()" [itemToString]="categoryLabel" (valueChange)="onCategoryChange($event)">
-          <hlm-select-trigger><hlm-select-value /></hlm-select-trigger>
+          <hlm-select-trigger><hlm-select-value placeholder="Select a category" /></hlm-select-trigger>
           <ng-template hlmSelectPortal>
             <hlm-select-content>
               @for (option of categoryOptions; track option.value) {
@@ -22,6 +22,24 @@
           </ng-template>
         </hlm-select>
       </div>
+      
+      @if (category() === 'HOTEL' || category() === 'BUS' || category() === 'ACTIVITY') {
+        <div class="space-y-2">
+          <label hlmLabel>Which provider?</label>
+          <hlm-select [value]="selectedProviderId()?.toString()" [itemToString]="providerLabel" (valueChange)="onProviderChange($event)">
+            <hlm-select-trigger>
+              <hlm-select-value [placeholder]="providers().length === 0 ? 'No providers available' : 'Select a provider'" />
+            </hlm-select-trigger>
+            <ng-template hlmSelectPortal>
+              <hlm-select-content>
+                @for (provider of providers(); track provider.id) {
+                  <hlm-select-item [value]="provider.id.toString()">{{ provider.businessName }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </ng-template>
+          </hlm-select>
+        </div>
+      }
       <div class="space-y-2">
         <label hlmLabel for="subject">Subject</label>
         <input hlmInput id="subject" placeholder="Briefly describe the issue" #subjectInput />

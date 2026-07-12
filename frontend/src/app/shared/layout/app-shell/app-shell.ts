@@ -51,6 +51,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/hotel/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/hotel/reviews', label: 'Reviews', icon: 'lucideStar' },
     { to: '/hotel/reports', label: 'Reports', icon: 'lucideBarChart3' },
+    { to: '/hotel/support-tickets', label: 'Support Tickets', icon: 'lucideLifeBuoy' },
     { to: '/hotel/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   transport: [
@@ -61,6 +62,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/transport/trips', label: 'Bus Trips', icon: 'lucideNavigation' },
     { to: '/transport/bookings', label: 'Booking Analytics', icon: 'lucideChartLine' },
     { to: '/transport/reports', label: 'Reports', icon: 'lucideBarChart3' },
+    { to: '/transport/support-tickets', label: 'Support Tickets', icon: 'lucideLifeBuoy' },
     { to: '/transport/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   activity: [
@@ -69,6 +71,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/activity/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/activity/capacity', label: 'Capacity', icon: 'lucideUsers' },
     { to: '/activity/reports', label: 'Reports', icon: 'lucideBarChart3' },
+    { to: '/activity/support-tickets', label: 'Support Tickets', icon: 'lucideLifeBuoy' },
     { to: '/activity/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
 };
@@ -109,7 +112,7 @@ const ROLE_LABEL: Record<Role, string> = {
 export class AppShell {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly authService = inject(AuthService);
+  protected readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
 
   protected readonly unreadCount = this.notificationService.unreadCount;

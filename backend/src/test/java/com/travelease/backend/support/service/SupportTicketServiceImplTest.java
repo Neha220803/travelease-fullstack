@@ -78,7 +78,7 @@ class SupportTicketServiceImplTest {
         when(ticketRepository.save(any(SupportTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateTicketRequest request =
-                new CreateTicketRequest(TicketCategory.BUS, "Bus was late", "The bus arrived 2 hours late.");
+                new CreateTicketRequest(TicketCategory.BUS, "Bus was late", "The bus arrived 2 hours late.", null);
         TicketResponse response = supportTicketService.createTicket(request, "alice@travelease.test");
 
         assertThat(response.userId()).isEqualTo(user.getId());
@@ -108,6 +108,7 @@ class SupportTicketServiceImplTest {
         reply.setId(UUID.randomUUID());
         reply.setTicket(ticket);
         reply.setMessage("We're looking into this.");
+        reply.setSender(user);
         reply.setCreatedAt(LocalDateTime.now());
 
         when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
@@ -155,11 +156,12 @@ class SupportTicketServiceImplTest {
     void addReplySavesReplyAgainstTicket() {
         User user = sampleUser("alice@travelease.test");
         SupportTicket ticket = sampleTicket(user);
+        when(userRepository.findByEmail("alice@travelease.test")).thenReturn(Optional.of(user));
         when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
         when(replyRepository.save(any(SupportTicketReply.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ReplyResponse response =
-                supportTicketService.addReply(ticket.getId(), new ReplyRequest("We're looking into this."));
+                supportTicketService.addReply(ticket.getId(), new ReplyRequest("We're looking into this."), "alice@travelease.test");
 
         assertThat(response.message()).isEqualTo("We're looking into this.");
     }
@@ -168,11 +170,12 @@ class SupportTicketServiceImplTest {
     void updateStatusChangesTicketStatus() {
         User user = sampleUser("alice@travelease.test");
         SupportTicket ticket = sampleTicket(user);
+        when(userRepository.findByEmail("alice@travelease.test")).thenReturn(Optional.of(user));
         when(ticketRepository.findById(ticket.getId())).thenReturn(Optional.of(ticket));
         when(ticketRepository.save(any(SupportTicket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TicketResponse response =
-                supportTicketService.updateStatus(ticket.getId(), new UpdateTicketStatusRequest(TicketStatus.RESOLVED));
+                supportTicketService.updateStatus(ticket.getId(), new UpdateTicketStatusRequest(TicketStatus.RESOLVED), "alice@travelease.test");
 
         assertThat(response.status()).isEqualTo(TicketStatus.RESOLVED);
     }

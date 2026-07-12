@@ -55,6 +55,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .route(route)
                 .travelDate(request.getTravelDate())
                 .departureTime(request.getDepartureTime())
+                .arrivalDate(request.getArrivalDate())
                 .arrivalTime(request.getArrivalTime())
                 .fare(request.getFare())
                 .availableSeats(bus.getTotalSeats())
@@ -79,6 +80,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setRoute(route);
         schedule.setTravelDate(request.getTravelDate());
         schedule.setDepartureTime(request.getDepartureTime());
+        schedule.setArrivalDate(request.getArrivalDate());
         schedule.setArrivalTime(request.getArrivalTime());
         schedule.setFare(request.getFare());
         schedule.setAvailableSeats(bus.getTotalSeats());

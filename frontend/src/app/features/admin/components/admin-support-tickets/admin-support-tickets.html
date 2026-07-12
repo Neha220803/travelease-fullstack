@@ -78,27 +78,32 @@
         </p>
         <p class="text-sm mt-3 whitespace-pre-line">{{ d.ticket.description }}</p>
 
-        <h4 class="text-sm font-semibold mt-4 mb-2">Replies</h4>
-        @if (d.replies.length === 0) {
-          <p class="text-sm text-muted-foreground">No replies yet.</p>
-        } @else {
-          <div class="space-y-2">
-            @for (reply of d.replies; track reply.replyId) {
-              <div class="rounded-md bg-muted p-3">
+        <h2 class="text-sm font-semibold mt-6 mb-2">Replies</h2>
+        <div class="space-y-4 mb-6">
+          @if (d.replies.length === 0) {
+            <p class="text-sm text-muted-foreground">No replies yet.</p>
+          } @else {
+            @for (reply of d.replies; track reply.id) {
+              <div hlmCard class="p-4" [class.bg-muted]="reply.senderRole !== 'ROLE_TRAVELER'">
+                <div class="flex justify-between items-start mb-2">
+                  <span class="text-sm font-medium">{{ reply.senderRole === 'ROLE_TRAVELER' ? d.ticket.userName : (reply.senderName || 'Us') }}</span>
+                  <span class="text-xs text-muted-foreground">{{ reply.createdAt | date: 'medium' }}</span>
+                </div>
                 <p class="text-sm">{{ reply.message }}</p>
-                <p class="text-xs text-muted-foreground mt-1">{{ reply.createdAt | date: 'medium' }}</p>
               </div>
             }
-          </div>
-        }
-
-        <form class="mt-4 space-y-2" (submit)="onSubmitReply($event, replyInput.value, replyInput)">
-          <textarea hlmTextarea class="w-full min-h-20" placeholder="Write a reply…" #replyInput></textarea>
-          @if (replyError()) {
-            <p class="text-xs text-destructive">{{ replyError() }}</p>
           }
-          <button hlmBtn size="sm" type="submit" [disabled]="replySubmitting()">Reply</button>
-        </form>
+        </div>
+
+        @if (d.ticket.status !== 'CLOSED' && d.ticket.status !== 'RESOLVED') {
+          <form class="mt-4 space-y-2" (submit)="onSubmitReply($event, replyInput.value, replyInput)">
+            <textarea hlmTextarea class="w-full min-h-20" placeholder="Write a reply…" #replyInput></textarea>
+            @if (replyError()) {
+              <p class="text-xs text-destructive">{{ replyError() }}</p>
+            }
+            <button hlmBtn size="sm" type="submit" [disabled]="replySubmitting()">Reply</button>
+          </form>
+        }
       </div>
     } @else {
       <p class="text-sm text-muted-foreground py-6">Select a ticket to view details.</p>

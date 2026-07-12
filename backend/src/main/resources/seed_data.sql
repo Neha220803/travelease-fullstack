@@ -1,3 +1,16 @@
+
+-- ============================================================
+-- 0. PROVIDERS (businesses)
+-- Entity columns: id, business_name, type, created_at
+-- ============================================================
+INSERT INTO providers (id, business_name, type, created_at) VALUES
+(1, 'Sharma Travels', 'ROLE_PROVIDER', '2026-01-01 09:00:00'),
+(2, 'Metro Express', 'ROLE_PROVIDER', '2026-01-01 09:00:00'),
+(101, 'Seaside Resort', 'ROLE_HOTEL_PROVIDER', '2026-01-01 09:00:00'),
+(102, 'Mountain View Lodge', 'ROLE_HOTEL_PROVIDER', '2026-01-01 09:00:00'),
+(103, 'City Center Hotel', 'ROLE_HOTEL_PROVIDER', '2026-01-01 09:00:00'),
+(201, 'Adventure Sports', 'ROLE_ACTIVITY_PROVIDER', '2026-01-01 09:00:00');
+
 -- ============================================================
 -- TravelEase – Bus Booking Management System
 -- Comprehensive Seed Data for H2 Database
@@ -50,22 +63,22 @@ INSERT INTO routes (source, destination, distance_km, duration_hours, status, cr
 -- Entity columns: id, bus_id, route_id, travel_date, departure_time,
 --   arrival_time, fare, available_seats, status, created_at, version
 -- ============================================================
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES
-(1, 1, '2026-07-15', '22:00:00', '05:00:00', 850.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(2, 1, '2026-07-15', '21:00:00', '04:00:00', 1200.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(3, 2, '2026-07-16', '20:00:00', '05:00:00', 1100.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(4, 4, '2026-07-16', '18:00:00', '04:00:00', 750.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(5, 3, '2026-07-17', '19:00:00', '11:00:00', 1800.00, 38, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(1, 5, '2026-07-18', '06:00:00', '09:00:00', 450.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(2, 6, '2026-07-18', '21:30:00', '05:00:00', 950.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(1, 7, '2026-07-20', '22:00:00', '08:00:00', 1200.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(2, 7, '2026-07-25', '21:30:00', '07:30:00', 1500.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(3, 8, '2026-08-01', '19:00:00', '07:00:00', 1800.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(4, 9, '2026-08-05', '18:00:00', '08:00:00', 1600.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(1, 8, '2026-07-13', '19:30:00', '07:30:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(2, 8, '2026-07-15', '20:00:00', '08:00:00', 1600.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(3, 8, '2026-07-17', '19:30:00', '07:30:00', 1500.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(4, 8, '2026-07-19', '20:30:00', '08:30:00', 1400.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES
+(1, 1, '2026-07-15', '22:00:00', '2026-07-16', '05:00:00', 850.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(2, 1, '2026-07-15', '21:00:00', '2026-07-16', '04:00:00', 1200.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(3, 2, '2026-07-16', '20:00:00', '2026-07-17', '05:00:00', 1100.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(4, 4, '2026-07-16', '18:00:00', '2026-07-17', '04:00:00', 750.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(5, 3, '2026-07-17', '19:00:00', '2026-07-18', '11:00:00', 1800.00, 38, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(1, 5, '2026-07-18', '06:00:00', '2026-07-18', '09:00:00', 450.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(2, 6, '2026-07-18', '21:30:00', '2026-07-19', '05:00:00', 950.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(1, 7, '2026-07-20', '22:00:00', '2026-07-21', '08:00:00', 1200.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(2, 7, '2026-07-25', '21:30:00', '2026-07-26', '07:30:00', 1500.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(3, 8, '2026-08-01', '19:00:00', '2026-08-02', '07:00:00', 1800.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(4, 9, '2026-08-05', '18:00:00', '2026-08-06', '08:00:00', 1600.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(1, 8, '2026-07-13', '19:30:00', '2026-07-14', '07:30:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(2, 8, '2026-07-15', '20:00:00', '2026-07-16', '08:00:00', 1600.00, 30, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(3, 8, '2026-07-17', '19:30:00', '2026-07-18', '07:30:00', 1500.00, 36, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(4, 8, '2026-07-19', '20:30:00', '2026-07-20', '08:30:00', 1400.00, 44, 'SCHEDULED', '2026-01-10 10:00:00', 0);
 
 -- ============================================================
 -- 4. SEATS (for each bus)
@@ -444,9 +457,9 @@ INSERT INTO maintenance_records (bus_id, maintenance_type, description, status, 
 
 -- --- 20g. SCHEDULES (continues from id 7 -> ids 8, 9), both on bus 7 (the ACTIVE
 -- Provider 2 bus - bus 8 is under maintenance and intentionally has no schedule) ---
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES
-(7, 2, '2026-07-19', '08:00:00', '17:00:00', 900.00, 20, 'SCHEDULED', '2026-01-10 10:00:00', 0),
-(7, 6, '2026-07-12', '07:00:00', '14:30:00', 500.00, 20, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES
+(7, 2, '2026-07-19', '08:00:00', '2026-07-19', '17:00:00', 900.00, 20, 'SCHEDULED', '2026-01-10 10:00:00', 0),
+(7, 6, '2026-07-12', '07:00:00', '2026-07-12', '14:30:00', 500.00, 20, 'SCHEDULED', '2026-01-10 10:00:00', 0);
 
 -- --- 20h. FARE RULES (continues from id 7 -> ids 8, 9) - AC_SEATER on routes 2 and 6
 -- previously only had AC_SEMI_SLEEPER/AC_SLEEPER fare rules, so a Provider 2 booking on
@@ -850,13 +863,13 @@ INSERT INTO hotel_reviews (review_id, hotel_id, user_id, rating, comment, create
 
 -- ====== ADDED BY AGENT: Mumbai to Goa Buses ======
 INSERT INTO routes (source, destination, distance_km, duration_hours, status, created_at) VALUES ('Mumbai', 'Goa', 600.0, 12.0, 'ACTIVE', '2026-01-01 10:00:00');
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-11', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-13', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-15', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-17', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-19', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-21', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
-INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-23', '20:00:00', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-11', '20:00:00', '2026-07-12', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-13', '20:00:00', '2026-07-14', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-15', '20:00:00', '2026-07-16', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-17', '20:00:00', '2026-07-18', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-19', '20:00:00', '2026-07-20', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-21', '20:00:00', '2026-07-22', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
+INSERT INTO bus_schedules (bus_id, route_id, travel_date, departure_time, arrival_date, arrival_time, fare, available_seats, status, created_at, version) VALUES (1, 8, '2026-07-23', '20:00:00', '2026-07-24', '08:00:00', 1500.00, 40, 'SCHEDULED', '2026-01-10 10:00:00', 0);
 
 -- ====== ADDED BY AGENT: Dummy Destinations and Hotels ======
 

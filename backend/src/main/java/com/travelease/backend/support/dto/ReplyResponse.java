@@ -4,8 +4,10 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ReplyResponse(
-        UUID replyId,
+        UUID id,
         String message,
+        String senderName,
+        String senderRole,
         LocalDateTime createdAt
 ) {
 }

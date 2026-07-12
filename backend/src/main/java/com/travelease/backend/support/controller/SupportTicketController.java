@@ -4,6 +4,7 @@ import com.travelease.backend.shared.dto.ApiResponse;
 import com.travelease.backend.support.dto.CreateTicketRequest;
 import com.travelease.backend.support.dto.TicketDetailResponse;
 import com.travelease.backend.support.dto.TicketResponse;
+import com.travelease.backend.support.dto.ReplyResponse;
 import com.travelease.backend.support.service.SupportTicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,5 +50,15 @@ public class SupportTicketController {
     ) {
         TicketDetailResponse response = supportTicketService.getMyTicket(ticketId, authentication.getName());
         return ResponseEntity.ok(ApiResponse.success(response, "Support ticket retrieved"));
+    }
+
+    @PostMapping("/{ticketId}/replies")
+    public ResponseEntity<ApiResponse<ReplyResponse>> addReply(
+            @PathVariable UUID ticketId,
+            @Valid @RequestBody com.travelease.backend.support.dto.ReplyRequest request,
+            Authentication authentication
+    ) {
+        ReplyResponse response = supportTicketService.addReply(ticketId, request, authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Reply added"));
     }
 }

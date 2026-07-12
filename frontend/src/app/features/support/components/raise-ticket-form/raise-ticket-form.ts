@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, effect, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NgIcon } from '@ng-icons/core';
@@ -10,7 +10,8 @@ import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmTextareaImports } from '@spartan-ng/helm/textarea';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
 import { SupportTicketService } from '@app/features/support/services/support-ticket.service';
-import { CreateTicketPayload, TicketCategory } from '@app/features/support/services/support-ticket.models';
+import { CreateTicketPayload, TicketCategory, Provider } from '@app/features/support/services/support-ticket.models';
+import { Subject, takeUntil } from 'rxjs';
 
 interface CategoryOption {
   value: TicketCategory;
@@ -21,7 +22,7 @@ const CATEGORY_OPTIONS: CategoryOption[] = [
   { value: 'BUS', label: 'Bus' },
   { value: 'HOTEL', label: 'Hotel' },
   { value: 'ACTIVITY', label: 'Activity' },
-  { value: 'TRIP', label: 'Trip / General' },
+  { value: 'PLATFORM', label: 'Platform / App Issue' },
   { value: 'OTHER', label: 'Other' },
 ];
 
@@ -40,21 +41,61 @@ const CATEGORY_OPTIONS: CategoryOption[] = [
   ],
   templateUrl: './raise-ticket-form.html',
 })
-export class RaiseTicketForm {
+export class RaiseTicketForm implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly supportTicketService = inject(SupportTicketService);
+  private destroy$ = new Subject<void>();
 
   protected readonly categoryOptions = CATEGORY_OPTIONS;
-  protected readonly category = signal<TicketCategory>('OTHER');
+  protected readonly category = signal<TicketCategory | null>(null);
+  protected readonly providers = signal<Provider[]>([]);
+  protected readonly selectedProviderId = signal<number | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
 
   protected readonly categoryLabel = (value: string): string =>
     this.categoryOptions.find((option) => option.value === value)?.label ?? value;
 
+  protected readonly providerLabel = (value: string): string => {
+    const p = this.providers().find((option) => option.id.toString() === value);
+    return p ? p.businessName : value;
+  };
+
+  ngOnInit() {}
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   protected onCategoryChange(value: string | null | undefined): void {
     if (value) {
-      this.category.set(value as TicketCategory);
+      const cat = value as TicketCategory;
+      this.category.set(cat);
+      this.providers.set([]);
+      this.selectedProviderId.set(null);
+
+      let role = '';
+      if (cat === 'HOTEL') role = 'ROLE_HOTEL_PROVIDER';
+      else if (cat === 'BUS') role = 'ROLE_PROVIDER';
+      else if (cat === 'ACTIVITY') role = 'ROLE_ACTIVITY_PROVIDER';
+
+      if (role) {
+        this.supportTicketService
+          .getProviders(role)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (data) => {
+              this.providers.set(data);
+            }
+          });
+      }
+    }
+  }
+
+  protected onProviderChange(value: string | null | undefined): void {
+    if (value) {
+      this.selectedProviderId.set(Number(value));
     }
   }
 
@@ -62,15 +103,23 @@ export class RaiseTicketForm {
     event.preventDefault();
     this.error.set(null);
 
-    if (!subject.trim() || !description.trim()) {
-      this.error.set('Please fill in both the subject and description.');
+    const currentCat = this.category();
+
+    if (!currentCat || !subject.trim() || !description.trim()) {
+      this.error.set('Please select a category and fill in both the subject and description.');
+      return;
+    }
+
+    if (['HOTEL', 'BUS', 'ACTIVITY'].includes(currentCat) && !this.selectedProviderId()) {
+      this.error.set('Please select a provider.');
       return;
     }
 
     const payload: CreateTicketPayload = {
-      category: this.category(),
+      category: currentCat,
       subject,
       description,
+      assignedProviderId: this.selectedProviderId(),
     };
 
     this.submitting.set(true);

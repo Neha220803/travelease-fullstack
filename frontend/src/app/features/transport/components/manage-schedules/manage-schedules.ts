@@ -131,6 +131,7 @@ export class ManageSchedules {
     event: Event,
     travelDate: string,
     departureTime: string,
+    arrivalDate: string,
     arrivalTime: string,
     fareRaw: string,
   ): void {
@@ -145,14 +146,34 @@ export class ManageSchedules {
       this.formError.set('Travel date is required and cannot be in the past.');
       return;
     }
+    if (!arrivalDate) {
+      this.formError.set('Arrival date is required.');
+      return;
+    }
     if (!departureTime || !arrivalTime) {
       this.formError.set('Departure and arrival time are required.');
       return;
     }
-    if (arrivalTime <= departureTime) {
-      this.formError.set('Arrival time must be after departure time.');
+    
+    // Check if arrival is after departure
+    const departureDateTime = new Date(`${travelDate}T${departureTime}`);
+    const arrivalDateTime = new Date(`${arrivalDate}T${arrivalTime}`);
+    
+    if (arrivalDateTime <= departureDateTime) {
+      this.formError.set('Arrival date and time must be after departure.');
       return;
     }
+
+    // Check against route duration
+    const route = this.activeRoutes().find(r => String(r.id) === this.selectedRouteId());
+    if (route && route.durationHours) {
+      const diffHours = (arrivalDateTime.getTime() - departureDateTime.getTime()) / (1000 * 60 * 60);
+      if (diffHours < route.durationHours) {
+        this.formError.set(`Arrival time is too soon. The route duration is ${route.durationHours} hours.`);
+        return;
+      }
+    }
+
     const fare = Number(fareRaw);
     if (!fareRaw || !Number.isFinite(fare) || fare <= 0) {
       this.formError.set('Fare is required and must be greater than 0.');
@@ -164,6 +185,7 @@ export class ManageSchedules {
       routeId: Number(this.selectedRouteId()),
       travelDate,
       departureTime,
+      arrivalDate,
       arrivalTime,
       fare,
     };

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@app/core/auth/auth.guard';
+import { Role } from '@app/core/auth/auth.models';
 
 export const ACTIVITY_ROUTES: Routes = [
   {
@@ -49,6 +50,12 @@ export const ACTIVITY_ROUTES: Routes = [
           import('@app/features/notifications/notifications.routes').then(
             (m) => m.NOTIFICATIONS_ROUTES,
           ),
+      },
+      {
+        path: 'support-tickets',
+        loadComponent: () =>
+          import('@app/features/support/components/provider-support-tickets/provider-support-tickets').then((m) => m.ProviderSupportTickets),
+        data: { role: 'activity' as Role },
       },
     ],
   },

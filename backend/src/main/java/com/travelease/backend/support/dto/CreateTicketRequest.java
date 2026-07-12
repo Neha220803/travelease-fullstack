@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 public record CreateTicketRequest(
         @NotNull TicketCategory category,
         @NotBlank String subject,
-        @NotBlank String description
+        @NotBlank(message = "Description is required")
+        String description,
+        Long assignedProviderId
 ) {
 }

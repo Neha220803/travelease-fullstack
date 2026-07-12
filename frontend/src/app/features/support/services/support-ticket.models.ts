@@ -1,10 +1,12 @@
-export type TicketCategory = 'BUS' | 'HOTEL' | 'ACTIVITY' | 'TRIP' | 'OTHER';
+export type TicketCategory = 'BUS' | 'HOTEL' | 'ACTIVITY' | 'PLATFORM' | 'OTHER';
 
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
 export interface TicketReply {
-  replyId: string;
+  id: string;
   message: string;
+  senderName: string | null;
+  senderRole: string | null;
   createdAt: string;
 }
 
@@ -16,6 +18,8 @@ export interface SupportTicket {
   subject: string;
   description: string;
   status: TicketStatus;
+  assignedProviderId: number | null;
+  assignedProviderName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,4 +33,11 @@ export interface CreateTicketPayload {
   category: TicketCategory;
   subject: string;
   description: string;
+  assignedProviderId?: number | null;
+}
+
+export interface Provider {
+  id: number;
+  businessName: string;
+  type: string;
 }

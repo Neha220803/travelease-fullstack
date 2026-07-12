@@ -8,6 +8,7 @@ export interface ScheduleResponse {
   route: RouteReferenceResponse;
   travelDate: string;
   departureTime: string;
+  arrivalDate: string;
   arrivalTime: string;
   fare: number;
   availableSeats: number;
@@ -19,6 +20,7 @@ export interface ScheduleFormPayload {
   routeId: number;
   travelDate: string;
   departureTime: string;
+  arrivalDate: string;
   arrivalTime: string;
   fare: number;
 }

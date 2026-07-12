@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
+import { NgIcon } from '@ng-icons/core';
 import { AuthService } from '@app/core/auth/auth.service';
 import { SECURITY_QUESTIONS } from '@app/features/auth/security-questions';
 
@@ -19,7 +20,7 @@ type PartnerRegisterField =
 
 @Component({
   selector: 'app-partner-register',
-  imports: [RouterLink, HlmButtonImports, HlmInputImports, HlmLabelImports],
+  imports: [RouterLink, HlmButtonImports, HlmInputImports, HlmLabelImports, NgIcon],
   templateUrl: './partner-register.html',
 })
 export class PartnerRegister {
@@ -30,6 +31,17 @@ export class PartnerRegister {
   public readonly success = signal<string | null>(null);
   protected readonly submitting = signal(false);
   protected readonly fieldErrors = signal<Partial<Record<PartnerRegisterField, string>>>({});
+
+  protected readonly passwordVisible = signal(false);
+  protected readonly confirmPasswordVisible = signal(false);
+
+  protected togglePasswordVisibility(): void {
+    this.passwordVisible.update((v) => !v);
+  }
+
+  protected toggleConfirmPasswordVisibility(): void {
+    this.confirmPasswordVisible.update((v) => !v);
+  }
 
   protected clearFieldError(field: PartnerRegisterField): void {
     const { [field]: _removed, ...rest } = this.fieldErrors();

@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
+import { NgIcon } from '@ng-icons/core';
 import { AuthService } from '@app/core/auth/auth.service';
 import { SECURITY_QUESTIONS } from '@app/features/auth/security-questions';
 
@@ -18,7 +19,7 @@ type RegisterField =
 
 @Component({
   selector: 'app-register',
-  imports: [RouterLink, HlmButtonImports, HlmInputImports, HlmLabelImports],
+  imports: [RouterLink, HlmButtonImports, HlmInputImports, HlmLabelImports, NgIcon],
   templateUrl: './register.html',
 })
 export class Register {
@@ -29,6 +30,17 @@ export class Register {
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
   protected readonly fieldErrors = signal<Partial<Record<RegisterField, string>>>({});
+  
+  protected readonly passwordVisible = signal(false);
+  protected readonly confirmPasswordVisible = signal(false);
+
+  protected togglePasswordVisibility(): void {
+    this.passwordVisible.update((v) => !v);
+  }
+
+  protected toggleConfirmPasswordVisibility(): void {
+    this.confirmPasswordVisible.update((v) => !v);
+  }
 
   protected clearFieldError(field: RegisterField): void {
     const { [field]: _removed, ...rest } = this.fieldErrors();

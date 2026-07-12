@@ -1,5 +1,6 @@
 package com.travelease.backend.support.entity;
 
+import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.shared.entity.BaseEntity;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -21,6 +22,10 @@ public class SupportTicketReply extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_id", nullable = false)
     private SupportTicket ticket;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id", nullable = false)
+    private User sender;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;

@@ -28,6 +28,10 @@ public class ScheduleRequest {
     @NotNull(message = "Departure time is required")
     private LocalTime departureTime;
 
+    @NotNull(message = "Arrival date is required")
+    @FutureOrPresent(message = "Arrival date cannot be in the past")
+    private LocalDate arrivalDate;
+
     @NotNull(message = "Arrival time is required")
     private LocalTime arrivalTime;
 

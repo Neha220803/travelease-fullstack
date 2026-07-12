@@ -20,7 +20,6 @@
         <tr hlmTr>
           <th hlmTh>Route</th>
           <th hlmTh>Bus</th>
-          <th hlmTh>Travel Date</th>
           <th hlmTh>Departure</th>
           <th hlmTh>Arrival</th>
           <th hlmTh>Fare</th>
@@ -34,9 +33,8 @@
           <tr hlmTr>
             <td hlmTd>{{ s.route.source }} → {{ s.route.destination }}</td>
             <td hlmTd>{{ s.bus.busNumber }}</td>
-            <td hlmTd>{{ s.travelDate }}</td>
-            <td hlmTd>{{ s.departureTime }}</td>
-            <td hlmTd>{{ s.arrivalTime }}</td>
+            <td hlmTd>{{ s.travelDate }}<br><span class="text-xs text-muted-foreground">{{ s.departureTime }}</span></td>
+            <td hlmTd>{{ s.arrivalDate }}<br><span class="text-xs text-muted-foreground">{{ s.arrivalTime }}</span></td>
             <td hlmTd>₹{{ s.fare }}</td>
             <td hlmTd>{{ s.availableSeats }}</td>
             <td hlmTd><app-status-badge [status]="s.status" /></td>
@@ -70,7 +68,7 @@
     </div>
     <form
       class="flex-1 overflow-y-auto px-4 space-y-4"
-      (submit)="onSubmit($event, travelDateInput.value, departureTimeInput.value, arrivalTimeInput.value, fareInput.value)"
+      (submit)="onSubmit($event, travelDateInput.value, departureTimeInput.value, arrivalDateInput.value, arrivalTimeInput.value, fareInput.value)"
     >
       @if (editingSchedule()) {
         <p class="text-xs text-warning bg-warning/10 border border-warning/20 rounded-md p-2">
@@ -118,6 +116,10 @@
       <div class="space-y-2">
         <label hlmLabel for="departure-time">Departure Time</label>
         <input hlmInput id="departure-time" type="time" required [value]="editingSchedule()?.departureTime ?? ''" #departureTimeInput />
+      </div>
+      <div class="space-y-2">
+        <label hlmLabel for="arrival-date">Arrival Date</label>
+        <input hlmInput id="arrival-date" type="date" required [min]="travelDateInput.value || todayDate" [value]="editingSchedule()?.arrivalDate ?? ''" #arrivalDateInput />
       </div>
       <div class="space-y-2">
         <label hlmLabel for="arrival-time">Arrival Time</label>

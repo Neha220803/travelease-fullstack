@@ -35,6 +35,9 @@ public class SupportTicket extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "assigned_provider_id")
+    private Long assignedProviderId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TicketStatus status = TicketStatus.OPEN;

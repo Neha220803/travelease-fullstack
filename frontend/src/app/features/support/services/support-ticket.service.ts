@@ -53,15 +53,57 @@ export class SupportTicketService {
       .pipe(map((response) => response.data));
   }
 
-  addReply(ticketId: string, message: string): Observable<TicketReply> {
+  addReplyAdmin(ticketId: string, message: string): Observable<TicketReply> {
     return this.http
       .post<ApiResponse<TicketReply>>(`${API_BASE_URL}/api/admin/support/tickets/${ticketId}/replies`, { message })
       .pipe(map((response) => response.data));
   }
 
-  updateStatus(ticketId: string, status: TicketStatus): Observable<SupportTicket> {
+  updateStatusAdmin(ticketId: string, status: TicketStatus): Observable<SupportTicket> {
     return this.http
       .patch<ApiResponse<SupportTicket>>(`${API_BASE_URL}/api/admin/support/tickets/${ticketId}/status`, { status })
+      .pipe(map((response) => response.data));
+  }
+
+  // Traveler reply
+  addReply(ticketId: string, message: string): Observable<TicketReply> {
+    return this.http
+      .post<ApiResponse<TicketReply>>(`${API_BASE_URL}/api/support/tickets/${ticketId}/replies`, { message })
+      .pipe(map((response) => response.data));
+  }
+
+  // Provider Endpoints
+  getProviders(type?: string): Observable<import('./support-ticket.models').Provider[]> {
+    let params = new HttpParams();
+    if (type) {
+      params = params.set('type', type);
+    }
+    return this.http
+      .get<ApiResponse<import('./support-ticket.models').Provider[]>>(`${API_BASE_URL}/api/providers`, { params })
+      .pipe(map((response) => response.data));
+  }
+
+  getAssignedTickets(): Observable<SupportTicket[]> {
+    return this.http
+      .get<ApiResponse<SupportTicket[]>>(`${API_BASE_URL}/api/provider/support/tickets/assigned`)
+      .pipe(map((response) => response.data));
+  }
+
+  getAssignedTicket(ticketId: string): Observable<SupportTicketDetail> {
+    return this.http
+      .get<ApiResponse<SupportTicketDetail>>(`${API_BASE_URL}/api/provider/support/tickets/${ticketId}`)
+      .pipe(map((response) => response.data));
+  }
+
+  addReplyProvider(ticketId: string, message: string): Observable<TicketReply> {
+    return this.http
+      .post<ApiResponse<TicketReply>>(`${API_BASE_URL}/api/provider/support/tickets/${ticketId}/replies`, { message })
+      .pipe(map((response) => response.data));
+  }
+
+  updateStatusProvider(ticketId: string, status: TicketStatus): Observable<SupportTicket> {
+    return this.http
+      .patch<ApiResponse<SupportTicket>>(`${API_BASE_URL}/api/provider/support/tickets/${ticketId}/status`, { status })
       .pipe(map((response) => response.data));
   }
 }

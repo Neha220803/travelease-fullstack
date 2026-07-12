@@ -26,6 +26,7 @@ public class ScheduleMapper {
                 .route(routeMapper.toResponse(schedule.getRoute()))
                 .travelDate(schedule.getTravelDate())
                 .departureTime(schedule.getDepartureTime())
+                .arrivalDate(schedule.getArrivalDate())
                 .arrivalTime(schedule.getArrivalTime())
                 .fare(schedule.getFare())
                 .availableSeats(schedule.getAvailableSeats())

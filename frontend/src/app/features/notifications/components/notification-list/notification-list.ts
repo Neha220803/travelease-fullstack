@@ -12,6 +12,11 @@ const ICON_FOR: Record<string, string> = {
   BUDGET: 'lucideAlertTriangle',
   DELAY: 'lucideBellRing',
   BOOKING: 'lucideCheckCircle2',
+  SUPPORT_TICKET: 'lucideLifeBuoy',
+  SUPPORT_REPLY: 'lucideMessageCircle',
+  PARTNER_APPLICATION: 'lucideUserPlus',
+  PARTNER_APPROVAL: 'lucideUserCheck',
+  PARTNER_REJECTION: 'lucideUserX',
 };
 
 export function iconForNotificationType(type: string): string {
