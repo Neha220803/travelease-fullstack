@@ -29,8 +29,6 @@ public class ReportServiceImpl implements ReportService {
     private final BusRepository busRepository;
     private final BusScheduleRepository scheduleRepository;
     private final RouteRepository routeRepository;
-    private final DriverRepository driverRepository;
-    private final ConductorRepository conductorRepository;
     private final TripRepository tripRepository;
     private final MaintenanceRepository maintenanceRepository;
     private final RefundRepository refundRepository;

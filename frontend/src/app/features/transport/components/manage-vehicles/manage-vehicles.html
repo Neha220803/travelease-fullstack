@@ -1,4 +1,14 @@
-<app-page-header title="Vehicles" subtitle="Fleet inventory, status, and maintenance." />
+<app-page-header title="Vehicles" subtitle="Fleet inventory, status, and maintenance.">
+  @if (activeTab() === 'fleet') {
+    <button hlmBtn action (click)="openCreate()">
+      <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Vehicle
+    </button>
+  } @else {
+    <button hlmBtn action (click)="openScheduleMaintenance()">
+      <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Schedule Maintenance
+    </button>
+  }
+</app-page-header>
 
 <div hlmTabs [tab]="activeTab()" (tabActivated)="activeTab.set($event)" class="w-full">
   <div hlmTabsList aria-label="Vehicles sections" class="bg-muted/50 p-1">
@@ -8,9 +18,17 @@
 
   <div [hlmTabsContent]="'fleet'" class="mt-6">
     <div class="flex justify-end mb-4">
-      <button hlmBtn (click)="openCreate()">
-        <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Add Vehicle
-      </button>
+      <hlm-select [value]="fleetStatusFilter()" (valueChange)="onFleetStatusFilterChange($event)">
+        <hlm-select-trigger class="w-48"><hlm-select-value /></hlm-select-trigger>
+        <ng-template hlmSelectPortal>
+          <hlm-select-content>
+            <hlm-select-item value="ALL">All Statuses</hlm-select-item>
+            @for (s of busStatuses; track s) {
+              <hlm-select-item [value]="s">{{ s }}</hlm-select-item>
+            }
+          </hlm-select-content>
+        </ng-template>
+      </hlm-select>
     </div>
 
     @if (loading()) {
@@ -59,9 +77,17 @@
 
   <div [hlmTabsContent]="'maintenance'" class="mt-6">
     <div class="flex justify-end mb-4">
-      <button hlmBtn (click)="openScheduleMaintenance()">
-        <ng-icon name="lucidePlus" class="h-4 w-4 mr-1" />Schedule Maintenance
-      </button>
+      <hlm-select [value]="maintenanceStatusFilter()" (valueChange)="onMaintenanceStatusFilterChange($event)">
+        <hlm-select-trigger class="w-48"><hlm-select-value /></hlm-select-trigger>
+        <ng-template hlmSelectPortal>
+          <hlm-select-content>
+            <hlm-select-item value="ALL">All Statuses</hlm-select-item>
+            @for (s of maintenanceStatuses; track s) {
+              <hlm-select-item [value]="s">{{ s }}</hlm-select-item>
+            }
+          </hlm-select-content>
+        </ng-template>
+      </hlm-select>
     </div>
 
     @if (maintenanceLoading()) {
@@ -263,7 +289,7 @@
       </div>
       <div class="space-y-2">
         <label hlmLabel for="maintenance-scheduled-date">Scheduled Date</label>
-        <input hlmInput id="maintenance-scheduled-date" type="date" #scheduledDateInput />
+        <input hlmInput id="maintenance-scheduled-date" type="date" [min]="todayDate" #scheduledDateInput />
       </div>
       <div class="space-y-2">
         <label hlmLabel for="maintenance-estimated-cost">Estimated Cost</label>

@@ -8,15 +8,19 @@ import {
   MaintenanceResponse,
   MaintenanceTransitionPayload,
 } from '@app/features/transport/services/maintenance.models';
+import { MaintenanceStatus } from '@app/features/transport/services/transport-enums';
 
 @Injectable({ providedIn: 'root' })
 export class MaintenanceService {
   private readonly http = inject(HttpClient);
 
-  listMaintenance(busId?: number): Observable<MaintenanceResponse[]> {
+  listMaintenance(busId?: number, status?: MaintenanceStatus): Observable<MaintenanceResponse[]> {
     let params = new HttpParams();
     if (busId != null) {
       params = params.set('busId', busId);
+    }
+    if (status != null) {
+      params = params.set('status', status);
     }
     return this.http
       .get<ApiResponse<MaintenanceResponse[]>>(`${API_BASE_URL}/api/operations/maintenance`, { params })

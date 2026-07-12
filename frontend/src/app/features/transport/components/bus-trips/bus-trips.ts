@@ -17,14 +17,13 @@ import { AuthService } from '@app/core/auth/auth.service';
 import { ToastService } from '@app/core/toast/toast.service';
 import { TripService } from '@app/features/transport/services/trip.service';
 import { ScheduleService } from '@app/features/transport/services/schedule.service';
-import { DriverService } from '@app/features/transport/services/driver.service';
-import { ConductorService } from '@app/features/transport/services/conductor.service';
+import { StaffService } from '@app/features/transport/services/staff.service';
 import {
   FleetAvailabilityResponse, TripAssignmentPayload, TripResponse,
 } from '@app/features/transport/services/trip.models';
 import { TripStatus } from '@app/features/transport/services/transport-enums';
 import { ScheduleResponse } from '@app/features/transport/services/schedule.models';
-import { ConductorResponse, DriverResponse } from '@app/features/transport/services/staff.models';
+import { StaffResponse } from '@app/features/transport/services/staff.models';
 
 type TripAction = 'BOARDING' | 'DEPARTED' | 'RUNNING' | 'DELAYED' | 'ARRIVED' | 'COMPLETED' | 'CANCELLED';
 
@@ -50,8 +49,7 @@ type TripAction = 'BOARDING' | 'DEPARTED' | 'RUNNING' | 'DELAYED' | 'ARRIVED' | 
 export class BusTrips {
   private readonly tripService = inject(TripService);
   private readonly scheduleService = inject(ScheduleService);
-  private readonly driverService = inject(DriverService);
-  private readonly conductorService = inject(ConductorService);
+  private readonly staffService = inject(StaffService);
   private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
 
@@ -68,9 +66,12 @@ export class BusTrips {
     () => new Map(this.allSchedules().map((s) => [s.id, s])),
   );
 
-  private readonly allDrivers = signal<DriverResponse[]>([]);
+  private readonly allStaff = signal<StaffResponse[]>([]);
+  private readonly allDrivers = computed(() => this.allStaff().filter((s) => s.staffType === 'DRIVER'));
   public readonly availableDrivers = computed(() => this.allDrivers().filter((d) => d.status === 'AVAILABLE'));
-  private readonly allConductors = signal<ConductorResponse[]>([]);
+  private readonly allConductors = computed(
+    () => this.allStaff().filter((s) => s.staffType === 'CONDUCTOR' || s.staffType === 'BUS_CAPTAIN'),
+  );
   public readonly availableConductors = computed(() => this.allConductors().filter((c) => c.status === 'AVAILABLE'));
 
   public readonly assignSheetOpen = signal(false);
@@ -94,8 +95,7 @@ export class BusTrips {
       this.tripService.getFleetAvailability(providerId).subscribe((a) => this.availability.set(a));
       this.scheduleService.listMySchedules(providerId).subscribe((schedules) => this.allSchedules.set(schedules));
     }
-    this.driverService.listDrivers().subscribe((drivers) => this.allDrivers.set(drivers));
-    this.conductorService.listConductors().subscribe((conductors) => this.allConductors.set(conductors));
+    this.staffService.listStaff().subscribe((staff) => this.allStaff.set(staff));
   }
 
   load(): void {
@@ -134,7 +134,7 @@ export class BusTrips {
 
   routeLabel(trip: TripResponse): string {
     const schedule = this.scheduleById().get(trip.scheduleId);
-    return schedule ? `${schedule.route.source} → ${schedule.route.destination}` : `Schedule #${trip.scheduleId}`;
+    return schedule ? `${schedule.route.source} → ${schedule.route.destination}` : `${trip.busNumber} — ${trip.busName}`;
   }
 
   travelDate(trip: TripResponse): string {

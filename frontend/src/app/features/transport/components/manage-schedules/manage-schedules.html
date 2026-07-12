@@ -105,19 +105,27 @@
       </div>
       <div class="space-y-2">
         <label hlmLabel for="travel-date">Travel Date</label>
-        <input hlmInput id="travel-date" type="date" [value]="editingSchedule()?.travelDate ?? ''" #travelDateInput />
+        <input
+          hlmInput
+          id="travel-date"
+          type="date"
+          required
+          [min]="todayDate"
+          [value]="editingSchedule()?.travelDate ?? ''"
+          #travelDateInput
+        />
       </div>
       <div class="space-y-2">
         <label hlmLabel for="departure-time">Departure Time</label>
-        <input hlmInput id="departure-time" type="time" [value]="editingSchedule()?.departureTime ?? ''" #departureTimeInput />
+        <input hlmInput id="departure-time" type="time" required [value]="editingSchedule()?.departureTime ?? ''" #departureTimeInput />
       </div>
       <div class="space-y-2">
         <label hlmLabel for="arrival-time">Arrival Time</label>
-        <input hlmInput id="arrival-time" type="time" [value]="editingSchedule()?.arrivalTime ?? ''" #arrivalTimeInput />
+        <input hlmInput id="arrival-time" type="time" required [value]="editingSchedule()?.arrivalTime ?? ''" #arrivalTimeInput />
       </div>
       <div class="space-y-2">
         <label hlmLabel for="fare">Fare</label>
-        <input hlmInput id="fare" type="number" min="0" step="0.01" [value]="editingSchedule()?.fare ?? ''" #fareInput />
+        <input hlmInput id="fare" type="number" required min="0.01" step="0.01" [value]="editingSchedule()?.fare ?? ''" #fareInput />
       </div>
       @if (formError()) {
         <p class="text-xs text-destructive whitespace-pre-line">{{ formError() }}</p>

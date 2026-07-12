@@ -1,6 +1,6 @@
 package com.travelease.backend.busbooking.entity.enums;
 
-public enum ConductorStatus {
+public enum StaffStatus {
     AVAILABLE,
     ASSIGNED,
     ON_TRIP,
