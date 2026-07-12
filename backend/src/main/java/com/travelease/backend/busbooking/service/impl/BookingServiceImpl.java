@@ -304,6 +304,16 @@ public class BookingServiceImpl implements BookingService {
 
         addTimelineEntry(booking, BookingEvent.BOOKING_CANCELLED, "Booking cancelled by user");
 
+        // Notify Transport Provider of cancellation
+        userRepository.findByProviderId(schedule.getBus().getProviderId()).forEach(providerUser -> {
+            notificationService.createNotification(
+                    providerUser.getId().toString(),
+                    "BOOKING",
+                    "Bus Booking Cancelled",
+                    "Booking reference " + booking.getBookingReference() + " for schedule on " + schedule.getTravelDate() + " was cancelled."
+            );
+        });
+
         return bookingMapper.toResponse(booking);
     }
 

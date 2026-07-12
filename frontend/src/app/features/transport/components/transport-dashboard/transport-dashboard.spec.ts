@@ -4,6 +4,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { TransportDashboard } from '@app/features/transport/components/transport-dashboard/transport-dashboard';
 import { DashboardService } from '@app/features/transport/services/dashboard.service';
 import { ProviderDashboardResponse } from '@app/features/transport/services/dashboard.models';
+import { provideRouter } from '@angular/router';
+import { NotificationService } from '@app/features/notifications/services/notification.service';
 
 const KPI = { title: 'x', value: 1, unit: 'u', changePercent: 0, trend: 'STABLE' as const, icon: 'i' };
 const DASHBOARD: ProviderDashboardResponse = {
@@ -21,7 +23,11 @@ const DASHBOARD: ProviderDashboardResponse = {
 async function setup(dashboardService: Partial<DashboardService>) {
   await TestBed.configureTestingModule({
     imports: [TransportDashboard],
-    providers: [{ provide: DashboardService, useValue: dashboardService }],
+    providers: [
+      provideRouter([]),
+      { provide: DashboardService, useValue: dashboardService },
+      { provide: NotificationService, useValue: { getNotifications: () => of([]) } },
+    ],
   }).compileComponents();
   const fixture = TestBed.createComponent(TransportDashboard);
   fixture.detectChanges();

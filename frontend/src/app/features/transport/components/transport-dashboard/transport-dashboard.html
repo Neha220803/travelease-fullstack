@@ -68,18 +68,38 @@
     </div>
   </div>
 
-  <div hlmCard>
-    <div hlmCardHeader><h3 hlmCardTitle>Top Routes</h3></div>
-    <div hlmCardContent class="text-sm space-y-2">
-      @for (r of d.topRoutes; track r.routeId) {
-        <div class="flex justify-between border-b border-border pb-2">
-          <span>{{ r.source }} → {{ r.destination }}</span>
-          <span>{{ r.bookingCount }} bookings</span>
-          <span>₹{{ r.revenue }}</span>
-        </div>
-      } @empty {
-        <p class="text-muted-foreground">No route data yet.</p>
-      }
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div hlmCard class="md:col-span-2">
+      <div hlmCardHeader><h3 hlmCardTitle>Top Routes</h3></div>
+      <div hlmCardContent class="text-sm space-y-2">
+        @for (r of d.topRoutes; track r.routeId) {
+          <div class="flex justify-between border-b border-border pb-2">
+            <span>{{ r.source }} → {{ r.destination }}</span>
+            <span>{{ r.bookingCount }} bookings</span>
+            <span>₹{{ r.revenue }}</span>
+          </div>
+        } @empty {
+          <p class="text-muted-foreground">No route data yet.</p>
+        }
+      </div>
+    </div>
+
+    <div hlmCard>
+      <div hlmCardHeader class="flex flex-row items-center justify-between">
+        <h3 hlmCardTitle>Notifications</h3>
+        <a hlmBtn variant="ghost" size="sm" routerLink="/transport/notifications">All</a>
+      </div>
+      <div hlmCardContent class="space-y-2">
+        @if (notifications().length === 0) {
+          <p class="text-xs text-muted-foreground py-2 text-center">No notifications yet.</p>
+        }
+        @for (n of notifications(); track n.notificationId) {
+          <div class="text-sm py-2 border-b last:border-0">
+            <p class="font-medium text-xs">{{ n.title }}</p>
+            <p class="text-[11px] text-muted-foreground mt-0.5">{{ n.message }} &middot; {{ n.createdDate | date:'short' }}</p>
+          </div>
+        }
+      </div>
     </div>
   </div>
 }

@@ -55,6 +55,13 @@ export const TRANSPORT_ROUTES: Routes = [
             (m) => m.TransportReports,
           ),
       },
+      {
+        path: 'notifications',
+        loadChildren: () =>
+          import('@app/features/notifications/notifications.routes').then(
+            (m) => m.NOTIFICATIONS_ROUTES,
+          ),
+      },
     ],
   },
 ];

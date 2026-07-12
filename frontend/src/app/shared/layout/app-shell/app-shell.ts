@@ -42,7 +42,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     // { to: '/admin/hotels', label: 'Hotel Management', icon: 'lucideHotel' },
     { to: '/admin/support-tickets', label: 'Support Tickets', icon: 'lucideLifeBuoy' },
     { to: '/admin/reports', label: 'Reports', icon: 'lucideBarChart3' },
-    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
+    { to: '/admin/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   hotel: [
     { to: '/hotel', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -61,7 +61,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/transport/trips', label: 'Bus Trips', icon: 'lucideNavigation' },
     { to: '/transport/bookings', label: 'Booking Analytics', icon: 'lucideChartLine' },
     { to: '/transport/reports', label: 'Reports', icon: 'lucideBarChart3' },
-    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
+    { to: '/transport/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   activity: [
     { to: '/activity', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -144,7 +144,7 @@ export class AppShell {
   protected readonly userInitials = computed(() => {
     const user = this.authService.currentUser();
     const name = user?.name ?? '';
-  
+
     return name
       .split(' ')
       .filter(Boolean)

@@ -331,7 +331,19 @@ public class AccommodationServiceImpl implements AccommodationService {
         HotelBooking booking = getBookingEntity(bookingId);
         ensureBookingOwner(booking, currentUserEmail);
         booking.setBookingStatus(CANCELLED);
-        return toBookingResponse(bookingRepository.save(booking));
+        HotelBooking savedBooking = bookingRepository.save(booking);
+
+        // Notify Hotel Provider of cancellation
+        userRepository.findByProviderId(savedBooking.getHotel().getProviderId()).forEach(providerUser -> {
+            notificationService.createNotification(
+                    providerUser.getId().toString(),
+                    "BOOKING",
+                    "Hotel Booking Cancelled",
+                    "Booking for " + savedBooking.getHotel().getHotelName() + " on " + savedBooking.getCheckInDate() + " was cancelled."
+            );
+        });
+
+        return toBookingResponse(savedBooking);
     }
 
     @Override

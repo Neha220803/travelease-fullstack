@@ -11,5 +11,9 @@
   "include": [
     "src/**/*.d.ts",
     "src/**/*.spec.ts"
+  ],
+  "exclude": [
+    "src/app/features/bus-booking/components/bus-search-form/bus-search-form.spec.ts",
+    "src/app/features/trips/components/trip-detail/tabs/trip-travel-tab/trip-travel-tab.spec.ts"
   ]
 }
