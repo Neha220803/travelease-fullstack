@@ -120,6 +120,18 @@ export class AppShell {
   protected readonly roleLabel = computed(() => ROLE_LABEL[this.role()]);
   protected readonly home = computed(() => ROLE_HOME[this.role()]);
 
+  protected readonly userInitials = computed(() => {
+    const user = this.authService.currentUser();
+    const name = user?.name ?? '';
+  
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .map(part => part.charAt(0).toUpperCase())
+      .slice(0, 2)
+      .join('');
+  });
+
   protected signOut(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
