@@ -71,6 +71,8 @@ public class AccommodationServiceImpl implements AccommodationService {
     private final NotificationService notificationService;
     private final SecurityUtil securityUtil;
     private final ItineraryService itineraryService;
+    private final com.travelease.backend.accommodation.repository.RoomLockRepository roomLockRepository;
+    private final com.travelease.backend.accommodation.repository.HotelGuestRepository hotelGuestRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -241,19 +243,91 @@ public class AccommodationServiceImpl implements AccommodationService {
 
     @Override
     @Transactional
+    public com.travelease.backend.accommodation.dto.RoomLockResponse lockRoom(com.travelease.backend.accommodation.dto.RoomLockRequest request, String currentUserEmail) {
+        Room room = getAvailableRoomsForDates(request.hotelId(), request.roomType(), request.checkInDate(), request.checkOutDate())
+                .stream().findFirst()
+                .orElseThrow(() -> new InvalidRequestException("No available room found for requested room type and dates"));
+
+        com.travelease.backend.accommodation.entity.RoomLock lock = com.travelease.backend.accommodation.entity.RoomLock.builder()
+                .room(room)
+                .userId(getCurrentUser(currentUserEmail).getId())
+                .checkInDate(request.checkInDate())
+                .checkOutDate(request.checkOutDate())
+                .expiresAt(java.time.LocalDateTime.now().plusMinutes(10))
+                .status(com.travelease.backend.accommodation.entity.enums.RoomLockStatus.LOCKED)
+                .build();
+
+        lock = roomLockRepository.save(lock);
+        return new com.travelease.backend.accommodation.dto.RoomLockResponse(
+                lock.getId(),
+                room.getId(),
+                lock.getLockedAt(),
+                lock.getExpiresAt(),
+                lock.getStatus()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void unlockRoom(UUID roomId, String currentUserEmail) {
+        UUID userId = getCurrentUser(currentUserEmail).getId();
+        List<com.travelease.backend.accommodation.entity.RoomLock> locks = roomLockRepository.findAll().stream()
+                .filter(l -> l.getRoom().getId().equals(roomId) && l.getUserId().equals(userId) && l.getStatus() == com.travelease.backend.accommodation.entity.enums.RoomLockStatus.LOCKED)
+                .toList();
+        locks.forEach(l -> {
+            l.setStatus(com.travelease.backend.accommodation.entity.enums.RoomLockStatus.RELEASED);
+            roomLockRepository.save(l);
+        });
+    }
+
+    @Override
+    @Transactional
     public HotelBookingResponse createBooking(HotelBookingRequest request, String currentUserEmail) {
-        BookingQuoteResponse quote = quoteBooking(request);
+        User currentUser = getCurrentUser(currentUserEmail);
+        
+        // Find valid lock OR just find available room (fallback)
+        Room room = null;
+        if (request.lockedRoomId() != null) {
+            List<com.travelease.backend.accommodation.entity.RoomLock> validLocks = roomLockRepository.findValidLockForUser(
+                    request.lockedRoomId(), currentUser.getId(), request.checkInDate(), request.checkOutDate(), java.time.LocalDateTime.now());
+            if (validLocks.isEmpty()) {
+                throw new InvalidRequestException("No valid lock found for this room. It may have expired.");
+            }
+            com.travelease.backend.accommodation.entity.RoomLock lock = validLocks.get(0);
+            lock.setStatus(com.travelease.backend.accommodation.entity.enums.RoomLockStatus.BOOKED);
+            roomLockRepository.save(lock);
+            room = lock.getRoom();
+        } else {
+            room = findAvailableRoom(request); // Throws if not available
+        }
+
+        long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+        BigDecimal totalAmount = room.getPricePerNight().multiply(BigDecimal.valueOf(nights));
+
         HotelBooking booking = new HotelBooking();
         booking.setTripId(request.tripId());
-        booking.setHotel(getHotel(request.hotelId()));
-        booking.setBookedBy(getCurrentUser(currentUserEmail));
+        booking.setHotel(room.getHotel());
+        booking.setBookedBy(currentUser);
         booking.setCheckInDate(request.checkInDate());
         booking.setCheckOutDate(request.checkOutDate());
-        booking.setRoomType(request.roomType());
-        booking.setRoomNumber(request.roomNumber());
-        booking.setTotalAmount(quote.totalAmount());
+        booking.setRoomType(room.getRoomType());
+        booking.setRoomNumber(room.getId().toString()); // Store roomId as roomNumber for linking
+        booking.setTotalAmount(totalAmount);
         booking.setBookingStatus(CONFIRMED);
         HotelBooking savedBooking = bookingRepository.save(booking);
+
+        if (request.guestDetails() != null) {
+            for (com.travelease.backend.accommodation.dto.GuestDetailDto guestDto : request.guestDetails()) {
+                com.travelease.backend.accommodation.entity.HotelGuest guest = com.travelease.backend.accommodation.entity.HotelGuest.builder()
+                        .hotelBooking(savedBooking)
+                        .name(guestDto.getName())
+                        .age(guestDto.getAge())
+                        .gender(guestDto.getGender())
+                        .isPrimary(guestDto.getIsPrimary() != null ? guestDto.getIsPrimary() : false)
+                        .build();
+                hotelGuestRepository.save(guest);
+            }
+        }
 
         itineraryService.createFromPaidBooking(
                 request.tripId(), "Stay at " + savedBooking.getHotel().getHotelName(), savedBooking.getCheckInDate());
@@ -320,7 +394,7 @@ public class AccommodationServiceImpl implements AccommodationService {
         booking.setCheckInDate(request.checkInDate());
         booking.setCheckOutDate(request.checkOutDate());
         booking.setRoomType(request.roomType());
-        booking.setRoomNumber(request.roomNumber());
+        booking.setRoomNumber(request.lockedRoomId() != null ? request.lockedRoomId().toString() : booking.getRoomNumber());
         booking.setTotalAmount(quote.totalAmount());
         return toBookingResponse(bookingRepository.save(booking));
     }
@@ -509,24 +583,38 @@ public class AccommodationServiceImpl implements AccommodationService {
                 errors.add("Stay duration must be at least 1 day");
             }
         }
-        if (request.hotelId() != null && request.roomType() != null
-                && roomRepository.findFirstByHotelIdAndRoomTypeIgnoreCaseAndAvailabilityStatusIgnoreCase(
-                request.hotelId(),
-                request.roomType(),
-                AVAILABLE
-        ).isEmpty()) {
-            errors.add("No available room found for requested room type");
+        if (request.hotelId() != null && request.roomType() != null) {
+            if (getAvailableRoomsForDates(request.hotelId(), request.roomType(), request.checkInDate(), request.checkOutDate()).isEmpty()) {
+                errors.add("No available room found for requested room type and dates");
+            }
         }
         return errors;
     }
 
+    private List<Room> getAvailableRoomsForDates(UUID hotelId, String roomType, java.time.LocalDate checkInDate, java.time.LocalDate checkOutDate) {
+        List<Room> allRooms = roomRepository.findByHotelId(hotelId).stream()
+                .filter(r -> r.getRoomType().equalsIgnoreCase(roomType) && AVAILABLE.equalsIgnoreCase(r.getAvailabilityStatus()))
+                .toList();
+
+        List<Room> availableRooms = new ArrayList<>();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        for (Room room : allRooms) {
+            List<HotelBooking> overlappingBookings = bookingRepository.findOverlappingBookings(room.getId().toString(), checkInDate, checkOutDate);
+            if (!overlappingBookings.isEmpty()) continue;
+
+            List<com.travelease.backend.accommodation.entity.RoomLock> activeLocks = roomLockRepository.findActiveLocksForRoom(room.getId(), checkInDate, checkOutDate, now);
+            if (activeLocks.isEmpty()) {
+                availableRooms.add(room);
+            }
+        }
+        return availableRooms;
+    }
+
     private Room findAvailableRoom(HotelBookingRequest request) {
-        return roomRepository.findFirstByHotelIdAndRoomTypeIgnoreCaseAndAvailabilityStatusIgnoreCase(
-                        request.hotelId(),
-                        request.roomType(),
-                        AVAILABLE
-                )
-                .orElseThrow(() -> new InvalidRequestException("No available room found for requested room type"));
+        return getAvailableRoomsForDates(request.hotelId(), request.roomType(), request.checkInDate(), request.checkOutDate())
+                .stream().findFirst()
+                .orElseThrow(() -> new InvalidRequestException("No available room found for requested room type and dates"));
     }
 
     private void applyHotelRequest(Hotel hotel, HotelRequest request) {

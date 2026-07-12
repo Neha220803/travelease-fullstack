@@ -6,6 +6,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
+import { HotelBookingFlow } from './hotel-booking-flow/hotel-booking-flow';
 import { HotelsService } from '@app/core/hotels/hotels.service';
 import { Hotel } from '@app/core/hotels/hotel.models';
 import { AccommodationService } from '@app/features/trips/services/accommodation.service';
@@ -25,6 +26,7 @@ import { ToastService } from '@app/shared/ui/toast/toast.service';
     HlmInputImports,
     HlmLabelImports,
     HlmSelectImports,
+    HotelBookingFlow,
   ],
   templateUrl: './trip-accommodation-tab.html',
 })
@@ -99,10 +101,10 @@ export class TripAccommodationTab implements OnInit {
     });
   }
 
-  protected bookHotel(hotelId: string, roomType: string = 'Standard'): void {
+  public readonly selectedHotel = signal<Hotel | null>(null);
+
+  protected openBookingFlow(hotel: Hotel): void {
     const t = this.trip();
-    
-    // Validate stay duration (must be at least 1 day)
     const checkIn = new Date(t.startDate);
     const checkOut = new Date(t.endDate);
     const timeDiff = checkOut.getTime() - checkIn.getTime();
@@ -111,27 +113,25 @@ export class TripAccommodationTab implements OnInit {
       this.toastService.showError('Stay duration must be at least 1 day. Please check trip start and end dates.');
       return;
     }
+    this.selectedHotel.set(hotel);
+  }
 
-    this.hotelsService.createBooking({
-      tripId: t.tripId,
-      hotelId,
-      checkInDate: t.startDate,
-      checkOutDate: t.endDate,
-      roomType
-    }).subscribe({
-      next: (res) => {
-        this.toastService.showSuccess('Hotel booked successfully');
-        // Attach
-        this.accommodationService.attachBookingToTrip(t.tripId, res.hotelBookingId).subscribe({
-          next: () => {
-            this.toastService.showSuccess('Attached to trip successfully');
-            // Refresh
-            this.accommodationService.getAccommodationSummary(t.tripId).subscribe(summary => this.tripBookings.set(summary.bookings));
-          },
-          error: () => this.toastService.showError('Failed to attach booking to trip')
-        });
+  protected closeBookingFlow(): void {
+    this.selectedHotel.set(null);
+  }
+
+  protected onBookingComplete(res: { hotelBookingId: string }): void {
+    const t = this.trip();
+    this.toastService.showSuccess('Hotel booked successfully');
+    this.selectedHotel.set(null); // Close flow
+
+    // Attach to trip
+    this.accommodationService.attachBookingToTrip(t.tripId, res.hotelBookingId).subscribe({
+      next: () => {
+        this.toastService.showSuccess('Attached to trip successfully');
+        this.accommodationService.getAccommodationSummary(t.tripId).subscribe(summary => this.tripBookings.set(summary.bookings));
       },
-      error: () => this.toastService.showError('Failed to book hotel')
+      error: () => this.toastService.showError('Failed to attach booking to trip')
     });
   }
 }

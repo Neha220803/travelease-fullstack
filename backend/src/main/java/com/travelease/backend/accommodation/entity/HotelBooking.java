@@ -43,7 +43,7 @@ public class HotelBooking extends BaseEntity {
     @Column(name = "room_type", nullable = false, length = 80)
     private String roomType;
 
-    @Column(name = "room_number", length = 30)
+    @Column(name = "room_number", length = 50)
     private String roomNumber;
 
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)

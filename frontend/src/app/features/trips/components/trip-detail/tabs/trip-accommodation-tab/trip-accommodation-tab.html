@@ -25,7 +25,7 @@
       <label hlmLabel for="query">Search</label>
       <input hlmInput id="query" placeholder="Hotel name…" #queryInput />
     </div>
-    <div class="flex items-end"><button hlmBtn class="w-full" (click)="onSearch(queryInput.value)">Search</button></div>
+    <div class="flex items-end"><button type="button" hlmBtn class="w-full" (click)="onSearch(queryInput.value)">Search</button></div>
   </div>
 </div>
 
@@ -64,8 +64,8 @@
                 ₹{{ h.pricePerNight }}<span class="text-xs text-muted-foreground font-normal">/night</span>
               </p>
               <div class="flex gap-2">
-                <button hlmBtn variant="outline" size="sm" class="hidden">Details</button>
-                <button hlmBtn size="sm" (click)="bookHotel(h.hotelId)">Book</button>
+                <button type="button" hlmBtn variant="outline" size="sm" class="hidden">Details</button>
+                <button type="button" hlmBtn size="sm" (click)="openBookingFlow(h)">Book</button>
               </div>
             </div>
           </div>
@@ -74,6 +74,15 @@
     </div>
   }
 </div>
+
+@if (selectedHotel()) {
+  <app-hotel-booking-flow
+    [hotel]="selectedHotel()!"
+    [trip]="trip()"
+    (bookingComplete)="onBookingComplete($event)"
+    (cancel)="closeBookingFlow()">
+  </app-hotel-booking-flow>
+}
 
 @if (tripBookings().length > 0) {
   <div class="mt-6 space-y-3">

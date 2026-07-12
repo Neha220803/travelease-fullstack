@@ -21,7 +21,7 @@ const STATUS_OPTIONS: TicketStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOS
 
 @Component({
   selector: 'app-provider-support-tickets',
-  imports: [DatePipe, RouterLink, HlmButtonImports, HlmCardImports, HlmSelectImports, HlmTextareaImports, HlmLabelImports, HlmInputImports, PageHeader, StatusBadge],
+  imports: [DatePipe, HlmButtonImports, HlmCardImports, HlmSelectImports, HlmTextareaImports, HlmLabelImports, HlmInputImports, PageHeader, StatusBadge],
   templateUrl: './provider-support-tickets.html',
 })
 export class ProviderSupportTickets {

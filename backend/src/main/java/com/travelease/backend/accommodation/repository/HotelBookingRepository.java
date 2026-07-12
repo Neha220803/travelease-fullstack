@@ -22,4 +22,8 @@ public interface HotelBookingRepository extends JpaRepository<HotelBooking, UUID
     @Query("SELECT COALESCE(SUM(h.totalAmount), 0) FROM HotelBooking h "
             + "WHERE h.tripId = :tripId AND h.bookingStatus <> 'CANCELLED'")
     BigDecimal sumSpentByTripId(@Param("tripId") UUID tripId);
+
+    @Query("SELECT h FROM HotelBooking h WHERE h.roomNumber = :roomId AND h.bookingStatus <> 'CANCELLED' " +
+           "AND (h.checkInDate < :checkOutDate AND h.checkOutDate > :checkInDate)")
+    List<HotelBooking> findOverlappingBookings(@Param("roomId") String roomId, @Param("checkInDate") java.time.LocalDate checkInDate, @Param("checkOutDate") java.time.LocalDate checkOutDate);
 }

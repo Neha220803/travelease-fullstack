@@ -6,6 +6,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmProgressImports } from '@spartan-ng/helm/progress';
 import { TripsService } from '@app/features/trips/services/trips.service';
 import { BookingService } from '@app/features/bus-booking/services/booking.service';
+import { AccommodationService } from '@app/features/trips/services/accommodation.service';
 import { ItineraryService } from '@app/features/trips/services/itinerary.service';
 import { ActivitiesService } from '@app/core/activities/activities.service';
 import { Activity } from '@app/core/activities/activity.models';
@@ -41,12 +42,14 @@ export class TripOverviewTab implements OnInit {
 
   private readonly tripsService = inject(TripsService);
   private readonly bookingService = inject(BookingService);
+  private readonly accommodationService = inject(AccommodationService);
   private readonly itineraryService = inject(ItineraryService);
   private readonly activitiesService = inject(ActivitiesService);
   private readonly recommendationsService = inject(RecommendationsService);
 
   protected readonly budgetSummary = signal<BudgetSummary | null>(null);
   protected readonly busBooked = signal(false);
+  protected readonly accommodationBooked = signal(false);
   protected readonly recommendedActivities = signal<RecommendedActivityCard[]>([]);
 
   // Reads from the shared cache in ItineraryService so this stays in sync
@@ -90,6 +93,7 @@ export class TripOverviewTab implements OnInit {
       { label: 'Trip Created', done: true, date: trip.createdAt },
       { label: 'Members Invited', done: membersAccepted, date: trip.startDate },
       { label: 'Bus Booked', done: this.busBooked(), date: trip.startDate },
+      { label: 'Accommodation Booked', done: this.accommodationBooked(), date: trip.startDate },
       { label: 'Itinerary Finalized', done: this.itineraryFinalized(), date: trip.startDate },
       { label: 'Trip Begins', done: tripStarted, date: trip.startDate },
     ];
@@ -109,6 +113,13 @@ export class TripOverviewTab implements OnInit {
       next: (summary) => this.busBooked.set(summary.bookingCount > 0),
       error: () => {
         // Stays "not done" — a fair default when we can't confirm a booking.
+      },
+    });
+
+    this.accommodationService.getAccommodationSummary(trip.tripId).subscribe({
+      next: (summary) => this.accommodationBooked.set(summary.bookings.length > 0),
+      error: () => {
+        // Stays "not done"
       },
     });
 

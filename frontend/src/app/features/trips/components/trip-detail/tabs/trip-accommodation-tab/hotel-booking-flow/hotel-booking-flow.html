@@ -1,0 +1,167 @@
+<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-card text-card-foreground shadow-lg rounded-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div class="p-6 border-b flex justify-between items-center">
+      <div>
+        <h2 class="text-xl font-semibold">Book {{ hotel().hotelName }}</h2>
+        <p class="text-sm text-muted-foreground">{{ trip().startDate | date }} - {{ trip().endDate | date }}</p>
+      </div>
+      <button hlmBtn variant="ghost" size="icon" (click)="onCancel()">
+        <ng-icon name="lucideX" size="1.2rem"></ng-icon>
+      </button>
+    </div>
+
+    <div class="p-6 overflow-y-auto">
+      <!-- STEP 1: Room Selection -->
+      @if (step() === 1) {
+        <div class="space-y-6">
+          <div>
+            <h3 class="text-lg font-medium mb-4">Select Room Type</h3>
+            <div class="grid gap-4">
+            <div class="flex items-center space-x-2">
+              <input type="radio" name="roomType" id="rt-standard" value="STANDARD" [checked]="selectedRoomType() === 'STANDARD'" (change)="onRoomTypeChange($event)" class="h-4 w-4">
+              <label for="rt-standard" class="font-medium flex-1">Standard Room</label>
+            </div>
+            <div class="flex items-center space-x-2">
+              <input type="radio" name="roomType" id="rt-deluxe" value="DELUXE" [checked]="selectedRoomType() === 'DELUXE'" (change)="onRoomTypeChange($event)" class="h-4 w-4">
+              <label for="rt-deluxe" class="font-medium flex-1">Deluxe Room</label>
+            </div>
+            <div class="flex items-center space-x-2">
+              <input type="radio" name="roomType" id="rt-suite" value="SUITE" [checked]="selectedRoomType() === 'SUITE'" (change)="onRoomTypeChange($event)" class="h-4 w-4">
+              <label for="rt-suite" class="font-medium flex-1">Suite</label>
+            </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- STEP 2: Guest Details -->
+      @if (step() === 2) {
+        <div class="space-y-6">
+          <div class="bg-blue-50/50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-4 rounded-lg flex items-start gap-3">
+          <ng-icon name="lucideTimer" class="mt-0.5 shrink-0"></ng-icon>
+          <div>
+            <p class="font-medium">Room reserved for 10 minutes!</p>
+            <p class="text-sm opacity-90 mt-1">Please complete your guest details to finalize the booking.</p>
+          </div>
+        </div>
+
+        <form [formGroup]="guestForm" class="space-y-6">
+          <div class="space-y-4">
+            <h3 class="text-lg font-medium">Contact Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label hlmLabel>Email *</label>
+                <input hlmInput formControlName="contactEmail" type="email" placeholder="Email for confirmation" class="w-full mt-1">
+              </div>
+              <div>
+                <label hlmLabel>Phone *</label>
+                <input hlmInput formControlName="contactPhone" type="tel" placeholder="Phone number" class="w-full mt-1">
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-lg font-medium">Guest Details</h3>
+              <button type="button" hlmBtn variant="outline" size="sm" (click)="addGuest()">
+                <ng-icon name="lucidePlus" class="mr-2"></ng-icon> Add Guest
+              </button>
+            </div>
+            
+            <div formArrayName="guests" class="space-y-4">
+              <div *ngFor="let guest of guests.controls; let i=index" [formGroupName]="i" class="p-4 border rounded-lg relative">
+                @if (guests.length > 1) {
+                  <button type="button" class="absolute top-2 right-2 text-destructive hover:bg-destructive/10 p-2 rounded-md" (click)="removeGuest(i)">
+                    <ng-icon name="lucideTrash2" size="1.2rem"></ng-icon>
+                  </button>
+                }
+                <h4 class="font-medium mb-3">Guest {{ i + 1 }} 
+                  @if (guest.value.isPrimary) {
+                    <span class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded ml-2">Primary</span>
+                  }
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label hlmLabel>Full Name *</label>
+                    <input hlmInput formControlName="name" placeholder="Name" class="w-full mt-1">
+                  </div>
+                  <div>
+                    <label hlmLabel>Age *</label>
+                    <input hlmInput formControlName="age" type="number" placeholder="Age" class="w-full mt-1">
+                  </div>
+                  <div>
+                    <label hlmLabel>Gender *</label>
+                    <select formControlName="gender" class="flex w-full mt-1 h-10 px-3 py-2 bg-transparent border border-input rounded-md text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                      <option value="">Select</option>
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+        </div>
+      }
+
+      <!-- STEP 3: Confirmation -->
+      @if (step() === 3) {
+        <div class="space-y-6">
+          <h3 class="text-lg font-medium">Review Booking</h3>
+        <div class="bg-muted p-4 rounded-lg space-y-2">
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Hotel</span>
+            <span class="font-medium">{{ hotel().hotelName }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Room Type</span>
+            <span class="font-medium">{{ selectedRoomType() }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Check-in</span>
+            <span class="font-medium">{{ trip().startDate | date }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Check-out</span>
+            <span class="font-medium">{{ trip().endDate | date }}</span>
+          </div>
+          <div class="flex justify-between pt-2 border-t mt-2">
+            <span class="text-muted-foreground">Total Guests</span>
+            <span class="font-medium">{{ guests.length }}</span>
+          </div>
+        </div>
+        </div>
+      }
+    </div>
+
+    <div class="p-6 border-t bg-muted/30 flex justify-between">
+      <button type="button" hlmBtn variant="outline" (click)="onCancel()">Cancel</button>
+      
+      @if (step() === 1) {
+        <button type="button" hlmBtn (click)="lockAndProceed()" [disabled]="isLocking()">
+          @if (isLocking()) {
+            <ng-icon name="lucideLoader2" class="mr-2 animate-spin"></ng-icon>
+          }
+          {{ isLocking() ? 'Checking Availability...' : 'Continue to Guest Details' }}
+        </button>
+      }
+      
+      @if (step() === 2) {
+        <button type="button" hlmBtn (click)="goToReview()">
+          Review Booking
+        </button>
+      }
+
+      @if (step() === 3) {
+        <button type="button" hlmBtn (click)="confirmBooking()" [disabled]="isBooking()">
+          @if (isBooking()) {
+            <ng-icon name="lucideLoader2" class="mr-2 animate-spin"></ng-icon>
+          }
+          {{ isBooking() ? 'Confirming...' : 'Confirm Booking' }}
+        </button>
+      }
+    </div>
+  </div>
+</div>

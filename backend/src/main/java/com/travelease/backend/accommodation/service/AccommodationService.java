@@ -58,6 +58,10 @@ public interface AccommodationService {
 
     BookingQuoteResponse quoteBooking(HotelBookingRequest request);
 
+    com.travelease.backend.accommodation.dto.RoomLockResponse lockRoom(com.travelease.backend.accommodation.dto.RoomLockRequest request, String currentUserEmail);
+
+    void unlockRoom(UUID roomId, String currentUserEmail);
+
     HotelBookingResponse createBooking(HotelBookingRequest request, String currentUserEmail);
 
     HotelBookingResponse getBooking(UUID bookingId, String currentUserEmail);

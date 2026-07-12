@@ -80,10 +80,11 @@ public class BudgetServiceImpl implements BudgetService {
         BigDecimal loggedExpenses = acceptedMembers.stream()
                 .map(TripMember::getSpentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal hotelSpend = hotelBookingRepository.sumSpentByTripId(tripId);
+        // User requested: don't add accommodation bill directly to expenses, members will add manually.
+        // BigDecimal hotelSpend = hotelBookingRepository.sumSpentByTripId(tripId);
         BigDecimal busSpend = BigDecimal.valueOf(bookingRepository.sumNetSpentByTravelerTripId(tripId));
         BigDecimal activitySpend = activityBookingRepository.sumSpentByTripId(tripId);
-        BigDecimal totalSpent = loggedExpenses.add(hotelSpend).add(busSpend).add(activitySpend);
+        BigDecimal totalSpent = loggedExpenses.add(busSpend).add(activitySpend);
         BigDecimal remaining = totalBudget.subtract(totalSpent);
 
         return new BudgetSummaryResponse(
