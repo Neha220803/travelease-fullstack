@@ -109,6 +109,10 @@ export class TripExpensesTab {
     return this.members().find((m) => m.userId === id)?.name || 'Select Payer';
   });
 
+  protected readonly isSingleParticipantError = computed(() => {
+    return this.newExpenseParticipants().size === 1;
+  });
+
   protected readonly isFormValid = computed(() => {
     const name = this.newExpenseName().trim();
     const amount = this.newExpenseAmount() ?? 0;
@@ -117,7 +121,7 @@ export class TripExpensesTab {
     const splitMode = this.newExpenseSplitMode();
     const customShares = this.newExpenseCustomShares();
 
-    if (!name || amount <= 0 || !payerId || participants.size === 0) return false;
+    if (!name || amount <= 0 || !payerId || participants.size < 2) return false;
 
     if (splitMode === 'CUSTOM') {
       let sum = 0;
@@ -298,10 +302,8 @@ export class TripExpensesTab {
   protected onMarkPaid(settlement: SettlementResponse): void {
     this.settlementService.markSettlementPaid(settlement.id).subscribe({
       next: (updated) => {
-        this.pendingSettlements.update((list) =>
-          list.filter((s) => s.id !== updated.id),
-        );
         this.toastService.showSuccess('Settlement marked as paid');
+        this.refreshSettlements();
       },
       error: () => {
         this.toastService.showError('Could not mark settlement as paid. Please try again.');

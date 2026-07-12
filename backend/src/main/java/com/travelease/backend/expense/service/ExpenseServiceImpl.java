@@ -58,11 +58,15 @@ public class ExpenseServiceImpl implements ExpenseService {
     public ExpenseResponse createSharedExpense(UUID tripId, CreateExpenseRequest request, String currentUserEmail) {
         Trip trip = findTrip(tripId);
         ensureCurrentUserIsMember(tripId, currentUserEmail);
+        
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         tripAuthorizationService.requireMutableTrip(trip);
 
         Set<UUID> participantIds = new LinkedHashSet<>(request.participantIds());
-        if (participantIds.isEmpty()) {
-            throw new InvalidRequestException("At least one participant is required");
+        if (participantIds.size() < 2) {
+            throw new InvalidRequestException("At least two participants are required");
         }
         long acceptedMemberCount = tripMemberRepository.findByTripIdAndMemberStatus(tripId, TripMemberStatus.ACCEPTED).size();
         if (acceptedMemberCount <= 1) {
@@ -80,8 +84,6 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         User payer = userRepository.findById(request.payerId())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + request.payerId() + " not found"));
-        User currentUser = userRepository.findByEmail(currentUserEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Map<UUID, User> participantsById = participantMembers.stream()
                 .map(TripMember::getUser)
                 .collect(Collectors.toMap(User::getId, Function.identity()));

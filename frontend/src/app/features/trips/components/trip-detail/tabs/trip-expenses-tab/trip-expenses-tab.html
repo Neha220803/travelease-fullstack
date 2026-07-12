@@ -71,6 +71,11 @@
                       </div>
                     }
                   </div>
+                  @if (isSingleParticipantError()) {
+                    <p class="text-xs text-destructive mt-1">
+                      At least two participants must be selected to split an expense.
+                    </p>
+                  }
                 </div>
               </div>
               <div hlmDialogFooter>

@@ -73,12 +73,12 @@ public class SettlementServiceImpl implements SettlementService {
                 .getId();
 
         BigDecimal totalPayable = responses.stream()
-                .filter(s -> s.payerId().equals(currentUserId))
+                .filter(s -> s.payerId().equals(currentUserId) && s.status() == SettlementStatus.PENDING)
                 .map(SettlementResponse::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalReceivable = responses.stream()
-                .filter(s -> s.receiverId().equals(currentUserId))
+                .filter(s -> s.receiverId().equals(currentUserId) && s.status() == SettlementStatus.PENDING)
                 .map(SettlementResponse::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

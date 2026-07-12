@@ -110,12 +110,13 @@ class ExpenseServiceImplApprovalTest {
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
         when(tripMemberRepository.findByTripIdAndMemberStatus(trip.getId(), TripMemberStatus.ACCEPTED))
                 .thenReturn(List.of(aliceMembership));
 
         CreateExpenseRequest request = new CreateExpenseRequest(
                 new BigDecimal("100.00"), "Food", "Dinner", LocalDate.now(),
-                alice.getId(), List.of(alice.getId()), null);
+                alice.getId(), List.of(alice.getId(), UUID.randomUUID()), null);
 
         assertThatThrownBy(() -> service.createSharedExpense(trip.getId(), request, alice.getEmail()))
                 .isInstanceOf(InvalidRequestException.class)
@@ -160,34 +161,23 @@ class ExpenseServiceImplApprovalTest {
     }
 
     @Test
-    void createSharedExpenseFinalizesImmediatelyWhenCreatorIsSoleParticipant() {
+    void createSharedExpenseRejectsSingleParticipant() {
         ExpenseServiceImpl service = newService();
-        stubSaveEcho();
         User alice = user("alice@travelease.test");
-        User bob = user("bob@travelease.test");
         Trip trip = trip(alice);
         TripMember aliceMembership = membership(trip, alice);
-        TripMember bobMembership = membership(trip, bob);
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
-        when(tripMemberRepository.findByTripIdAndMemberStatus(trip.getId(), TripMemberStatus.ACCEPTED))
-                .thenReturn(List.of(aliceMembership, bobMembership));
-        when(tripMemberRepository.existsByTripIdAndUserIdAndMemberStatus(trip.getId(), alice.getId(), TripMemberStatus.ACCEPTED))
-                .thenReturn(true);
-        when(tripMemberRepository.findByTripIdAndUserIdInAndMemberStatus(eq(trip.getId()), any(), any()))
-                .thenReturn(List.of(aliceMembership));
-        when(userRepository.findById(alice.getId())).thenReturn(Optional.of(alice));
         when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
 
         CreateExpenseRequest request = new CreateExpenseRequest(
                 new BigDecimal("50.00"), "Food", "Solo snack", LocalDate.now(),
                 alice.getId(), List.of(alice.getId()), null);
 
-        ExpenseResponse response = service.createSharedExpense(trip.getId(), request, alice.getEmail());
-
-        assertThat(response.status()).isEqualTo(ExpenseStatus.FINALIZED);
-        assertThat(aliceMembership.getSpentAmount()).isEqualByComparingTo("50.00");
+        assertThatThrownBy(() -> service.createSharedExpense(trip.getId(), request, alice.getEmail()))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("At least two participants are required");
     }
 
     @Test

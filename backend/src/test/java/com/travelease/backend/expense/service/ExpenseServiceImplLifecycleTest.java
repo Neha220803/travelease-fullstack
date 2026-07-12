@@ -85,10 +85,11 @@ class ExpenseServiceImplLifecycleTest {
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
 
         CreateExpenseRequest request = new CreateExpenseRequest(
                 new BigDecimal("100.00"), "Food", "Dinner", LocalDate.now(),
-                alice.getId(), List.of(alice.getId()), null);
+                alice.getId(), List.of(alice.getId(), UUID.randomUUID()), null);
 
         assertThatThrownBy(() -> service.createSharedExpense(trip.getId(), request, alice.getEmail()))
                 .isInstanceOf(InvalidRequestException.class);
@@ -105,12 +106,35 @@ class ExpenseServiceImplLifecycleTest {
         when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
         when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
                 trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
+
+        CreateExpenseRequest request = new CreateExpenseRequest(
+                new BigDecimal("100.00"), "Food", "Dinner", LocalDate.now(),
+                alice.getId(), List.of(alice.getId(), UUID.randomUUID()), null);
+
+        assertThatThrownBy(() -> service.createSharedExpense(trip.getId(), request, alice.getEmail()))
+                .isInstanceOf(InvalidRequestException.class);
+    }
+
+    @Test
+    void createSharedExpenseThrowsWhenFewerThanTwoParticipants() {
+        TripAuthorizationService realAuth = new TripAuthorizationService(tripMemberRepository);
+        ExpenseServiceImpl service = new ExpenseServiceImpl(
+                expenseRepository, tripRepository, tripMemberRepository, userRepository, expenseMapper, realAuth, notificationService);
+
+        User alice = user("alice@travelease.test");
+        Trip trip = trip(alice, TravelerTripStatus.CONFIRMED);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
+                trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
 
         CreateExpenseRequest request = new CreateExpenseRequest(
                 new BigDecimal("100.00"), "Food", "Dinner", LocalDate.now(),
                 alice.getId(), List.of(alice.getId()), null);
 
         assertThatThrownBy(() -> service.createSharedExpense(trip.getId(), request, alice.getEmail()))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("At least two participants are required");
     }
 }
