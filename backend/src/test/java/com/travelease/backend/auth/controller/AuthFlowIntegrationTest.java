@@ -140,6 +140,13 @@ class AuthFlowIntegrationTest {
         LoginRequest loginRequest = new LoginRequest("priya-approve@example.com", "Passw0rd1!");
         ResponseEntity<ApiResponse> loginResponse = restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> responseData = (Map<String, Object>) loginResponse.getBody().data();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> userMap = (Map<String, Object>) responseData.get("user");
+        assertThat(userMap.get("providerId")).isNotNull();
+        assertThat(((Number) userMap.get("providerId")).longValue()).isGreaterThanOrEqualTo(101L);
     }
 
     private String loginAndGetToken(String email, String password) {

@@ -220,20 +220,68 @@ class UserServiceImplTest {
     }
 
     @Test
-    void approvePartnerSetsStatusApproved() {
+    void approvePartnerSetsStatusApprovedAndAssignsProviderId() {
         User pending = new User();
         pending.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
         pending.setRole(Role.ROLE_HOTEL_PROVIDER);
         pending.setStatus(ApprovalStatus.PENDING);
         when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
+        when(userRepository.findByRole(Role.ROLE_HOTEL_PROVIDER)).thenReturn(List.of());
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserResponse response = userService.approvePartner(pending.getId());
 
         assertThat(response.role()).isEqualTo(Role.ROLE_HOTEL_PROVIDER.name());
+        assertThat(response.providerId()).isEqualTo(101L);
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(ApprovalStatus.APPROVED);
+        assertThat(captor.getValue().getProviderId()).isEqualTo(101L);
+    }
+
+    @Test
+    void approvePartnerIncrementsProviderIdFromMax() {
+        User pending = new User();
+        pending.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
+        pending.setRole(Role.ROLE_PROVIDER);
+        pending.setStatus(ApprovalStatus.PENDING);
+
+        User existing1 = new User();
+        existing1.setRole(Role.ROLE_PROVIDER);
+        existing1.setProviderId(1L);
+
+        User existing2 = new User();
+        existing2.setRole(Role.ROLE_PROVIDER);
+        existing2.setProviderId(2L);
+
+        when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
+        when(userRepository.findByRole(Role.ROLE_PROVIDER)).thenReturn(List.of(existing1, existing2));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.approvePartner(pending.getId());
+
+        assertThat(response.role()).isEqualTo(Role.ROLE_PROVIDER.name());
+        assertThat(response.providerId()).isEqualTo(3L);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getProviderId()).isEqualTo(3L);
+    }
+
+    @Test
+    void approvePartnerAssignsFirstActivityProviderId() {
+        User pending = new User();
+        pending.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
+        pending.setRole(Role.ROLE_ACTIVITY_PROVIDER);
+        pending.setStatus(ApprovalStatus.PENDING);
+
+        when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
+        when(userRepository.findByRole(Role.ROLE_ACTIVITY_PROVIDER)).thenReturn(List.of());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.approvePartner(pending.getId());
+
+        assertThat(response.role()).isEqualTo(Role.ROLE_ACTIVITY_PROVIDER.name());
+        assertThat(response.providerId()).isEqualTo(201L);
     }
 
     @Test

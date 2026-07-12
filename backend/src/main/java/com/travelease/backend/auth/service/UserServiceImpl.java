@@ -91,8 +91,13 @@ public class UserServiceImpl implements UserService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setSecurityQuestion(request.securityQuestion());
         user.setSecurityAnswerHash(passwordEncoder.encode(request.securityAnswer()));
-        user.setRole(mapRole(request.role()));
-        user.setProviderId(null);
+        Role role = mapRole(request.role());
+        user.setRole(role);
+        if (PROVIDER_ROLES.contains(role)) {
+            user.setProviderId(getNextProviderId(role));
+        } else {
+            user.setProviderId(null);
+        }
 
         User saved = userRepository.save(user);
         return toResponse(saved);
@@ -139,6 +144,10 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse approvePartner(UUID id) {
         User user = findPendingPartnerOrThrow(id);
+        
+        Long providerId = getNextProviderId(user.getRole());
+        user.setProviderId(providerId);
+        
         user.setStatus(ApprovalStatus.APPROVED);
         return toResponse(userRepository.save(user));
     }
@@ -158,6 +167,30 @@ public class UserServiceImpl implements UserService {
             throw new InvalidRequestException("User is not a pending partner application");
         }
         return user;
+    }
+
+    private Long getNextProviderId(Role role) {
+        List<User> users = userRepository.findByRole(role);
+        long maxId = 0;
+        switch (role) {
+            case ROLE_PROVIDER:
+                maxId = 0;
+                break;
+            case ROLE_HOTEL_PROVIDER:
+                maxId = 100;
+                break;
+            case ROLE_ACTIVITY_PROVIDER:
+                maxId = 200;
+                break;
+            default:
+                return null;
+        }
+        for (User u : users) {
+            if (u.getProviderId() != null && u.getProviderId() > maxId) {
+                maxId = u.getProviderId();
+            }
+        }
+        return maxId + 1;
     }
 
     @Override
