@@ -19,6 +19,7 @@ public class ExpenseMapper {
                 expense.getDescription(),
                 expense.getPayer().getId(),
                 expense.getPayer().getName(),
+                expense.getStatus(),
                 expense.getParticipants().stream().map(this::toParticipantResponse).toList(),
                 expense.getCreatedAt()
         );
@@ -28,7 +29,8 @@ public class ExpenseMapper {
         return new ExpenseParticipantResponse(
                 participant.getUser().getId(),
                 participant.getUser().getName(),
-                participant.getShareAmount()
+                participant.getShareAmount(),
+                participant.getStatus()
         );
     }
 }

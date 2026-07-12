@@ -3,9 +3,26 @@
 } @else if (error()) {
   <p class="text-sm text-destructive py-8 text-center">{{ error() }}</p>
 } @else if (trip(); as trip) {
-  <a hlmBtn variant="ghost" size="sm" class="mb-3" routerLink="/trips">
-    <ng-icon name="lucideArrowLeft" class="h-4 w-4 mr-1" />All trips
-  </a>
+  <div class="flex items-center justify-between mb-3">
+    <a hlmBtn variant="ghost" size="sm" routerLink="/trips">
+      <ng-icon name="lucideArrowLeft" class="h-4 w-4 mr-1" />All trips
+    </a>
+    @if (canEdit()) {
+      <button hlmBtn variant="outline" size="sm" (click)="showEditDialog.set(true)">
+        <ng-icon name="lucidePencil" class="h-4 w-4 mr-1" />Edit Trip
+      </button>
+    }
+  </div>
+
+  @if (showEditDialog()) {
+    <div class="mb-6">
+      <app-edit-trip-dialog
+        [trip]="trip"
+        (updated)="onTripUpdated($event)"
+        (cancelled)="showEditDialog.set(false)"
+      />
+    </div>
+  }
 
   <div class="relative rounded-2xl overflow-hidden mb-6 h-56">
     <img

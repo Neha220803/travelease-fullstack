@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,4 +25,8 @@ public interface ActivityBookingRepository extends JpaRepository<ActivityBooking
     int sumParticipantsByActivitySlotIdAndStatusIn(
             @Param("slotId") UUID slotId,
             @Param("statuses") List<ActivityBookingStatus> statuses);
+
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM ActivityBooking b "
+            + "WHERE b.tripId = :tripId AND b.status <> 'CANCELLED'")
+    BigDecimal sumSpentByTripId(@Param("tripId") UUID tripId);
 }

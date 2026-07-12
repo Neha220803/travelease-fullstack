@@ -142,6 +142,41 @@ class AuthFlowIntegrationTest {
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
+    @Test
+    void approvedHotelProviderCanAccessProviderScopedEndpointsAndHasAProviderId() {
+        PartnerRegisterRequest registerRequest = new PartnerRegisterRequest(
+                "Priya Partner", "priya-linked@example.com", "9999999999", "Passw0rd1!",
+                "HOTEL_PROVIDER", "What is your birth hospital?", "City General");
+        restTemplate.postForEntity("/api/auth/register/partner", registerRequest, ApiResponse.class);
+
+        String adminToken = loginAndGetToken("admin@travelease.test", "password123");
+        HttpHeaders adminHeaders = new HttpHeaders();
+        adminHeaders.setBearerAuth(adminToken);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> pending = (List<Map<String, Object>>) restTemplate.exchange(
+                "/api/admin/partners/pending", HttpMethod.GET, new HttpEntity<>(adminHeaders), ApiResponse.class)
+                .getBody().data();
+        String partnerId = pending.stream()
+                .filter(p -> "priya-linked@example.com".equals(p.get("email")))
+                .findFirst().orElseThrow().get("id").toString();
+        restTemplate.exchange(
+                "/api/admin/partners/" + partnerId + "/approve", HttpMethod.PUT, new HttpEntity<>(adminHeaders), ApiResponse.class);
+
+        String partnerToken = loginAndGetToken("priya-linked@example.com", "Passw0rd1!");
+        HttpHeaders partnerHeaders = new HttpHeaders();
+        partnerHeaders.setBearerAuth(partnerToken);
+
+        ResponseEntity<ApiResponse> meResponse = restTemplate.exchange(
+                "/api/auth/me", HttpMethod.GET, new HttpEntity<>(partnerHeaders), ApiResponse.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> meData = (Map<String, Object>) meResponse.getBody().data();
+        assertThat(meData.get("providerId")).isNotNull();
+
+        ResponseEntity<ApiResponse> hotelsResponse = restTemplate.exchange(
+                "/api/provider/hotels", HttpMethod.GET, new HttpEntity<>(partnerHeaders), ApiResponse.class);
+        assertThat(hotelsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
     private String loginAndGetToken(String email, String password) {
         LoginRequest loginRequest = new LoginRequest(email, password);
         ResponseEntity<ApiResponse> loginResponse = restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);

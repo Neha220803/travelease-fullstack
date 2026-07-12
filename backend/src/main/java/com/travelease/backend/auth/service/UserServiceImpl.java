@@ -7,8 +7,10 @@ import com.travelease.backend.auth.dto.PendingPartnerResponse;
 import com.travelease.backend.auth.dto.RegisterRequest;
 import com.travelease.backend.auth.dto.UserResponse;
 import com.travelease.backend.auth.entity.ApprovalStatus;
+import com.travelease.backend.auth.entity.Provider;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
+import com.travelease.backend.auth.repository.ProviderRepository;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.shared.exception.DuplicateResourceException;
 import com.travelease.backend.shared.exception.InvalidRequestException;
@@ -29,6 +31,7 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final ProviderRepository providerRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
 
@@ -140,6 +143,12 @@ public class UserServiceImpl implements UserService {
     public UserResponse approvePartner(UUID id) {
         User user = findPendingPartnerOrThrow(id);
         user.setStatus(ApprovalStatus.APPROVED);
+        if (user.getProviderId() == null) {
+            Provider provider = new Provider();
+            provider.setBusinessName(user.getName());
+            provider.setType(user.getRole());
+            user.setProviderId(providerRepository.save(provider).getId());
+        }
         return toResponse(userRepository.save(user));
     }
 

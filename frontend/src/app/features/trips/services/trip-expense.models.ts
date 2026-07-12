@@ -15,10 +15,14 @@ export interface CreateExpenseRequest {
   participantShares: ExpenseParticipantShareRequest[] | null;
 }
 
+export type ExpenseParticipantStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type ExpenseStatus = 'PENDING' | 'FINALIZED' | 'REJECTED';
+
 export interface ExpenseParticipantResponse {
   userId: string;
   name: string;
   shareAmount: number;
+  status: ExpenseParticipantStatus;
 }
 
 export interface ExpenseResponse {
@@ -30,6 +34,7 @@ export interface ExpenseResponse {
   description: string;
   payerId: string;
   payerName: string;
+  status: ExpenseStatus;
   participants: ExpenseParticipantResponse[];
   createdAt: string;
 }

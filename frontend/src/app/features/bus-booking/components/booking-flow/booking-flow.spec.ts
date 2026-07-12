@@ -1,6 +1,9 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { API_BASE_URL } from '@app/core/api/api-config';
 import { BookingFlow } from '@app/features/bus-booking/components/booking-flow/booking-flow';
 import { ScheduleService } from '@app/features/bus-booking/services/schedule.service';
 import { BookingService } from '@app/features/bus-booking/services/booking.service';
@@ -40,11 +43,21 @@ function twoSeatLayout(): SeatLayoutResponse {
   };
 }
 
+// BusSearchForm (always rendered initially, since BookingFlow's step starts at
+// 'search') fetches routes on construction - every fixture needs HttpClient
+// wired up and that request flushed, or Angular's DI throws / the request hangs.
+function flushRoutes(http: HttpTestingController): void {
+  const req = http.expectOne((r) => r.url === `${API_BASE_URL}/api/routes`);
+  req.flush({ success: true, message: 'ok', error: null, data: [] });
+}
+
 async function createBookingFlowFixture(seatLayout: SeatLayoutResponse) {
   await TestBed.configureTestingModule({
     imports: [BookingFlow],
     providers: [
       provideRouter([]),
+      provideHttpClient(),
+      provideHttpClientTesting(),
       {
         provide: ScheduleService,
         useValue: {
@@ -60,6 +73,7 @@ async function createBookingFlowFixture(seatLayout: SeatLayoutResponse) {
   const fixture = TestBed.createComponent(BookingFlow);
   const harness = fixture.componentInstance as unknown as BookingFlowHarness;
   fixture.detectChanges();
+  flushRoutes(TestBed.inject(HttpTestingController));
   return { fixture, harness };
 }
 
@@ -70,6 +84,8 @@ describe('BookingFlow', () => {
       imports: [BookingFlow],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: ScheduleService, useValue: { searchBuses: () => of([]), calculateFare: () => of({ breakdown: {}, totalPayable: 0, totalSavings: 0 }) } },
         { provide: BookingService, useValue: bookingService },
       ],
@@ -78,6 +94,7 @@ describe('BookingFlow', () => {
     const fixture = TestBed.createComponent(BookingFlow);
     fixture.componentRef.setInput('tripId', 'trip-1');
     fixture.detectChanges();
+    flushRoutes(TestBed.inject(HttpTestingController));
 
     const router = TestBed.inject(Router);
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
@@ -94,6 +111,8 @@ describe('BookingFlow', () => {
       imports: [BookingFlow],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: ScheduleService, useValue: { searchBuses: () => of([]), calculateFare: () => of({ breakdown: {}, totalPayable: 0, totalSavings: 0 }) } },
         { provide: BookingService, useValue: bookingService },
       ],
@@ -101,6 +120,7 @@ describe('BookingFlow', () => {
 
     const fixture = TestBed.createComponent(BookingFlow);
     fixture.detectChanges();
+    flushRoutes(TestBed.inject(HttpTestingController));
     const router = TestBed.inject(Router);
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 

@@ -5,8 +5,10 @@ import com.travelease.backend.auth.dto.PendingPartnerResponse;
 import com.travelease.backend.auth.dto.RegisterRequest;
 import com.travelease.backend.auth.dto.UserResponse;
 import com.travelease.backend.auth.entity.ApprovalStatus;
+import com.travelease.backend.auth.entity.Provider;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
+import com.travelease.backend.auth.repository.ProviderRepository;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.shared.exception.DuplicateResourceException;
 import com.travelease.backend.shared.exception.InvalidRequestException;
@@ -39,6 +41,9 @@ class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ProviderRepository providerRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -223,10 +228,16 @@ class UserServiceImplTest {
     void approvePartnerSetsStatusApproved() {
         User pending = new User();
         pending.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
+        pending.setName("Rahul Hotel Provider");
         pending.setRole(Role.ROLE_HOTEL_PROVIDER);
         pending.setStatus(ApprovalStatus.PENDING);
         when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(providerRepository.save(any(Provider.class))).thenAnswer(invocation -> {
+            Provider provider = invocation.getArgument(0);
+            provider.setId(42L);
+            return provider;
+        });
 
         UserResponse response = userService.approvePartner(pending.getId());
 
@@ -234,6 +245,22 @@ class UserServiceImplTest {
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(ApprovalStatus.APPROVED);
+        assertThat(captor.getValue().getProviderId()).isEqualTo(42L);
+    }
+
+    @Test
+    void approvePartnerDoesNotCreateANewProviderWhenAlreadyLinked() {
+        User pending = new User();
+        pending.setId(UUID.fromString("55555555-5555-5555-5555-555555555555"));
+        pending.setRole(Role.ROLE_HOTEL_PROVIDER);
+        pending.setStatus(ApprovalStatus.PENDING);
+        pending.setProviderId(7L);
+        when(userRepository.findById(pending.getId())).thenReturn(Optional.of(pending));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userService.approvePartner(pending.getId());
+
+        verifyNoInteractions(providerRepository);
     }
 
     @Test

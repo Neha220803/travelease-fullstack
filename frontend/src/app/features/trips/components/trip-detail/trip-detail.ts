@@ -19,6 +19,7 @@ import { TripExpensesTab } from './tabs/trip-expenses-tab/trip-expenses-tab';
 import { TripItineraryTab } from './tabs/trip-itinerary-tab/trip-itinerary-tab';
 import { TripAlertsTab } from './tabs/trip-alerts-tab/trip-alerts-tab';
 import { TripReviewsTab } from './tabs/trip-reviews-tab/trip-reviews-tab';
+import { EditTripDialog } from '@app/features/trips/components/edit-trip-dialog/edit-trip-dialog';
 
 const TRAVELER_CATEGORY_LABELS: Record<number, string> = {
   1: 'Solo',
@@ -64,6 +65,7 @@ const VALID_TAB_IDS = new Set(TABS.map((t) => t.id));
     TripItineraryTab,
     TripAlertsTab,
     TripReviewsTab,
+    EditTripDialog,
   ],
   templateUrl: './trip-detail.html',
 })
@@ -101,6 +103,13 @@ export class TripDetail {
     return trip ? (TRAVELER_CATEGORY_LABELS[trip.categoryId] ?? 'Trip') : '';
   });
 
+  protected readonly showEditDialog = signal(false);
+
+  protected readonly canEdit = computed(() => {
+    const trip = this.trip();
+    return !!trip && trip.viewerRole === 'ORGANIZER' && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED';
+  });
+
   constructor() {
     this.tripsService.getTripById(this.tripId()).subscribe({
       next: (trip) => {
@@ -132,5 +141,10 @@ export class TripDetail {
 
   protected destinationLabel(destinationId: number): string {
     return this.destinationNames().get(destinationId) ?? `Destination #${destinationId}`;
+  }
+
+  protected onTripUpdated(trip: Trip): void {
+    this.trip.set(trip);
+    this.showEditDialog.set(false);
   }
 }

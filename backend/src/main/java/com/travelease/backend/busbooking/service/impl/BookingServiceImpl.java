@@ -19,6 +19,7 @@ import com.travelease.backend.trip.repository.TripRepository;
 import com.travelease.backend.trip.repository.TripMemberRepository;
 import com.travelease.backend.trip.security.TripAuthorizationService;
 import com.travelease.backend.auth.repository.UserRepository;
+import com.travelease.backend.itinerary.service.ItineraryService;
 import com.travelease.backend.itinerary.service.NotificationService;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ public class BookingServiceImpl implements BookingService {
     private final TripAuthorizationService tripAuthorizationService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final ItineraryService itineraryService;
 
     private static final Set<BookingStatus> TRIP_ATTACHABLE_STATUSES =
             Set.of(BookingStatus.CONFIRMED, BookingStatus.COMPLETED);
@@ -192,6 +194,10 @@ public class BookingServiceImpl implements BookingService {
             } catch (Exception e) {
                 log.warn("Coupon '{}' could not be applied: {}", couponCode, e.getMessage());
                 addTimelineEntry(booking, BookingEvent.PAYMENT_COMPLETED, "Coupon '" + couponCode + "' rejected: " + e.getMessage());
+                // Clear the rejected code rather than persisting it alongside a
+                // zero discount - the booking's couponCode field should only ever
+                // reflect a coupon that actually applied, not whatever the client sent.
+                booking.setCouponCode(null);
             }
         }
 
@@ -223,6 +229,16 @@ public class BookingServiceImpl implements BookingService {
         List<Long> seatIds = booking.getBookingSeats().stream().map(bs -> bs.getSeat().getId()).toList();
         seatAllocationService.releaseLocksForBooking(schedule.getId(), seatIds, booking.getUserId());
 
+        // Confirm the booking directly to whoever made it - unconditional (not
+        // dependent on a trip attachment) so a standalone booking still gets a
+        // confirmation, not just trip-attached ones.
+        notificationService.createNotification(
+                booking.getUserId().toString(),
+                "BOOKING",
+                "Bus Booking Confirmed",
+                "Your booking for " + schedule.getRoute().getSource() + " to " + schedule.getRoute().getDestination() + " is confirmed."
+        );
+
         // Notify Transport Provider
         userRepository.findByProviderId(schedule.getBus().getProviderId()).forEach(providerUser -> {
             notificationService.createNotification(
@@ -233,10 +249,12 @@ public class BookingServiceImpl implements BookingService {
             );
         });
 
-        // Notify accepted trip members if attached to a trip
+        // Notify the OTHER accepted trip members if attached to a trip (the
+        // booker already got their own confirmation above).
         if (booking.getTravelerTripId() != null) {
             tripRepository.findById(booking.getTravelerTripId()).ifPresent(trip -> {
                 tripMemberRepository.findByTripIdAndMemberStatus(booking.getTravelerTripId(), TripMemberStatus.ACCEPTED).stream()
+                        .filter(m -> !m.getUser().getId().equals(booking.getUserId()))
                         .forEach(m -> notificationService.createNotification(
                                 m.getUser().getId().toString(),
                                 "BOOKING",
@@ -244,6 +262,10 @@ public class BookingServiceImpl implements BookingService {
                                 "Bus " + schedule.getRoute().getSource() + " to " + schedule.getRoute().getDestination() + " has been booked for trip " + trip.getTripName()
                         ));
             });
+            itineraryService.createFromPaidBooking(
+                    booking.getTravelerTripId(),
+                    "Bus: " + schedule.getRoute().getSource() + " to " + schedule.getRoute().getDestination(),
+                    schedule.getTravelDate());
         }
 
         return bookingMapper.toResponse(booking);
@@ -730,6 +752,9 @@ public class BookingServiceImpl implements BookingService {
         }
         if (schedule.getRoute().getStatus() != RouteStatus.ACTIVE) {
             throw new BookingException("Route is not active");
+        }
+        if (schedule.getTravelDate().isBefore(LocalDate.now())) {
+            throw new BookingException("Cannot book a schedule that has already departed");
         }
     }
 

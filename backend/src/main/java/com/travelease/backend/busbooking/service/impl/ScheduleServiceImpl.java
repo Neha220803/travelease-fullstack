@@ -114,6 +114,9 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     @Transactional(readOnly = true)
     public List<BusSearchResponse> searchBuses(String source, String destination, LocalDate travelDate) {
+        if (travelDate != null && travelDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Travel date cannot be in the past");
+        }
         return scheduleRepository.findBySourceDestinationAndDate(
                         source,
                         destination,
