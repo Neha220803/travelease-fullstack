@@ -17,5 +17,9 @@ public interface ExpenseService {
     PagedResponse<ExpenseResponse> getTripExpensesPaged(UUID tripId, String currentUserEmail, Pageable pageable);
 
     ExpenseResponse getTripExpense(UUID tripId, UUID expenseId, String currentUserEmail);
+
+    ExpenseResponse approveExpense(UUID tripId, UUID expenseId, String currentUserEmail);
+
+    ExpenseResponse rejectExpense(UUID tripId, UUID expenseId, String currentUserEmail);
 }
 

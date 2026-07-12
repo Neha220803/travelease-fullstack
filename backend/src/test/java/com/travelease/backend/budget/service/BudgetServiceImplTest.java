@@ -1,9 +1,13 @@
 package com.travelease.backend.budget.service;
 
+import com.travelease.backend.accommodation.repository.HotelBookingRepository;
 import com.travelease.backend.auth.entity.Role;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.budget.dto.BudgetResponse;
+import com.travelease.backend.budget.dto.BudgetSummaryResponse;
 import com.travelease.backend.budget.mapper.BudgetMapper;
+import com.travelease.backend.busbooking.repository.BookingRepository;
+import com.travelease.backend.itinerary.repository.ActivityBookingRepository;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
 import com.travelease.backend.trip.entity.TravelerTripStatus;
@@ -20,11 +24,14 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,12 +41,24 @@ class BudgetServiceImplTest {
     private TripRepository tripRepository;
     @Mock
     private TripMemberRepository tripMemberRepository;
+    @Mock
+    private HotelBookingRepository hotelBookingRepository;
+    @Mock
+    private BookingRepository bookingRepository;
+    @Mock
+    private ActivityBookingRepository activityBookingRepository;
 
     private BudgetServiceImpl budgetService;
 
     @BeforeEach
     void setUp() {
-        budgetService = new BudgetServiceImpl(tripRepository, tripMemberRepository, new BudgetMapper());
+        budgetService = new BudgetServiceImpl(
+                tripRepository, tripMemberRepository, hotelBookingRepository,
+                bookingRepository, activityBookingRepository, new BudgetMapper());
+        // Only relevant to getTripSummary tests; getMyBudget tests never reach these calls.
+        lenient().when(hotelBookingRepository.sumSpentByTripId(any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(bookingRepository.sumNetSpentByTravelerTripId(any())).thenReturn(0.0);
+        lenient().when(activityBookingRepository.sumSpentByTripId(any())).thenReturn(BigDecimal.ZERO);
     }
 
     private User user(String email, Role role) {
@@ -156,5 +175,52 @@ class BudgetServiceImplTest {
 
         assertThatThrownBy(() -> budgetService.getMyBudget(tripId, "anyone@travelease.test"))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void tripSummaryIncludesHotelBusAndActivityBookingSpendNotJustLoggedExpenses() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        trip.setBudgetAmount(new BigDecimal("50000.00"));
+        TripMember aliceMembership = membership(trip, alice, TripMemberStatus.ACCEPTED);
+        aliceMembership.setSpentAmount(new BigDecimal("2000.00")); // manually-logged shared expense
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
+                trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(tripMemberRepository.findByTripIdAndMemberStatus(trip.getId(), TripMemberStatus.ACCEPTED))
+                .thenReturn(List.of(aliceMembership));
+        when(hotelBookingRepository.sumSpentByTripId(trip.getId())).thenReturn(new BigDecimal("20000.00"));
+        when(bookingRepository.sumNetSpentByTravelerTripId(trip.getId())).thenReturn(5000.0);
+        when(activityBookingRepository.sumSpentByTripId(trip.getId())).thenReturn(new BigDecimal("3000.00"));
+
+        BudgetSummaryResponse response = budgetService.getTripSummary(trip.getId(), alice.getEmail());
+
+        // 2000 (expenses) + 20000 (hotel) + 5000 (bus) + 3000 (activity) = 30000
+        assertThat(response.totalSpent()).isEqualByComparingTo("30000.00");
+        assertThat(response.remainingBudget()).isEqualByComparingTo("20000.00");
+        assertThat(response.utilizationPercentage()).isEqualByComparingTo("60.00");
+        assertThat(response.overspent()).isFalse();
+    }
+
+    @Test
+    void tripSummaryNetsOutBusRefundsAndExcludesCancelledBookings() {
+        User alice = user("alice@travelease.test", Role.ROLE_TRAVELER);
+        Trip trip = trip(alice);
+        trip.setBudgetAmount(new BigDecimal("10000.00"));
+        TripMember aliceMembership = membership(trip, alice, TripMemberStatus.ACCEPTED);
+        aliceMembership.setSpentAmount(BigDecimal.ZERO);
+        when(tripRepository.findById(trip.getId())).thenReturn(Optional.of(trip));
+        when(tripMemberRepository.existsByTripIdAndUserEmailAndMemberStatus(
+                trip.getId(), alice.getEmail(), TripMemberStatus.ACCEPTED)).thenReturn(true);
+        when(tripMemberRepository.findByTripIdAndMemberStatus(trip.getId(), TripMemberStatus.ACCEPTED))
+                .thenReturn(List.of(aliceMembership));
+        // Net bus spend after a partial refund; the repository query is responsible for
+        // subtracting totalRefundAmount and excluding cancelled bookings entirely - this
+        // test just verifies the service trusts and forwards that net figure.
+        when(bookingRepository.sumNetSpentByTravelerTripId(trip.getId())).thenReturn(1500.0);
+
+        BudgetSummaryResponse response = budgetService.getTripSummary(trip.getId(), alice.getEmail());
+
+        assertThat(response.totalSpent()).isEqualByComparingTo("1500.00");
     }
 }

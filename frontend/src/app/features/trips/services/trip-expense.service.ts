@@ -42,5 +42,23 @@ export class TripExpenseService {
       )
       .pipe(map((response) => response.data));
   }
+
+  approveExpense(tripId: string, expenseId: string): Observable<ExpenseResponse> {
+    return this.http
+      .patch<ApiResponse<ExpenseResponse>>(
+        `${API_BASE_URL}/api/trips/${tripId}/expenses/${expenseId}/approve`,
+        {},
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  rejectExpense(tripId: string, expenseId: string): Observable<ExpenseResponse> {
+    return this.http
+      .patch<ApiResponse<ExpenseResponse>>(
+        `${API_BASE_URL}/api/trips/${tripId}/expenses/${expenseId}/reject`,
+        {},
+      )
+      .pipe(map((response) => response.data));
+  }
 }
 

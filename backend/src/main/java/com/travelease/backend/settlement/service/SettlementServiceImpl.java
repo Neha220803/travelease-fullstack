@@ -3,6 +3,7 @@ package com.travelease.backend.settlement.service;
 import com.travelease.backend.auth.entity.User;
 import com.travelease.backend.auth.repository.UserRepository;
 import com.travelease.backend.expense.entity.ExpenseParticipant;
+import com.travelease.backend.expense.entity.ExpenseStatus;
 import com.travelease.backend.expense.repository.ExpenseParticipantRepository;
 import com.travelease.backend.settlement.dto.SettlementResponse;
 import com.travelease.backend.settlement.dto.SettlementSummaryResponse;
@@ -147,6 +148,12 @@ public class SettlementServiceImpl implements SettlementService {
     private Map<PairKey, BigDecimal> calculateDirectDebts(UUID tripId) {
         Map<PairKey, BigDecimal> debts = new HashMap<>();
         for (ExpenseParticipant member : expenseParticipantRepository.findByExpenseTripId(tripId)) {
+            // A split only becomes a real debt once every participant has approved it
+            // (ExpenseServiceImpl.finalizeIfEveryoneApproved) - PENDING/REJECTED splits
+            // haven't charged anyone and must not appear as an IOU here.
+            if (member.getExpense().getStatus() != ExpenseStatus.FINALIZED) {
+                continue;
+            }
             UUID payerId = member.getExpense().getPayer().getId();
             UUID participantId = member.getUser().getId();
             if (payerId.equals(participantId)) {

@@ -1,5 +1,51 @@
 <div class="min-h-screen flex bg-background">
-  <aside class="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col fixed h-screen">
+  <div class="flex-1 flex flex-col min-w-0">
+    <header class="h-16 border-b bg-card flex items-center gap-4 px-6 sticky top-0 z-40">
+      <button
+        hlmBtn
+        variant="ghost"
+        size="icon"
+        aria-label="Open navigation menu"
+        (click)="toggleSidebar()"
+      >
+        <ng-icon name="lucideMenu" class="h-5 w-5" />
+      </button>
+      <div class="relative flex-1 max-w-md">
+        <ng-icon
+          name="lucideSearch"
+          class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+        />
+        <input hlmInput placeholder="Search trips, members, expenses…" class="pl-9 bg-muted/40 border-0" />
+      </div>
+      <div class="flex items-center gap-3 ml-auto">
+        @if (role() === 'traveler') {
+          <a hlmBtn size="sm" class="gap-1.5" routerLink="/trips/new">
+            <ng-icon name="lucidePlus" class="h-4 w-4" /> New Trip
+          </a>
+          <a hlmBtn size="sm" variant="outline" class="gap-1.5" routerLink="/bus-booking/new">
+            <ng-icon name="lucidePlus" class="h-4 w-4" /> New Booking
+          </a>
+        }
+        <app-theme-toggle />
+        <a hlmBtn variant="ghost" size="icon" class="relative" routerLink="/notifications">
+          <ng-icon name="lucideBell" class="h-5 w-5" />
+          @if (hasUnreadNotifications()) {
+            <span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent"></span>
+          }
+        </a>
+        <hlm-avatar class="h-9 w-9">
+          <span hlmAvatarFallback class="bg-primary text-primary-foreground text-sm">SR</span>
+        </hlm-avatar>
+      </div>
+    </header>
+    <main class="flex-1 p-8 min-w-0">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<hlm-sheet [state]="sidebarOpen() ? 'open' : 'closed'" side="left" (stateChanged)="onSidebarStateChanged($event)">
+  <hlm-sheet-content *brnSheetContent="let ctx" class="flex flex-col gap-0 p-0 bg-sidebar text-sidebar-foreground border-sidebar-border">
     <div class="px-6 py-5 border-b border-sidebar-border">
       <a [routerLink]="home()" class="flex items-center gap-3">
         <img src="/images/logo white.png" alt="TravelEase Logo" class="h-8 w-auto object-contain" />
@@ -31,42 +77,7 @@
         <ng-icon name="lucideLogOut" class="h-4 w-4" /> Sign out
       </button>
     </div>
-  </aside>
+  </hlm-sheet-content>
+</hlm-sheet>
 
-  <div class="flex-1 ml-64 flex flex-col min-w-0">
-    <header class="h-16 border-b bg-card flex items-center gap-4 px-6 sticky top-0 z-40">
-      <div class="relative flex-1 max-w-md">
-        <ng-icon
-          name="lucideSearch"
-          class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-        />
-        <input hlmInput placeholder="Search trips, members, expenses…" class="pl-9 bg-muted/40 border-0" />
-      </div>
-      <div class="flex items-center gap-3 ml-auto">
-        @if (role() === 'traveler') {
-          <a hlmBtn size="sm" class="gap-1.5" routerLink="/trips/new">
-            <ng-icon name="lucidePlus" class="h-4 w-4" /> New Trip
-          </a>
-          <a hlmBtn size="sm" variant="outline" class="gap-1.5" routerLink="/bus-booking/new">
-            <ng-icon name="lucidePlus" class="h-4 w-4" /> New Booking
-          </a>
-        }
-        <a hlmBtn variant="ghost" size="icon" class="relative" routerLink="/notifications">
-          <ng-icon name="lucideBell" class="h-5 w-5" />
-          @if (hasUnreadNotifications()) {
-            <span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent"></span>
-          }
-        </a>
-        <hlm-avatar class="h-9 w-9">
-          <span hlmAvatarFallback class="bg-primary text-primary-foreground text-sm">
-            {{ userInitials() }}
-          </span>
-        </hlm-avatar>
-      </div>
-    </header>
-    <main class="flex-1 p-8 min-w-0">
-      <router-outlet />
-    </main>
-  </div>
-</div>
 <hlm-toaster richColors closeButton />

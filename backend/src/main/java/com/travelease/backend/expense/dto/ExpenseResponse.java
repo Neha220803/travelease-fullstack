@@ -1,5 +1,7 @@
 package com.travelease.backend.expense.dto;
 
+import com.travelease.backend.expense.entity.ExpenseStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +17,7 @@ public record ExpenseResponse(
         String description,
         UUID payerId,
         String payerName,
+        ExpenseStatus status,
         List<ExpenseParticipantResponse> participants,
         LocalDateTime createdAt
 ) {

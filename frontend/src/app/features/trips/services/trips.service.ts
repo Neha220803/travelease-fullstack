@@ -75,6 +75,12 @@ export class TripsService {
       .pipe(map((response) => response.data));
   }
 
+  updateTrip(tripId: string, payload: CreateTripPayload): Observable<Trip> {
+    return this.http
+      .put<ApiResponse<Trip>>(`${API_BASE_URL}/api/trips/${tripId}`, payload)
+      .pipe(map((response) => response.data));
+  }
+
   getBudgetSummary(tripId: string): Observable<BudgetSummary> {
     return this.http
       .get<ApiResponse<BudgetSummary>>(`${API_BASE_URL}/api/trips/${tripId}/budget/summary`)

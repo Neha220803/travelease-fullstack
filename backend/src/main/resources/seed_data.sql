@@ -641,6 +641,26 @@ INSERT INTO activity_slots (activity_slot_id, activity_id, activity_date, start_
 ('f3000000-0000-0000-0000-000000000013', 'f2000000-0000-0000-0000-000000000006', '2026-08-05', '07:00:00', '09:00:00', 3500.00, 8, '2026-01-01 09:00:00', '2026-01-01 09:00:00'),
 ('f3000000-0000-0000-0000-000000000014', 'f2000000-0000-0000-0000-000000000007', '2026-07-25', '17:30:00', '19:00:00', 1000.00, 25, '2026-01-01 09:00:00', '2026-01-01 09:00:00');
 
+-- ============================================================
+-- Itinerary suggestions per trip category (Solo=1, Couple=2, Family=3,
+-- Friends=4, Corporate=5 - see RecommendationController). Previously
+-- unseeded, so GET /api/recommendations always returned [] and the Trip
+-- Overview "Recommended Activities" panel never had anything to show for
+-- any demo trip. Every category gets at least two ranked entries, all
+-- referencing the real activities seeded above.
+-- ============================================================
+INSERT INTO recommendations (recommendationid, categoryid, recommendation_type, referenceid, rank_order) VALUES
+('r1000000-0000-0000-0000-000000000001', 1, 'Activity', 'f2000000-0000-0000-0000-000000000001', 1),
+('r1000000-0000-0000-0000-000000000002', 1, 'Activity', 'f2000000-0000-0000-0000-000000000004', 2),
+('r1000000-0000-0000-0000-000000000003', 2, 'Activity', 'f2000000-0000-0000-0000-000000000007', 1),
+('r1000000-0000-0000-0000-000000000004', 2, 'Activity', 'f2000000-0000-0000-0000-000000000006', 2),
+('r1000000-0000-0000-0000-000000000005', 3, 'Activity', 'f2000000-0000-0000-0000-000000000001', 1),
+('r1000000-0000-0000-0000-000000000006', 3, 'Activity', 'f2000000-0000-0000-0000-000000000005', 2),
+('r1000000-0000-0000-0000-000000000007', 4, 'Activity', 'f2000000-0000-0000-0000-000000000002', 1),
+('r1000000-0000-0000-0000-000000000008', 4, 'Activity', 'f2000000-0000-0000-0000-000000000006', 2),
+('r1000000-0000-0000-0000-000000000009', 5, 'Activity', 'f2000000-0000-0000-0000-000000000005', 1),
+('r1000000-0000-0000-0000-000000000010', 5, 'Activity', 'f2000000-0000-0000-0000-000000000001', 2);
+
 -- activity_bookings columns (BaseEntity id override + domain columns):
 --   activity_booking_id, activity_slot_id, booked_by_user_id, participant_count,
 --   price_per_participant, total_amount, status, booked_at, cancelled_at,

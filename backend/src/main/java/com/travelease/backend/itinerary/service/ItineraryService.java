@@ -16,6 +16,7 @@ import com.travelease.backend.trip.security.TripAuthorizationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,28 @@ public class ItineraryService {
         itinerary.setStatus("Pending");
         Itinerary saved = itineraryRepository.save(itinerary);
         return itineraryMapper.toResponse(saved);
+    }
+
+    // Auto-adds a trip's itinerary entry once a Hotel or Bus booking's (simulated)
+    // payment has actually completed - called from AccommodationServiceImpl.createBooking
+    // and BookingServiceImpl.confirmBookingInternal at their payment-success points, so
+    // itinerary creation is tied to payment rather than requiring the traveler to
+    // manually duplicate what they already paid for. A no-op (not an error) when the
+    // booking isn't attached to a planning trip, or that trip no longer exists - this
+    // is a best-effort side effect of a booking that has already succeeded, and must
+    // never fail or roll back the booking itself.
+    public void createFromPaidBooking(UUID tripId, String activityName, LocalDate activityDate) {
+        if (tripId == null || !tripRepository.existsById(tripId)) {
+            return;
+        }
+        Itinerary itinerary = new Itinerary();
+        itinerary.setItineraryId(UUID.randomUUID().toString());
+        itinerary.setTripId(tripId.toString());
+        itinerary.setActivityId("booking-" + UUID.randomUUID());
+        itinerary.setActivityName(activityName);
+        itinerary.setActivityDate(activityDate);
+        itinerary.setStatus("Pending");
+        itineraryRepository.save(itinerary);
     }
 
     // US-ITI-01 — Get all itinerary items for a trip. Active trip participants only.

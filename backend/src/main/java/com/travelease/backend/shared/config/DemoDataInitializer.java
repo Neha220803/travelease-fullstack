@@ -14,6 +14,8 @@ import com.travelease.backend.busbooking.repository.BusScheduleRepository;
 import com.travelease.backend.busbooking.repository.RouteRepository;
 import com.travelease.backend.expense.entity.Expense;
 import com.travelease.backend.expense.entity.ExpenseParticipant;
+import com.travelease.backend.expense.entity.ExpenseParticipantStatus;
+import com.travelease.backend.expense.entity.ExpenseStatus;
 import com.travelease.backend.expense.repository.ExpenseRepository;
 import com.travelease.backend.settlement.entity.Settlement;
 import com.travelease.backend.settlement.entity.SettlementStatus;
@@ -136,6 +138,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         dinner.setCategory("Food");
         dinner.setExpenseDate(LocalDate.now());
         dinner.setDescription("Demo shared dinner expense");
+        dinner.setStatus(ExpenseStatus.FINALIZED);
         addExpenseParticipant(dinner, alice, "100.00");
         addExpenseParticipant(dinner, bob, "100.00");
         addExpenseParticipant(dinner, cara, "100.00");
@@ -209,6 +212,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         participant.setExpense(expense);
         participant.setUser(user);
         participant.setShareAmount(new BigDecimal(shareAmount));
+        participant.setStatus(ExpenseParticipantStatus.APPROVED);
         expense.getParticipants().add(participant);
     }
 

@@ -1,9 +1,12 @@
 package com.travelease.backend.budget.service;
 
+import com.travelease.backend.accommodation.repository.HotelBookingRepository;
 import com.travelease.backend.budget.dto.BudgetMemberSummaryResponse;
 import com.travelease.backend.budget.dto.BudgetResponse;
 import com.travelease.backend.budget.dto.BudgetSummaryResponse;
 import com.travelease.backend.budget.mapper.BudgetMapper;
+import com.travelease.backend.busbooking.repository.BookingRepository;
+import com.travelease.backend.itinerary.repository.ActivityBookingRepository;
 import com.travelease.backend.shared.exception.ResourceNotFoundException;
 import com.travelease.backend.trip.entity.Trip;
 import com.travelease.backend.trip.entity.TripMember;
@@ -26,6 +29,9 @@ public class BudgetServiceImpl implements BudgetService {
 
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
+    private final HotelBookingRepository hotelBookingRepository;
+    private final BookingRepository bookingRepository;
+    private final ActivityBookingRepository activityBookingRepository;
     private final BudgetMapper budgetMapper;
 
     @Override
@@ -66,9 +72,18 @@ public class BudgetServiceImpl implements BudgetService {
                 TripMemberStatus.ACCEPTED
         );
         BigDecimal totalBudget = trip.getBudgetAmount();
-        BigDecimal totalSpent = acceptedMembers.stream()
+        // Trip-wide spend = manually-logged shared expenses (TripMember.spentAmount)
+        // PLUS every real booking made against this trip. The per-member breakdown
+        // below deliberately keeps reflecting only logged shared expenses (that's the
+        // expense-split feature's own accounting), not booking costs attributed to
+        // whichever member happened to book them - the two are different concerns.
+        BigDecimal loggedExpenses = acceptedMembers.stream()
                 .map(TripMember::getSpentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal hotelSpend = hotelBookingRepository.sumSpentByTripId(tripId);
+        BigDecimal busSpend = BigDecimal.valueOf(bookingRepository.sumNetSpentByTravelerTripId(tripId));
+        BigDecimal activitySpend = activityBookingRepository.sumSpentByTripId(tripId);
+        BigDecimal totalSpent = loggedExpenses.add(hotelSpend).add(busSpend).add(activitySpend);
         BigDecimal remaining = totalBudget.subtract(totalSpent);
 
         return new BudgetSummaryResponse(
