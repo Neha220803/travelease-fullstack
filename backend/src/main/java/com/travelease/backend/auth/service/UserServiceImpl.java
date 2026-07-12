@@ -1,5 +1,6 @@
 package com.travelease.backend.auth.service;
 
+import com.travelease.backend.auth.SecurityQuestions;
 import com.travelease.backend.auth.dto.AdminCreateUserRequest;
 import com.travelease.backend.auth.dto.PartnerRegisterRequest;
 import com.travelease.backend.auth.dto.PendingPartnerResponse;
@@ -39,6 +40,9 @@ public class UserServiceImpl implements UserService {
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException("Email is already registered: " + request.email());
+        }
+        if (!SecurityQuestions.ALLOWED.contains(request.securityQuestion())) {
+            throw new InvalidRequestException("securityQuestion must be one of the supported security questions");
         }
 
         User user = new User();
@@ -99,6 +103,9 @@ public class UserServiceImpl implements UserService {
     public UserResponse registerPartner(PartnerRegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException("Email is already registered: " + request.email());
+        }
+        if (!SecurityQuestions.ALLOWED.contains(request.securityQuestion())) {
+            throw new InvalidRequestException("securityQuestion must be one of the supported security questions");
         }
 
         Role role = mapRole(request.role());

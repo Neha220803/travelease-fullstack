@@ -35,12 +35,12 @@ class AuthFlowIntegrationTest {
 
     @Test
     void registerThenLoginThenMeWorksEndToEnd() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-flow@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-flow@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         ResponseEntity<ApiResponse> registerResponse =
                 restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        LoginRequest loginRequest = new LoginRequest("asha-flow@example.com", "Passw0rd1");
+        LoginRequest loginRequest = new LoginRequest("asha-flow@example.com", "Passw0rd1!");
         ResponseEntity<ApiResponse> loginResponse =
                 restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -75,7 +75,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void registerRejectsDuplicateEmail() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-dup@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-dup@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         ResponseEntity<ApiResponse> secondResponse =
@@ -86,7 +86,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void loginRejectsWrongPassword() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-wrong@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-wrong@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         LoginRequest loginRequest = new LoginRequest("asha-wrong@example.com", "WrongPassword1");
@@ -98,13 +98,13 @@ class AuthFlowIntegrationTest {
     @Test
     void partnerRegistrationStartsPendingAndBlocksLoginUntilApproved() {
         PartnerRegisterRequest registerRequest = new PartnerRegisterRequest(
-                "Priya Partner", "priya-partner@example.com", "9999999999", "Passw0rd1",
+                "Priya Partner", "priya-partner@example.com", "9999999999", "Passw0rd1!",
                 "HOTEL_PROVIDER", "What is your birth hospital?", "City General");
         ResponseEntity<ApiResponse> registerResponse =
                 restTemplate.postForEntity("/api/auth/register/partner", registerRequest, ApiResponse.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        LoginRequest loginRequest = new LoginRequest("priya-partner@example.com", "Passw0rd1");
+        LoginRequest loginRequest = new LoginRequest("priya-partner@example.com", "Passw0rd1!");
         ResponseEntity<ApiResponse> loginResponse =
                 restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);
 
@@ -115,7 +115,7 @@ class AuthFlowIntegrationTest {
     @Test
     void adminApprovesPendingPartnerAllowingLogin() {
         PartnerRegisterRequest registerRequest = new PartnerRegisterRequest(
-                "Priya Partner", "priya-approve@example.com", "9999999999", "Passw0rd1",
+                "Priya Partner", "priya-approve@example.com", "9999999999", "Passw0rd1!",
                 "HOTEL_PROVIDER", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register/partner", registerRequest, ApiResponse.class);
 
@@ -137,7 +137,7 @@ class AuthFlowIntegrationTest {
                 "/api/admin/partners/" + partnerId + "/approve", HttpMethod.PUT, new HttpEntity<>(adminHeaders), ApiResponse.class);
         assertThat(approveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        LoginRequest loginRequest = new LoginRequest("priya-approve@example.com", "Passw0rd1");
+        LoginRequest loginRequest = new LoginRequest("priya-approve@example.com", "Passw0rd1!");
         ResponseEntity<ApiResponse> loginResponse = restTemplate.postForEntity("/api/auth/login", loginRequest, ApiResponse.class);
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -161,10 +161,58 @@ class AuthFlowIntegrationTest {
     }
 
     @Test
+    void registerRejectsPasswordMissingSpecialCharacter() {
+        RegisterRequest invalidRequest = new RegisterRequest(
+                "Asha", "asha-weak-pwd@example.com", "9999999999", "Passw0rd1",
+                "What is your birth hospital?", "City General");
+
+        ResponseEntity<ApiResponse> response =
+                restTemplate.postForEntity("/api/auth/register", invalidRequest, ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void registerRejectsPhoneWithWrongDigitCount() {
+        RegisterRequest invalidRequest = new RegisterRequest(
+                "Asha", "asha-bad-phone@example.com", "12345", "Passw0rd1!",
+                "What is your birth hospital?", "City General");
+
+        ResponseEntity<ApiResponse> response =
+                restTemplate.postForEntity("/api/auth/register", invalidRequest, ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void registerRejectsEmailOverMaxLength() {
+        String overlongEmail = "a".repeat(95) + "@ex.com";
+        RegisterRequest invalidRequest = new RegisterRequest(
+                "Asha", overlongEmail, "9999999999", "Passw0rd1!",
+                "What is your birth hospital?", "City General");
+
+        ResponseEntity<ApiResponse> response =
+                restTemplate.postForEntity("/api/auth/register", invalidRequest, ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void registerPartnerRejectsInvalidPayload() {
+        PartnerRegisterRequest invalidRequest = new PartnerRegisterRequest(
+                "", "not-an-email", "12345", "short", "HOTEL_PROVIDER", "", "");
+
+        ResponseEntity<ApiResponse> response =
+                restTemplate.postForEntity("/api/auth/register/partner", invalidRequest, ApiResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void updateProfileChangesNameAndPhoneForAuthenticatedUser() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-update@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-update@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
-        String token = loginAndGetToken("asha-update@example.com", "Passw0rd1");
+        String token = loginAndGetToken("asha-update@example.com", "Passw0rd1!");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -181,9 +229,9 @@ class AuthFlowIntegrationTest {
 
     @Test
     void updateProfileRejectsBlankName() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-update-blank@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-update-blank@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
-        String token = loginAndGetToken("asha-update-blank@example.com", "Passw0rd1");
+        String token = loginAndGetToken("asha-update-blank@example.com", "Passw0rd1!");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -196,9 +244,9 @@ class AuthFlowIntegrationTest {
 
     @Test
     void changePasswordAllowsLoginWithNewPasswordAfterCorrectSecurityAnswer() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-pwd@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-pwd@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
-        String token = loginAndGetToken("asha-pwd@example.com", "Passw0rd1");
+        String token = loginAndGetToken("asha-pwd@example.com", "Passw0rd1!");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -214,9 +262,9 @@ class AuthFlowIntegrationTest {
 
     @Test
     void changePasswordRejectsWrongSecurityAnswer() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-pwd-wrong@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-pwd-wrong@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
-        String token = loginAndGetToken("asha-pwd-wrong@example.com", "Passw0rd1");
+        String token = loginAndGetToken("asha-pwd-wrong@example.com", "Passw0rd1!");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -229,7 +277,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void resetPasswordAllowsLoginWithNewPasswordWithoutAnyAuthToken() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-reset@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-reset@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         Map<String, String> resetBody = Map.of(
@@ -246,7 +294,7 @@ class AuthFlowIntegrationTest {
 
     @Test
     void resetPasswordRejectsWrongSecurityAnswer() {
-        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-reset-wrong@example.com", "9999999999", "Passw0rd1", "What is your birth hospital?", "City General");
+        RegisterRequest registerRequest = new RegisterRequest("Asha", "asha-reset-wrong@example.com", "9999999999", "Passw0rd1!", "What is your birth hospital?", "City General");
         restTemplate.postForEntity("/api/auth/register", registerRequest, ApiResponse.class);
 
         Map<String, String> resetBody = Map.of(

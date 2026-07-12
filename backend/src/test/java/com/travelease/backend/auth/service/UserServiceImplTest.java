@@ -174,6 +174,33 @@ class UserServiceImplTest {
     }
 
     @Test
+    void registerRejectsUnknownSecurityQuestion() {
+        RegisterRequest request = new RegisterRequest(
+                "Asha",
+                "asha-unknown-question@example.com",
+                "9999999999",
+                "Passw0rd1",
+                "What is your favorite color?",
+                "Blue"
+        );
+        when(userRepository.existsByEmail("asha-unknown-question@example.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.register(request))
+                .isInstanceOf(InvalidRequestException.class);
+    }
+
+    @Test
+    void registerPartnerRejectsUnknownSecurityQuestion() {
+        PartnerRegisterRequest request = new PartnerRegisterRequest(
+                "Priya", "priya-unknown-question@example.com", "9999999999", "Passw0rd1", "HOTEL_PROVIDER",
+                "What is your favorite color?", "Blue");
+        when(userRepository.existsByEmail("priya-unknown-question@example.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.registerPartner(request))
+                .isInstanceOf(InvalidRequestException.class);
+    }
+
+    @Test
     void listPendingPartnersReturnsOnlyPendingProviderAccounts() {
         User hotelPartner = new User();
         hotelPartner.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));

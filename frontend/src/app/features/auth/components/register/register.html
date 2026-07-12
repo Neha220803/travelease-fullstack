@@ -18,7 +18,7 @@
     </div>
     <div class="space-y-2">
       <label hlmLabel for="phone">Phone</label>
-      <input hlmInput id="phone" name="phone" placeholder="+91 9876543210" (input)="clearFieldError('phone')" />
+      <input hlmInput id="phone" name="phone" placeholder="9876543210" (input)="clearFieldError('phone')" />
       @if (fieldErrors().phone) {
         <p class="text-xs text-destructive">{{ fieldErrors().phone }}</p>
       }
@@ -26,14 +26,14 @@
   </div>
   <div class="space-y-2">
     <label hlmLabel for="email">Email</label>
-    <input hlmInput id="email" name="email" type="email" placeholder="you@example.com" (input)="clearFieldError('email')" />
+    <input hlmInput id="email" name="email" type="email" maxlength="100" placeholder="you@example.com" (input)="clearFieldError('email')" />
     @if (fieldErrors().email) {
       <p class="text-xs text-destructive">{{ fieldErrors().email }}</p>
     }
   </div>
   <div class="space-y-2">
     <label hlmLabel for="password">Password</label>
-    <input hlmInput id="password" name="password" type="password" placeholder="At least 8 characters" (input)="clearFieldError('password')" />
+    <input hlmInput id="password" name="password" type="password" placeholder="8+ chars: upper, lower, number & symbol" (input)="clearFieldError('password')" />
     @if (fieldErrors().password) {
       <p class="text-xs text-destructive">{{ fieldErrors().password }}</p>
     }
@@ -47,13 +47,20 @@
   </div>
   <div class="space-y-2">
     <label hlmLabel for="securityQuestion">Security question</label>
-    <input
-      hlmInput
+    <select
       id="securityQuestion"
       name="securityQuestion"
-      value="What is the name of the hospital where you were born?"
-      readonly
-    />
+      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      (change)="clearFieldError('securityQuestion')"
+    >
+      <option value="" selected disabled>Choose a security question</option>
+      @for (question of securityQuestions; track question) {
+        <option [value]="question">{{ question }}</option>
+      }
+    </select>
+    @if (fieldErrors().securityQuestion) {
+      <p class="text-xs text-destructive">{{ fieldErrors().securityQuestion }}</p>
+    }
   </div>
   <div class="space-y-2">
     <label hlmLabel for="securityAnswer">Your answer</label>
