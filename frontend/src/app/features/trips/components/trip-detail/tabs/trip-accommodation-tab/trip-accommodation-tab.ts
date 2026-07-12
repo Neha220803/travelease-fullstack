@@ -101,6 +101,17 @@ export class TripAccommodationTab implements OnInit {
 
   protected bookHotel(hotelId: string, roomType: string = 'Standard'): void {
     const t = this.trip();
+    
+    // Validate stay duration (must be at least 1 day)
+    const checkIn = new Date(t.startDate);
+    const checkOut = new Date(t.endDate);
+    const timeDiff = checkOut.getTime() - checkIn.getTime();
+    const stayDuration = Math.round(timeDiff / (1000 * 3600 * 24));
+    if (stayDuration <= 0) {
+      this.toastService.showError('Stay duration must be at least 1 day. Please check trip start and end dates.');
+      return;
+    }
+
     this.hotelsService.createBooking({
       tripId: t.tripId,
       hotelId,

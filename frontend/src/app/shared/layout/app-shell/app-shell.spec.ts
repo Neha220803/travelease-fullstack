@@ -65,7 +65,7 @@ async function configureWithRole(role: string | undefined) {
       provideRouter([]),
       provideIcons(ALL_ICONS),
       { provide: ActivatedRoute, useValue: { data: of(role === undefined ? {} : { role }) } },
-      { provide: AuthService, useValue: { logout: vi.fn(), isAuthenticated: () => true } },
+      { provide: AuthService, useValue: { logout: vi.fn(), isAuthenticated: () => true, role: () => role ?? 'traveler', currentUser: () => ({ name: 'Test User' }) } },
       { provide: NotificationService, useValue: { getNotifications: () => of([]) } },
     ],
   }).compileComponents();

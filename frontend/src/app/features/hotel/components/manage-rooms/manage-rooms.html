@@ -90,22 +90,93 @@
       </hlm-dialog-content>
     </ng-template>
   </hlm-dialog>
+
+  <hlm-dialog [state]="editRoomDialogState()" (stateChanged)="setEditRoomDialogState($event)">
+    <ng-template hlmDialogPortal>
+      <hlm-dialog-content class="sm:max-w-xl">
+        <div hlmDialogHeader>
+          <h3 hlmDialogTitle>Edit Room Type</h3>
+          <p hlmDialogDescription>Update room details for this room type.</p>
+        </div>
+        @if (editingRoom(); as room) {
+          <form
+            #editRoomForm
+            class="grid grid-cols-2 gap-3"
+            (submit)="
+              updateRoomType(
+                $event,
+                editRoomForm,
+                room,
+                editRoomTypeInput.value,
+                editCapacityInput.value,
+                editBedTypeInput.value,
+                editRoomPriceInput.value,
+                editRoomStatusInput.value
+              )
+            "
+          >
+            <div class="space-y-2 col-span-2">
+              <label hlmLabel for="edit-room-type">Room Type</label>
+              <input hlmInput id="edit-room-type" [value]="room.type" #editRoomTypeInput required />
+            </div>
+            <div class="space-y-2">
+              <label hlmLabel for="edit-room-capacity">Capacity</label>
+              <input hlmInput id="edit-room-capacity" type="number" min="1" [value]="room.capacity" #editCapacityInput required />
+            </div>
+            <div class="space-y-2">
+              <label hlmLabel for="edit-room-bed">Bed Type</label>
+              <input hlmInput id="edit-room-bed" [value]="room.bedType" #editBedTypeInput required />
+            </div>
+            <div class="space-y-2">
+              <label hlmLabel for="edit-room-price">Price (&#8377;)</label>
+              <input hlmInput id="edit-room-price" type="number" min="1" [value]="room.price" #editRoomPriceInput required />
+            </div>
+            <div class="space-y-2 col-span-2">
+              <label hlmLabel for="edit-room-status">Availability Status</label>
+              <select
+                id="edit-room-status"
+                [value]="room.availabilityStatus"
+                #editRoomStatusInput
+                class="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm outline-none transition-[color,box-shadow] focus-visible:ring-[3px]"
+              >
+                <option value="AVAILABLE">Available</option>
+                <option value="BOOKED">Booked</option>
+                <option value="MAINTENANCE">Maintenance</option>
+              </select>
+            </div>
+            @if (editRoomError()) {
+              <p class="col-span-2 text-sm text-destructive">{{ editRoomError() }}</p>
+            }
+            @if (editRoomSuccess()) {
+              <p class="col-span-2 text-sm text-success">{{ editRoomSuccess() }}</p>
+            }
+            <div hlmDialogFooter class="col-span-2">
+              <button hlmBtn type="submit" [disabled]="savingEditRoom()">
+                {{ savingEditRoom() ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        }
+      </hlm-dialog-content>
+    </ng-template>
+  </hlm-dialog>
 </app-page-header>
 
 <div hlmCard>
   <div hlmCardContent class="pt-5">
     <div class="rounded-md border">
       <div class="grid grid-cols-12 px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40 border-b">
-        <div class="col-span-4">Room Type</div>
-        <div class="col-span-2 text-right">Total</div>
+        <div class="col-span-3">Room Type</div>
+        <div class="col-span-1 text-right">Total</div>
         <div class="col-span-2 text-right">Available</div>
         <div class="col-span-2 text-right">Price</div>
         <div class="col-span-2 text-right">Occupancy</div>
+        <div class="col-span-2 text-right">Actions</div>
       </div>
       @for (r of rows(); track r.id) {
         <div class="grid grid-cols-12 px-4 py-3 items-center border-b last:border-0 text-sm">
-          <div class="col-span-4 font-medium">{{ r.type }}</div>
-          <div class="col-span-2 text-right tabular-nums">{{ r.total }}</div>
+          <div class="col-span-3 font-medium">{{ r.type }}</div>
+          <div class="col-span-1 text-right tabular-nums">{{ r.total }}</div>
           <div class="col-span-2 text-right tabular-nums">{{ r.available }}</div>
           <div class="col-span-2 text-right tabular-nums">&#8377;{{ r.price.toLocaleString() }}</div>
           <div class="col-span-2 text-right">
@@ -115,6 +186,9 @@
                 <div class="h-full bg-primary" [style.width.%]="r.pct"></div>
               </div>
             </div>
+          </div>
+          <div class="col-span-2 text-right">
+            <button hlmBtn variant="outline" size="sm" (click)="openEditRoom(r)">Manage</button>
           </div>
         </div>
       }

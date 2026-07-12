@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideIcons } from '@ng-icons/core';
+import { provideRouter } from '@angular/router';
+import { NotificationService } from '@app/features/notifications/services/notification.service';
+import { of } from 'rxjs';
 import {
   lucideCalendarDays,
   lucideDoorOpen,
@@ -142,8 +145,10 @@ describe('HotelDashboard', () => {
     await TestBed.configureTestingModule({
       imports: [HotelDashboard],
       providers: [
+        provideRouter([]),
         provideIcons({ lucideCalendarDays, lucideDoorOpen, lucideHotel, lucideStar, lucideWallet }),
         { provide: HotelProviderService, useValue: createHotelProviderStub() },
+        { provide: NotificationService, useValue: { getNotifications: () => of([]) } },
       ],
     }).compileComponents();
   });

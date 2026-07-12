@@ -17,8 +17,12 @@ export class ThemeService {
       if (!this.isBrowser) {
         return;
       }
-      document.documentElement.classList.toggle('dark', theme === 'dark');
-      localStorage.setItem(THEME_KEY, theme);
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+      }
+      if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+        localStorage.setItem(THEME_KEY, theme);
+      }
     });
   }
 

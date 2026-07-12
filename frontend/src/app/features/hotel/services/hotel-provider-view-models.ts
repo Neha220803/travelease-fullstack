@@ -30,11 +30,16 @@ export interface HotelCardView {
 
 export interface RoomInventoryView {
   id: string;
+  hotelId: string;
   type: string;
   price: number;
   available: number;
   total: number;
   pct: number;
+  capacity: number;
+  bedType: string;
+  availabilityStatus: string;
+  roomIds: string[];
 }
 
 export interface HotelBookingView {
@@ -110,11 +115,16 @@ export function groupRooms(rooms: RoomResponse[]): RoomInventoryView[] {
 
     return {
       id: `${first.hotelId}-${first.roomType}`,
+      hotelId: first.hotelId,
       type: first.roomType,
       price,
       available,
       total,
       pct: roomOccupancy(total, available),
+      capacity: first.capacity,
+      bedType: first.bedType,
+      availabilityStatus: first.availabilityStatus,
+      roomIds: group.map((room) => room.roomId),
     };
   });
 }

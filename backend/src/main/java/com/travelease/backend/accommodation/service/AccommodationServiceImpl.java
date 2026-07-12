@@ -491,9 +491,11 @@ public class AccommodationServiceImpl implements AccommodationService {
         if (!hotelRepository.existsById(request.hotelId())) {
             errors.add("Hotel not found");
         }
-        if (request.checkInDate() != null && request.checkOutDate() != null
-                && !request.checkOutDate().isAfter(request.checkInDate())) {
-            errors.add("Check-out date must be after check-in date");
+        if (request.checkInDate() != null && request.checkOutDate() != null) {
+            long nights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+            if (nights < 1) {
+                errors.add("Stay duration must be at least 1 day");
+            }
         }
         if (request.hotelId() != null && request.roomType() != null
                 && roomRepository.findFirstByHotelIdAndRoomTypeIgnoreCaseAndAvailabilityStatusIgnoreCase(

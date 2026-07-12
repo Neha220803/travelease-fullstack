@@ -51,7 +51,7 @@ const NAV_MAP: Record<Role, NavItem[]> = {
     { to: '/hotel/bookings', label: 'Bookings', icon: 'lucideCalendarDays' },
     { to: '/hotel/reviews', label: 'Reviews', icon: 'lucideStar' },
     { to: '/hotel/reports', label: 'Reports', icon: 'lucideBarChart3' },
-    { to: '/notifications', label: 'Notifications', icon: 'lucideBell' },
+    { to: '/hotel/notifications', label: 'Notifications', icon: 'lucideBell' },
   ],
   transport: [
     { to: '/transport', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
@@ -130,14 +130,16 @@ export class AppShell {
     this.sidebarOpen.set(state === 'open');
   }
 
-  protected readonly role = toSignal(
-    this.route.data.pipe(map((data) => (data['role'] as Role | undefined) ?? 'traveler')),
-    { initialValue: 'traveler' as Role },
-  );
+  protected readonly role = computed(() => this.authService.role() ?? 'traveler');
 
   protected readonly nav = computed(() => NAV_MAP[this.role()]);
   protected readonly roleLabel = computed(() => ROLE_LABEL[this.role()]);
   protected readonly home = computed(() => ROLE_HOME[this.role()]);
+
+  protected readonly notificationsLink = computed(() => {
+    const role = this.role();
+    return role === 'traveler' ? '/notifications' : `/${role}/notifications`;
+  });
 
   protected readonly userInitials = computed(() => {
     const user = this.authService.currentUser();

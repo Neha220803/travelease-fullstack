@@ -27,7 +27,7 @@
           </a>
         }
         <app-theme-toggle />
-        <a hlmBtn variant="ghost" size="icon" class="relative" routerLink="/notifications">
+        <a hlmBtn variant="ghost" size="icon" class="relative" [routerLink]="notificationsLink()">
           <ng-icon name="lucideBell" class="h-5 w-5" />
           @if (hasUnreadNotifications()) {
             <span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent"></span>

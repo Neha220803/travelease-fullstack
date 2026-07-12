@@ -5,6 +5,10 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { PageHeader } from '@app/shared/ui/page-header/page-header';
 import { StatusBadge } from '@app/shared/ui/status-badge/status-badge';
 import { EChart } from '@app/shared/ui/echart/echart';
+import { NotificationService } from '@app/features/notifications/services/notification.service';
+import { NotificationResponse } from '@app/features/notifications/services/notification.models';
+import { RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { CHART_COLORS } from '@app/shared/ui/echart/echart-theme';
 import { buildRankingBarOption } from '@app/shared/ui/echart/ranking-bar-chart';
 import { WorkspaceSearchService } from '@app/shared/services/workspace-search.service';
@@ -79,12 +83,13 @@ export function occupancyBackground(pct: number): string {
 
 @Component({
   selector: 'app-hotel-dashboard',
-  imports: [NgIcon, HlmCardImports, PageHeader, StatusBadge, EChart],
+  imports: [NgIcon, HlmCardImports, PageHeader, StatusBadge, EChart, RouterLink, DatePipe],
   templateUrl: './hotel-dashboard.html',
 })
 export class HotelDashboard {
   private readonly hotelProvider = inject(HotelProviderService);
   private readonly workspaceSearch = inject(WorkspaceSearchService);
+  private readonly notificationService = inject(NotificationService);
 
   public readonly totalRooms = signal(0);
   public readonly availableRooms = signal(0);
@@ -106,6 +111,7 @@ export class HotelDashboard {
   public readonly ratingCount = signal(0);
   public readonly ratingRows = signal<RatingRow[]>(buildRatingRows([]));
   public readonly ratingOptions = signal<EChartsCoreOption>(buildRatingOptions(buildRatingRows([])));
+  public readonly notifications = signal<NotificationResponse[]>([]);
 
   constructor() {
     combineLatest([
@@ -114,6 +120,12 @@ export class HotelDashboard {
     ])
       .pipe(takeUntilDestroyed())
       .subscribe(([overview, query]) => this.applyOverview(filterProviderOverview(overview, query)));
+
+    this.notificationService.getNotifications()
+      .pipe(takeUntilDestroyed())
+      .subscribe((notifs) => {
+        this.notifications.set(notifs.slice(0, 5));
+      });
   }
 
   private applyOverview(overview: ProviderOverview): void {

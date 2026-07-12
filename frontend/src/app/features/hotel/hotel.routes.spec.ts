@@ -28,6 +28,7 @@ describe('HOTEL_ROUTES', () => {
       'bookings',
       'reviews',
       'reports',
+      'notifications',
     ]);
   });
 
@@ -41,8 +42,9 @@ describe('HOTEL_ROUTES', () => {
       HotelReviews,
       HotelReports,
     ];
-    for (let i = 0; i < children.length; i++) {
+    for (let i = 0; i < expected.length; i++) {
       expect(await children[i].loadComponent!()).toBe(expected[i]);
     }
+    expect(children[6].loadChildren).toBeDefined();
   });
 });

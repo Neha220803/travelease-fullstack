@@ -20,10 +20,11 @@ const SAMPLE_EXPENSE: ExpenseResponse = {
   description: 'Dinner at Britto\'s',
   payerId: 'u1',
   payerName: 'Alice',
+  status: 'PENDING',
   participants: [
-    { userId: 'u1', name: 'Alice', shareAmount: 1000 },
-    { userId: 'u2', name: 'Bob', shareAmount: 1000 },
-    { userId: 'u3', name: 'Charlie', shareAmount: 1000 },
+    { userId: 'u1', name: 'Alice', shareAmount: 1000, status: 'PENDING' },
+    { userId: 'u2', name: 'Bob', shareAmount: 1000, status: 'PENDING' },
+    { userId: 'u3', name: 'Charlie', shareAmount: 1000, status: 'PENDING' },
   ],
   createdAt: '2026-08-02T18:30:00Z',
 };

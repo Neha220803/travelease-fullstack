@@ -50,6 +50,12 @@ export class ManageRooms {
   public readonly roomError = signal('');
   public readonly roomSuccess = signal('');
 
+  public readonly editingRoom = signal<RoomInventoryView | null>(null);
+  public readonly editRoomDialogState = signal<BrnDialogState>('closed');
+  public readonly savingEditRoom = signal(false);
+  public readonly editRoomError = signal('');
+  public readonly editRoomSuccess = signal('');
+
   constructor() {
     this.watchRoomData();
   }
@@ -60,6 +66,24 @@ export class ManageRooms {
       this.roomError.set('');
       this.roomSuccess.set('');
     }
+  }
+
+  public setEditRoomDialogState(state: BrnDialogState): void {
+    this.editRoomDialogState.set(state);
+    if (state === 'closed' && !this.savingEditRoom()) {
+      this.editingRoom.set(null);
+    }
+    if (state === 'open') {
+      this.editRoomError.set('');
+      this.editRoomSuccess.set('');
+    }
+  }
+
+  public openEditRoom(room: RoomInventoryView): void {
+    this.editingRoom.set(room);
+    this.editRoomError.set('');
+    this.editRoomSuccess.set('');
+    this.editRoomDialogState.set('open');
   }
 
   public createRoomType(
@@ -77,12 +101,28 @@ export class ManageRooms {
     this.roomError.set('');
     this.roomSuccess.set('');
 
+    const price = Number(pricePerNight);
+    const cap = Number(capacity);
+
+    if (price <= 0) {
+      this.roomError.set('Price must be greater than 0.');
+      return;
+    }
+    if (!bedType.trim()) {
+      this.roomError.set('Bed type must not be empty.');
+      return;
+    }
+    if (cap <= 0) {
+      this.roomError.set('Capacity must be greater than 0.');
+      return;
+    }
+
     const roomCount = Math.max(1, Math.floor(Number(count) || 1));
     const request: RoomRequest = {
       roomType: roomType.trim(),
-      capacity: Number(capacity),
+      capacity: cap,
       bedType: bedType.trim(),
-      pricePerNight: Number(pricePerNight),
+      pricePerNight: price,
       availabilityStatus,
     };
 
@@ -107,6 +147,70 @@ export class ManageRooms {
         },
         complete: () => {
           this.savingRoom.set(false);
+        },
+      });
+  }
+
+  public updateRoomType(
+    event: SubmitEvent,
+    form: HTMLFormElement,
+    room: RoomInventoryView,
+    roomType: string,
+    capacity: string,
+    bedType: string,
+    pricePerNight: string,
+    availabilityStatus: string,
+  ): void {
+    event.preventDefault();
+    this.editRoomError.set('');
+    this.editRoomSuccess.set('');
+
+    const price = Number(pricePerNight);
+    const cap = Number(capacity);
+
+    if (price <= 0) {
+      this.editRoomError.set('Price must be greater than 0.');
+      return;
+    }
+    if (!bedType.trim()) {
+      this.editRoomError.set('Bed type must not be empty.');
+      return;
+    }
+    if (cap <= 0) {
+      this.editRoomError.set('Capacity must be greater than 0.');
+      return;
+    }
+
+    const request: RoomRequest = {
+      roomType: roomType.trim(),
+      capacity: cap,
+      bedType: bedType.trim(),
+      pricePerNight: price,
+      availabilityStatus,
+    };
+
+    if (!room.hotelId || !request.roomType || !request.capacity || !request.bedType || !request.pricePerNight) {
+      this.editRoomError.set('Fill the required room type details.');
+      return;
+    }
+
+    this.savingEditRoom.set(true);
+    forkJoin(room.roomIds.map((roomId) => this.hotelProvider.updateRoom(room.hotelId, roomId, request)))
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          form.reset();
+          this.editRoomDialogState.set('closed');
+          this.editingRoom.set(null);
+          this.editRoomSuccess.set('Room type updated in database.');
+          this.hotelProvider.refreshProviderData();
+        },
+        error: (error: unknown) => {
+          this.editRoomError.set(error instanceof Error ? error.message : 'Could not update room type.');
+          this.savingEditRoom.set(false);
+        },
+        complete: () => {
+          this.savingEditRoom.set(false);
         },
       });
   }

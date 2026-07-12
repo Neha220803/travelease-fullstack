@@ -122,6 +122,15 @@ export class HotelProviderService {
     );
   }
 
+  updateRoom(hotelId: string, roomId: string, request: RoomRequest): Observable<RoomResponse> {
+    return this.unwrap(
+      this.http.put<ApiResponse<RoomResponse>>(
+        `${this.apiBaseUrl}/provider/hotels/${hotelId}/rooms/${roomId}`,
+        request,
+      ),
+    );
+  }
+
   getProviderBookings(): Observable<HotelBookingResponse[]> {
     return this.unwrap(
       this.http.get<ApiResponse<HotelBookingResponse[]>>(`${this.apiBaseUrl}/provider/hotel-bookings`),
