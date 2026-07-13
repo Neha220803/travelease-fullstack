@@ -72,6 +72,10 @@ class AccommodationServiceImplHotelProviderOwnershipTest {
     private com.travelease.backend.itinerary.service.NotificationService notificationService;
     @Mock
     private com.travelease.backend.itinerary.service.ItineraryService itineraryService;
+    @Mock
+    private com.travelease.backend.accommodation.repository.RoomLockRepository roomLockRepository;
+    @Mock
+    private com.travelease.backend.accommodation.repository.HotelGuestRepository hotelGuestRepository;
 
     private AccommodationServiceImpl accommodationService;
 
@@ -80,7 +84,8 @@ class AccommodationServiceImplHotelProviderOwnershipTest {
         SecurityUtil securityUtil = new SecurityUtil(userRepository);
         accommodationService = new AccommodationServiceImpl(
                 hotelRepository, roomRepository, bookingRepository, reviewRepository, userRepository, tripRepository,
-                tripMemberRepository, new TripAuthorizationService(tripMemberRepository), notificationService, securityUtil, itineraryService);
+                tripMemberRepository, new TripAuthorizationService(tripMemberRepository), notificationService, securityUtil,
+                itineraryService, roomLockRepository, hotelGuestRepository);
     }
 
     @AfterEach

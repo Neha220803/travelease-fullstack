@@ -57,6 +57,10 @@ class AccommodationServiceImplBookingOwnershipTest {
     private com.travelease.backend.itinerary.service.ItineraryService itineraryService;
     @Mock
     private com.travelease.backend.itinerary.service.NotificationService notificationService;
+    @Mock
+    private com.travelease.backend.accommodation.repository.RoomLockRepository roomLockRepository;
+    @Mock
+    private com.travelease.backend.accommodation.repository.HotelGuestRepository hotelGuestRepository;
 
     private AccommodationServiceImpl accommodationService;
 
@@ -64,7 +68,8 @@ class AccommodationServiceImplBookingOwnershipTest {
     void setUp() {
         accommodationService = new AccommodationServiceImpl(
                 hotelRepository, roomRepository, bookingRepository, reviewRepository, userRepository, tripRepository,
-                tripMemberRepository, new TripAuthorizationService(tripMemberRepository), notificationService, securityUtil, itineraryService);
+                tripMemberRepository, new TripAuthorizationService(tripMemberRepository), notificationService, securityUtil,
+                itineraryService, roomLockRepository, hotelGuestRepository);
     }
 
     private User user(String email) {
@@ -144,11 +149,10 @@ class AccommodationServiceImplBookingOwnershipTest {
 
         when(hotelRepository.existsById(hotelId)).thenReturn(true);
         when(hotelRepository.findById(hotelId)).thenReturn(Optional.of(hotel));
-        when(roomRepository.findFirstByHotelIdAndRoomTypeIgnoreCaseAndAvailabilityStatusIgnoreCase(
-                hotelId, "DELUXE", "AVAILABLE")).thenReturn(Optional.of(room));
+        when(roomRepository.findByHotelId(hotelId)).thenReturn(java.util.List.of(room));
 
         HotelBookingRequest request = new HotelBookingRequest(
-                null, hotelId, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), "DELUXE", null);
+                null, hotelId, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), "DELUXE", null, null, null, null);
 
         HotelBookingResponse response = accommodationService.updateBooking(bookingId, request, alice.getEmail());
 
@@ -163,7 +167,7 @@ class AccommodationServiceImplBookingOwnershipTest {
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         HotelBookingRequest request = new HotelBookingRequest(
-                null, UUID.randomUUID(), LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), "DELUXE", null);
+                null, UUID.randomUUID(), LocalDate.now().plusDays(1), LocalDate.now().plusDays(2), "DELUXE", null, null, null, null);
 
         assertThatThrownBy(() -> accommodationService.updateBooking(bookingId, request, "bob@travelease.test"))
                 .isInstanceOf(AccessDeniedException.class);
@@ -235,15 +239,12 @@ class AccommodationServiceImplBookingOwnershipTest {
         room.setPricePerNight(new BigDecimal("120.00"));
         room.setAvailabilityStatus("AVAILABLE");
 
-        when(hotelRepository.existsById(hotelId)).thenReturn(true);
-        when(hotelRepository.findById(hotelId)).thenReturn(Optional.of(hotel));
-        when(roomRepository.findFirstByHotelIdAndRoomTypeIgnoreCaseAndAvailabilityStatusIgnoreCase(
-                hotelId, "DELUXE", "AVAILABLE")).thenReturn(Optional.of(room));
+        when(roomRepository.findByHotelId(hotelId)).thenReturn(java.util.List.of(room));
         when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
         when(bookingRepository.save(any(HotelBooking.class))).thenAnswer(inv -> inv.getArgument(0));
 
         HotelBookingRequest request = new HotelBookingRequest(
-                null, hotelId, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), "DELUXE", null);
+                null, hotelId, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), "DELUXE", null, null, null, null);
 
         HotelBookingResponse response = accommodationService.createBooking(request, alice.getEmail());
 
